@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Karukera Conseil Immobilier — Analyse de Faisabilité</title>
+  <!-- KCI v5 -->
   <meta name="description" content="Pré-étude de faisabilité immobilière en Guadeloupe. Score /10, estimation financière, checklist et conclusion experte par un architecte certifié." />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <style>
@@ -995,6 +996,234 @@
       from { opacity: 0; transform: translateY(12px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+
+    /* ─── CONFIRMATION EMAIL BANNER ─── */
+    .confirm-banner {
+      background: var(--green-bg);
+      border: 1px solid rgba(42,157,108,.25);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .82rem;
+      color: var(--green);
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+    .confirm-banner.hidden { display: none; }
+
+    /* ─── ERREUR DONNÉES — MODAL ─── */
+    .data-error-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(11,21,38,.55);
+      backdrop-filter: blur(10px);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    .data-error-overlay.show { display: flex; }
+    .data-error-card {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      max-width: 480px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border-subtle);
+    }
+    .data-error-icon {
+      width: 52px; height: 52px;
+      background: rgba(212,138,26,.1);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      margin: 0 0 18px;
+    }
+    .data-error-title {
+      font-family: var(--ff-body);
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+    .data-error-body {
+      font-size: .85rem;
+      color: var(--text-2);
+      line-height: 1.65;
+      margin-bottom: 16px;
+    }
+    .data-error-list {
+      list-style: none;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      padding: 12px 16px;
+      margin-bottom: 20px;
+    }
+    .data-error-list li {
+      font-size: .8rem;
+      color: var(--orange);
+      padding: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .data-error-list li::before { content: '→'; color: var(--orange); }
+
+    /* ─── CONTACT SECTION ─── */
+    .contact-section {
+      background: var(--navy);
+      padding: 56px 2rem;
+    }
+    .contact-inner {
+      max-width: 820px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 3rem;
+      align-items: start;
+    }
+    .contact-left h2 {
+      font-family: var(--ff-title);
+      font-size: 1.6rem;
+      color: var(--surface);
+      font-weight: 500;
+      margin-bottom: 12px;
+      line-height: 1.25;
+    }
+    .contact-left h2 em { color: var(--gold); font-style: italic; }
+    .contact-left p {
+      font-size: .85rem;
+      color: rgba(255,255,255,.45);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+    }
+    .contact-item:last-child { border-bottom: none; }
+    .contact-icon {
+      width: 36px; height: 36px;
+      background: rgba(194,160,96,.1);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .9rem;
+      flex-shrink: 0;
+    }
+    .contact-item-text {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .contact-item-label {
+      font-size: .68rem;
+      color: rgba(255,255,255,.35);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .contact-item-value {
+      font-size: .88rem;
+      color: rgba(255,255,255,.8);
+      font-weight: 500;
+    }
+    .contact-item-value a {
+      color: var(--gold);
+      text-decoration: none;
+    }
+    .contact-item-value a:hover { text-decoration: underline; }
+    .contact-right {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: var(--radius);
+      padding: 2rem;
+    }
+    .contact-right h3 {
+      font-family: var(--ff-body);
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .expert-card-contact {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    .expert-avatar-lg {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      border: 2px solid var(--gold);
+      background: linear-gradient(135deg, var(--navy-mid), var(--navy-light));
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--ff-title);
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--gold);
+      flex-shrink: 0;
+    }
+    .expert-meta-name {
+      font-family: var(--ff-title);
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--surface);
+    }
+    .expert-meta-title {
+      font-size: .75rem;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+    .expert-meta-sub {
+      font-size: .68rem;
+      color: rgba(255,255,255,.3);
+      margin-top: 2px;
+    }
+    .contact-promises { display: flex; flex-direction: column; gap: 10px; }
+    .contact-promise {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: .8rem;
+      color: rgba(255,255,255,.55);
+      line-height: 1.5;
+    }
+    .contact-promise::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 600;
+      font-size: .72rem;
+      flex-shrink: 0;
+      width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(42,157,108,.1);
+      border-radius: 50%;
+      margin-top: 1px;
+    }
+    @media (max-width: 640px) {
+      .contact-inner { grid-template-columns: 1fr; gap: 2rem; }
+    }
+    /* ─── LOADER STEP 5 (vérification IA) ─── */
+    .loader-step-verify {
+      background: var(--gold-pale);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      margin-top: 8px;
+      font-size: .78rem;
+      color: var(--orange);
+      font-weight: 500;
+      display: none;
+    }
+    .loader-step-verify.show { display: block; }
   </style>
 </head>
 <body>
@@ -1111,7 +1340,7 @@
     <!-- ÉTAPE 2 — Le bien -->
     <div class="form-step" id="step-2">
       <div class="card">
-        <div class="card-title"><div class="icon">📍</div> Le bien</div>
+        <div class="card-title"><div class="icon">📍8/div> Le bien</div>
         <div class="form-grid">
           <div class="field">
             <label>Commune *</label>
@@ -1317,11 +1546,22 @@
         <div class="loader-step-dot">4</div>
         <span>Scoring multi-critères et rédaction de la conclusion</span>
       </div>
+      <div class="loader-step" id="ls-5">
+        <div class="loader-step-dot">5</div>
+        <span>Double vérification IA — cohérence & qualité</span>
+      </div>
     </div>
+    <div class="loader-step-verify" id="loader-verify-msg"></div>
   </div>
 
   <!-- ═══ RAPPORT ═══ -->
   <div id="rapport" class="fade-in">
+
+    <!-- BANNIÈRE CONFIRMATION EMAIL -->
+    <div class="confirm-banner hidden" id="confirm-email-banner">
+      <span>✅</span>
+      <span id="confirm-email-text">Un email de confirmation vous a été envoyé.</span>
+    </div>
 
     <!-- EN-TÊTE -->
     <div class="rapport-header">
@@ -1416,6 +1656,55 @@
 
 </main>
 
+<!-- ─── CONTACT SECTION ─── -->
+<section class="contact-section" id="contact">
+  <div class="contact-inner">
+    <div class="contact-left">
+      <h2>Une question ?<br><em>Parlons-en.</em></h2>
+      <p>Notre équipe est disponible pour vous accompagner dans votre projet immobilier en Guadeloupe. Analyse de terrain, conseils réglementaires, montage financier — nous sommes là.</p>
+      <div class="contact-item">
+        <div class="contact-icon">✉️</div>
+        <div class="contact-item-text">
+          <span class="contact-item-label">Email</span>
+          <span class="contact-item-value"><a href="mailto:dereck.rauzduel@gmail.com">dereck.rauzduel@gmail.com</a></span>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">📍</div>
+        <div class="contact-item-text">
+          <span class="contact-item-label">Zone d'intervention</span>
+          <span class="contact-item-value">Guadeloupe (971) · Dom-Tom</span>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">🏛️</div>
+        <div class="contact-item-text">
+          <span class="contact-item-label">Cabinet</span>
+          <span class="contact-item-value">Karukera Conseil Immobilier</span>
+        </div>
+      </div>
+    </div>
+    <div class="contact-right">
+      <h3>Votre expert</h3>
+      <div class="expert-card-contact">
+        <div class="expert-avatar-lg">DR</div>
+        <div>
+          <div class="expert-meta-name">Dereck Rauzduel</div>
+          <div class="expert-meta-title">Architecte DE · Fondateur KCI</div>
+          <div class="expert-meta-sub">Karukera Conseil Immobilier — Guadeloupe</div>
+        </div>
+      </div>
+      <div class="contact-promises">
+        <div class="contact-promise">Spécialiste du marché foncier guadeloupéen</div>
+        <div class="contact-promise">Maîtrise des PLU, PPRI et contraintes locales</div>
+        <div class="contact-promise">Analyse architecturale et technique du bâti</div>
+        <div class="contact-promise">Accompagnement de l'étude à l'acte notarié</div>
+        <div class="contact-promise">Réponse sous 24h ouvrées</div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ─── PAYWALL MODAL ─── -->
 <div class="paywall-overlay" id="paywall">
   <div class="paywall-card">
@@ -1441,11 +1730,36 @@
   </div>
 </div>
 
+<!-- ─── MODAL ERREUR DONNÉES ─── -->
+<div class="data-error-overlay" id="data-error-modal">
+  <div class="data-error-card">
+    <div class="data-error-icon">⚠️</div>
+    <div class="data-error-title">Informations insuffisantes ou incohérentes</div>
+    <div class="data-error-body">
+      Notre moteur d'analyse a détecté que les informations fournies ne permettent pas de produire un rapport fiable.<br><br>
+      <strong>Merci de vérifier et compléter les points suivants :</strong>
+    </div>
+    <ul class="data-error-list" id="data-error-list">
+      <li>Commune et type de bien clairement renseignés</li>
+      <li>Prix affiché cohérent avec le marché guadeloupéen</li>
+      <li>Description du projet suffisamment détaillée</li>
+    </ul>
+    <p style="font-size:.8rem;color:var(--text-3);margin-bottom:20px;">
+      Besoin d'aide ? Contactez-nous directement : 
+      <a href="mailto:dereck.rauzduel@gmail.com" style="color:var(--gold);">dereck.rauzduel@gmail.com</a>
+    </p>
+    <button class="btn-primary btn-full" onclick="closeDataErrorModal()">
+      ← Corriger mes informations
+    </button>
+  </div>
+</div>
+
 <!-- ─── FOOTER ─── -->
 <footer>
   <strong>Karukera Conseil Immobilier</strong> — Guadeloupe · Expertise Foncière & Immobilière<br />
   <em>Investir en Guadeloupe, en toute clarté.</em><br /><br />
-  Méthodologie validée par Dereck Rauzduel, Architecte EPFL
+  Méthodologie validée par Dereck Rauzduel, Architecte DE ·
+  <em>dereck.rauzduel@gmail.com</em>
 </footer>
 
 <script>
@@ -1694,7 +2008,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({
-          _subject: '🏠 Nouveau lead KCI — ' + commune + ' (' + type_bien + ')',
+          _subject: `🏠 Nouveau lead KCI — ${commune} (${type_bien})`,
           prenom: prenom || '',
           nom: getVal('nom') || '',
           email: email || '',
@@ -1713,7 +2027,7 @@
           description: infos || 'Aucune',
           contraintes: contraintes_connues || 'Aucune'
         })
-      }).catch(() => {});
+      }).catch(() => {}); // Fire-and-forget, ne bloque pas l'analyse
     } catch(e) {}
 
     document.getElementById('formulaire').style.display = 'none';
@@ -1781,9 +2095,39 @@ Génère UNIQUEMENT un objet JSON valide (sans markdown, sans backticks) avec ex
       const response = await fetch('/api/analyse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
+        body: JSON.stringify({
+          prompt,
+          clientEmail: email || '',
+          clientName: (prenom ? prenom + ' ' : '') + (getVal('nom') || ''),
+          clientPhone: getVal('telephone') || '',
+          bienData: {
+            commune,
+            quartier: quartier || '',
+            type_bien,
+            prix,
+            surface_terrain: surface_terrain || '',
+            surface_hab: surface_hab || '',
+            intention: intention || '',
+            budget: budget || '',
+            plu: plu || '',
+            mer: mer || '',
+            loyer: loyer || '',
+            infos: infos || '',
+            contraintes_connues: contraintes_connues || ''
+          }
+        })
       });
       const data = await response.json();
+
+      // ── CAS : données insuffisantes détectées par la vérification IA ──
+      if (data?.needsMoreData) {
+        clearInterval(loaderInterval);
+        document.getElementById('loader').style.display = 'none';
+        document.getElementById('formulaire').style.display = 'block';
+        goStep(2);
+        showNeedsMoreDataAlert(data.message || 'Les informations fournies sont insuffisantes. Merci de les compléter.');
+        return;
+      }
 
       let raw = '';
       if (data?.content) {
@@ -1916,6 +2260,29 @@ Génère UNIQUEMENT un objet JSON valide (sans markdown, sans backticks) avec ex
   /* ═══════════════════════════════════════════════════════
      RESET
      ═══════════════════════════════════════════════════════ */
+  /* ═══════════════════════════════════════════════════════
+     ALERTE DONNÉES INSUFFISANTES
+     ═══════════════════════════════════════════════════════ */
+  function showNeedsMoreDataAlert(message) {
+    const prev = document.getElementById('needs-data-alert');
+    if (prev) prev.remove();
+    const alert = document.createElement('div');
+    alert.id = 'needs-data-alert';
+    alert.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:9999;max-width:520px;width:calc(100% - 40px);background:#fff;border-radius:14px;box-shadow:0 8px 40px rgba(11,21,38,.18);border:1px solid #E8E8E4;overflow:hidden;animation:fadeIn .3s ease;';
+    alert.innerHTML = `
+      <div style="background:#FEF3C7;border-bottom:1px solid #FDE68A;padding:14px 20px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.2rem;">⚠️</span>
+        <strong style="color:#92400E;font-size:.9rem;">Vérification des informations requise</strong>
+        <button onclick="document.getElementById('needs-data-alert').remove()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:#92400E;font-size:1.1rem;line-height:1;">×</button>
+      </div>
+      <div style="padding:18px 20px;">
+        <p style="font-size:.85rem;color:#6B6B65;line-height:1.7;margin:0 0 14px;">${message}</p>
+        <p style="font-size:.8rem;color:#9C9C94;margin:0;">Corrigez les informations indiquées ci-dessus et relancez l'analyse.</p>
+      </div>`;
+    document.body.appendChild(alert);
+    setTimeout(() => { if (alert.parentNode) alert.remove(); }, 12000);
+  }
+
   function resetForm() {
     document.getElementById('rapport').style.display = 'none';
     document.getElementById('formulaire').style.display = 'block';
