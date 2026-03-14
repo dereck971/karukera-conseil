@@ -1688,6 +1688,34 @@
       return;
     }
 
+    // ── FORMSPREE — Capture du lead ──
+    try {
+      fetch('https://formspree.io/f/meerzzro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          _subject: '🏠 Nouveau lead KCI — ' + commune + ' (' + type_bien + ')',
+          prenom: prenom || '',
+          nom: getVal('nom') || '',
+          email: email || '',
+          telephone: getVal('telephone') || '',
+          commune: commune,
+          type_bien: type_bien,
+          prix: prix + ' €',
+          surface_terrain: surface_terrain ? surface_terrain + ' m²' : 'N/A',
+          surface_hab: surface_hab ? surface_hab + ' m²' : 'N/A',
+          intention: intention || 'N/A',
+          budget: budget || 'N/A',
+          urgence: urgence || 'N/A',
+          zone_plu: plu || 'N/A',
+          proximite_mer: mer || 'N/A',
+          loyer_espere: loyer ? loyer + ' €' : 'N/A',
+          description: infos || 'Aucune',
+          contraintes: contraintes_connues || 'Aucune'
+        })
+      }).catch(() => {});
+    } catch(e) {}
+
     document.getElementById('formulaire').style.display = 'none';
     document.getElementById('loader').style.display = 'block';
     document.getElementById('rapport').style.display = 'none';
