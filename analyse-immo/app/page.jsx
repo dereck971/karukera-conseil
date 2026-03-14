@@ -35,7 +35,7 @@ export default function IntakeForm() {
   const handleSubmit = async () => {
     setSending(true);
     try {
-      await fetch("https://formspree.io/f/REMPLACE_PAR_TON_ID", {
+      await fetch("https://formspree.io/f/https://formspree.io/f/meerzzro", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
