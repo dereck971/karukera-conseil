@@ -1,4 +1,4 @@
-// api/verify-session.js
+// api/verify-session.js v6
 // Vérifie le paiement Stripe et retourne un token d'accès signé (HMAC)
 
 const Stripe = require('stripe');
@@ -17,9 +17,7 @@ module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   const { session_id } = req.query;
   if (!session_id) {
@@ -30,17 +28,15 @@ module.exports = async (req, res) => {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
-    const paid =
-      session.payment_status === 'paid' ||
-      session.status === 'complete';
+    const paid = session.payment_status === 'paid' || session.status === 'complete';
 
     if (!paid) {
       return res.status(200).json({ success: false, error: 'Paiement non confirmé' });
     }
 
-    // Token valide 24h pour un rapport one-shot
+    const plan = session.metadata?.plan || 'recommandee';
     const payload = {
-      plan: 'one_shot',
+      plan,
       email: session.customer_details?.email || '',
       expiresAt: Date.now() + 24 * 60 * 60 * 1000,
       issuedAt: Date.now(),
@@ -51,7 +47,7 @@ module.exports = async (req, res) => {
     return res.status(200).json({
       success: true,
       token,
-      plan: 'one_shot',
+      plan,
       expiresAt: payload.expiresAt,
       email: payload.email,
     });

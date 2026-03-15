@@ -1,27 +1,22 @@
 {
-      "version": 2,
-      "builds": [
-              { "src": "api/**/*.js", "use": "@vercel/node" },
-              { "src": "index.html",  "use": "@vercel/static" },
-              { "src": "admin.html",  "use": "@vercel/static" }
-      ],
-      "routes": [
-              { "src": "/api/(.*)", "dest": "/api/$1" },
-              { "src": "/admin",    "dest": "/admin.html" },
-              { "src": "/(.*)",     "dest": "/index.html" }
-      ],
-      "functions": {
-              "api/generate-pdf.js": { "memory": 1024, "maxDuration": 60 }
-      },
-      "env": {
-              "ANTHROPIC_API_KEY":      "@anthropic_api_key",
-              "STRIPE_SECRET_KEY":      "@stripe_secret_key",
-              "STRIPE_WEBHOOK_SECRET":  "@stripe_webhook_secret",
-              "TOKEN_SECRET":           "@token_secret",
-              "RESEND_API_KEY":         "@resend_api_key",
-              "ADMIN_SECRET":           "@admin_secret",
-              "FROM_EMAIL":             "@from_email",
-              "ADMIN_EMAIL":            "@admin_email",
-              "BASE_URL":               "@base_url"
-      }
+  "version": 2,
+  "builds": [
+    { "src": "api/**/*.js", "use": "@vercel/node" },
+    { "src": "index.html", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "env": {
+    "ANTHROPIC_API_KEY": "@anthropic_api_key",
+    "STRIPE_SECRET_KEY": "@stripe_secret_key",
+    "STRIPE_WEBHOOK_SECRET": "@stripe_webhook_secret",
+    "TOKEN_SECRET": "@token_secret",
+    "RESEND_API_KEY": "@resend_api_key",
+    "ADMIN_EMAIL": "@admin_email",
+    "ADMIN_SECRET": "@admin_secret",
+    "FROM_EMAIL": "@from_email",
+    "BASE_URL": "@base_url"
+  }
 }

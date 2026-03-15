@@ -1,6 +1,5 @@
-// api/webhook.js
+// api/webhook.js v6
 // Récepteur de webhooks Stripe — signature verification
-// Activer dans Stripe Dashboard → Developers → Webhooks → ajouter endpoint /api/webhook
 
 const Stripe = require('stripe');
 
@@ -19,9 +18,7 @@ async function getRawBody(req) {
 }
 
 module.exports = async (req, res) => {
-  if (req.method !== 'POST') {
-    return res.status(405).end();
-  }
+  if (req.method !== 'POST') return res.status(405).end();
 
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -50,7 +47,6 @@ module.exports = async (req, res) => {
         email: session.customer_details?.email,
         amount: session.amount_total,
       });
-      // Extension future : enregistrer en base (Supabase, PlanetScale...)
       break;
     }
     case 'payment_intent.payment_failed': {
