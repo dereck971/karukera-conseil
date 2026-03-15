@@ -1,17 +1,37 @@
 // api/validate.js v6
 // Endpoint de validation admin : approve → envoie email client / reject → demande révision
 
+const crypto = require('crypto');
 const pendingReports = global._kciPending || (global._kciPending = new Map());
 
-module.exports = async (req, res) => {
-  const { id, action, secret } = req.query;
+// Génère un token HMAC signé à usage unique
+function generateAdminToken(reportId, action) {
+  const secret = process.env.ADMIN_SECRET;
+  if (!secret) throw new Error('ADMIN_SECRET not configured');
+  const payload = `${reportId}:${action}`;
+  const sig = crypto.createHmac('sha256', secret).update(payload).digest('hex');
+  return sig;
+}
 
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
-    return res.status(403).send(html('Accès refusé', 'Lien invalide ou expiré.', '#C43B2E'));
+// Vérifie le token HMAC
+function verifyAdminToken(reportId, action, token) {
+  const expected = generateAdminToken(reportId, action);
+  return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected));
+}
+
+module.exports = async (req, res) => {
+  const { id, action, token } = req.query;
+
+  if (!id || !action || !token) {
+    return res.status(400).send(html('Paramètre manquant', 'Lien invalide ou incomplet.', '#C43B2E'));
   }
 
-  if (!id || !action) {
-    return res.status(400).send(html('Paramètre manquant', 'ID ou action manquant.', '#C43B2E'));
+  try {
+    if (!verifyAdminToken(id, action, token)) {
+      return res.status(403).send(html('Accès refusé', 'Lien invalide ou expiré.', '#C43B2E'));
+    }
+  } catch (e) {
+    return res.status(403).send(html('Accès refusé', 'Lien invalide ou expiré.', '#C43B2E'));
   }
 
   const report = pendingReports.get(id);
@@ -76,7 +96,7 @@ module.exports = async (req, res) => {
     ));
   }
 
-  return res.status(400).send(html('Action inconnue', `Action "${action}" non reconnue.`, '#C43B2E'));
+  return res.status(400).send(html('Action inconnue', `Action "${escapeHtml(action)}" non reconnue.`, '#C43B2E'));
 };
 
 // ─── ENVOI RAPPORT CLIENT ──────────────────────────────────────────
@@ -221,15 +241,23 @@ async function sendRevisionRequestToClient(report) {
   });
 }
 
+// ─── ESCAPE HTML (XSS protection) ─────────────────────────────────
+function escapeHtml(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 // ─── HTML HELPER ──────────────────────────────────────────────────
 function html(title, message, color) {
+  const safeTitle = escapeHtml(title);
+  const safeColor = escapeHtml(color);
   return `<!DOCTYPE html>
-<html><head><meta charset="UTF-8"><title>${title} — KCI</title></head>
+<html><head><meta charset="UTF-8"><title>${safeTitle} — KCI</title></head>
 <body style="margin:0;padding:40px 20px;background:#F7F7F5;font-family:-apple-system,sans-serif;text-align:center;">
 <div style="max-width:480px;margin:0 auto;background:#fff;border-radius:12px;padding:40px;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
   <div style="font-size:24px;color:#C2A060;letter-spacing:4px;font-weight:300;margin-bottom:4px;">KCI</div>
   <div style="width:32px;height:1px;background:#C2A060;margin:12px auto 24px;opacity:0.4;"></div>
-  <h2 style="color:${color};font-size:18px;margin:0 0 16px;">${title}</h2>
+  <h2 style="color:${safeColor};font-size:18px;margin:0 0 16px;">${safeTitle}</h2>
   <p style="color:#6B6B65;font-size:14px;line-height:1.7;margin:0 0 24px;">${message}</p>
   <p style="font-size:12px;color:#9C9C94;">KCI — Karukera Conseil Immobilier</p>
 </div>

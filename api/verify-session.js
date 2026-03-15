@@ -5,7 +5,8 @@ const Stripe = require('stripe');
 const crypto = require('crypto');
 
 function generateToken(payload) {
-  const secret = process.env.TOKEN_SECRET || 'kci_default_secret_change_me';
+  const secret = process.env.TOKEN_SECRET;
+  if (!secret) throw new Error('TOKEN_SECRET environment variable is required');
   const data = Buffer.from(JSON.stringify(payload)).toString('base64');
   const sig = crypto.createHmac('sha256', secret).update(data).digest('hex');
   return `${data}.${sig}`;
@@ -54,6 +55,6 @@ module.exports = async (req, res) => {
 
   } catch (err) {
     console.error('[verify-session] Error:', err.message);
-    return res.status(500).json({ success: false, error: err.message });
+    return res.status(500).json({ success: false, error: 'Erreur de vérification du paiement. Veuillez réessayer.' });
   }
 };

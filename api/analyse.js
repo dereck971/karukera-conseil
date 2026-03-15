@@ -30,7 +30,7 @@ module.exports = async (req, res) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250514',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
         system: `Tu es un expert immobilier senior spécialisé en Guadeloupe pour Karukera Conseil Immobilier (KCI), cabinet fondé par Dereck Rauzduel, architecte EPFL.
 Tu maîtrises : marché foncier guadeloupéen, PLU des communes, PPRI, loi littoral, LMNP, prix au m² par secteur, contraintes cycloniques et sismiques (zone 5).
@@ -95,7 +95,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250514',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 2000,
         system: 'Tu es un contrôleur qualité immobilier. Réponds uniquement en JSON valide, sans markdown, sans backticks.',
         messages: [{ role: 'user', content: verifyPrompt }]
@@ -154,8 +154,10 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
     const resend = new Resend(process.env.RESEND_API_KEY);
     const adminEmail = process.env.ADMIN_EMAIL || 'dereck.rauzduel@gmail.com';
     const baseUrl = process.env.BASE_URL || `https://${req.headers.host}`;
-    const approveUrl = `${baseUrl}/api/validate?id=${reportId}&action=approve&secret=${process.env.ADMIN_SECRET}`;
-    const rejectUrl  = `${baseUrl}/api/validate?id=${reportId}&action=reject&secret=${process.env.ADMIN_SECRET}`;
+    const approveToken = crypto.createHmac('sha256', process.env.ADMIN_SECRET).update(`${reportId}:approve`).digest('hex');
+    const rejectToken  = crypto.createHmac('sha256', process.env.ADMIN_SECRET).update(`${reportId}:reject`).digest('hex');
+    const approveUrl = `${baseUrl}/api/validate?id=${reportId}&action=approve&token=${approveToken}`;
+    const rejectUrl  = `${baseUrl}/api/validate?id=${reportId}&action=reject&token=${rejectToken}`;
 
     const problemesHtml = verificationResult?.problemes?.length > 0
       ? `<div style="background:#FEF3C7;border-left:4px solid #D97706;padding:12px 16px;margin:16px 0;border-radius:6px;">

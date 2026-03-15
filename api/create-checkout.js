@@ -60,6 +60,6 @@ module.exports = async (req, res) => {
 
   } catch (err) {
     console.error('[create-checkout] Error:', err.message);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Erreur lors de la création du paiement. Veuillez réessayer.' });
   }
 };

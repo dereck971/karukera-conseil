@@ -857,8 +857,12 @@
 
     /* ─── MOBILE ─── */
     @media (max-width: 768px) {
-      .header-nav { gap: 12px; }
+      .header-inner { padding: 0 1rem; height: 52px; }
+      .header-nav { gap: 8px; }
       .header-link { display: none; }
+      .logo-sub { display: none; }
+      .logo-sep { display: none; }
+      .header-cta { padding: 6px 14px; font-size: .7rem; white-space: nowrap; }
       .hero { padding: 56px 1.25rem 64px; }
       .hero h1 { font-size: 1.75rem; }
       .hero-sub { font-size: .85rem; }
@@ -867,25 +871,124 @@
       .proof-num { font-size: 1.4rem; }
       .steps-grid { grid-template-columns: 1fr; gap: 1rem; }
       .step-card { padding: 24px 20px; }
-      .pricing-grid { grid-template-columns: 1fr; max-width: 400px; }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
       .price-card.featured { order: -1; }
       .preview-wrap { grid-template-columns: 1fr; gap: 32px; }
+      .preview-features { order: -1; }
       .sub-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
       .section { padding: 48px 1.25rem; }
       .section-title { font-size: 1.3rem; }
-      .footer-inner { flex-direction: column; text-align: center; }
+      .footer-inner { flex-direction: column; text-align: center; gap: 24px; }
       .footer-links { justify-content: center; }
       .cta-trust { gap: 20px; }
       .hero-ctas { flex-direction: column; align-items: center; }
       .btn-primary, .btn-secondary { width: 100%; max-width: 300px; justify-content: center; }
+      .faq-q { font-size: .9rem; padding: 16px 20px; }
+      .faq-a { padding: 0 20px 16px; font-size: .85rem; }
     }
 
     @media (max-width: 480px) {
       .hero h1 { font-size: 1.5rem; }
+      .hero-sub { font-size: .8rem; }
       .proof-inner { flex-direction: column; gap: 16px; }
       .proof-stat { display: flex; align-items: center; gap: 12px; }
       .proof-num { font-size: 1.2rem; }
       .proof-label { margin-top: 0; }
+      .section-title { font-size: 1.15rem; }
+      .pricing-grid { max-width: 100%; }
+      .sub-grid { max-width: 100%; }
+    }
+
+    /* ─── ORDER FORM ─── */
+    .form-field { margin-bottom: 16px; }
+    .form-field-label {
+      display: block;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .form-field-input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: .88rem;
+      font-family: var(--ff);
+      color: var(--text);
+      background: var(--surface);
+      transition: border-color var(--ease);
+      outline: none;
+    }
+    .form-field-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(194,160,96,.1); }
+    .form-field-input::placeholder { color: var(--text-3); }
+    textarea.form-field-input { resize: vertical; min-height: 80px; }
+    .plan-radio {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: .78rem;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      transition: all var(--ease);
+      text-align: center;
+      justify-content: center;
+    }
+    .plan-radio:has(input:checked) {
+      border-color: var(--gold);
+      background: var(--gold-muted);
+      color: var(--gold);
+      font-weight: 600;
+    }
+    .plan-radio input { display: none; }
+
+    /* ─── MOBILE HAMBURGER ─── */
+    .hamburger {
+      display: none;
+      background: none;
+      padding: 4px;
+      cursor: pointer;
+    }
+    .hamburger span {
+      display: block;
+      width: 20px;
+      height: 2px;
+      background: rgba(255,255,255,.7);
+      margin: 4px 0;
+      transition: all var(--ease);
+      border-radius: 1px;
+    }
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      top: 52px;
+      left: 0;
+      right: 0;
+      background: var(--navy);
+      padding: 16px 24px 24px;
+      z-index: 99;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      flex-direction: column;
+      gap: 12px;
+    }
+    .mobile-nav.open { display: flex; }
+    .mobile-nav a {
+      font-size: .88rem;
+      color: rgba(255,255,255,.6);
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      transition: color var(--ease);
+    }
+    .mobile-nav a:hover { color: var(--gold); }
+    @media (max-width: 768px) {
+      .hamburger { display: block; }
+      .header-cta { display: none !important; }
+      .plan-radio { font-size: .68rem; padding: 8px 6px; }
     }
 
     /* ─── UTILITIES ─── */
@@ -907,9 +1010,18 @@
         <a href="#pricing" class="header-link">Offres</a>
         <a href="#faq" class="header-link">FAQ</a>
         <a href="#pricing" class="header-cta">Commander un rapport</a>
+        <button class="hamburger" id="hamburger-btn" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
       </nav>
     </div>
   </header>
+  <nav class="mobile-nav" id="mobile-nav">
+    <a href="#pricing">Offres</a>
+    <a href="#abonnements">Abonnements</a>
+    <a href="#faq">FAQ</a>
+    <a href="#form-section">Commander un rapport</a>
+  </nav>
 
   <!-- ═══ HERO ═══ -->
   <section class="hero" aria-label="Presentation principale">
@@ -1226,11 +1338,109 @@
     </div>
   </section>
 
+  <!-- ═══ FORMULAIRE DE COMMANDE ═══ -->
+  <section class="section section-alt" id="form-section">
+    <div class="container">
+      <h2 class="section-title">Commander votre rapport</h2>
+      <p class="section-sub">Remplissez les informations de votre projet. Vous serez redirigé vers le paiement sécurisé Stripe.</p>
+      <form id="kci-order-form" style="max-width:600px;margin:0 auto;">
+        <!-- Plan sélectionné -->
+        <div class="form-field">
+          <label class="form-field-label">Offre sélectionnée</label>
+          <div style="display:flex;gap:8px;">
+            <label class="plan-radio">
+              <input type="radio" name="plan" value="essentielle"> Essentielle — 49€
+            </label>
+            <label class="plan-radio">
+              <input type="radio" name="plan" value="recommandee" checked> Complète — 129€
+            </label>
+            <label class="plan-radio">
+              <input type="radio" name="plan" value="premium"> Premium — 299€
+            </label>
+          </div>
+        </div>
+        <!-- Type de bien -->
+        <div class="form-field">
+          <label class="form-field-label" for="type_bien">Type de bien *</label>
+          <select id="type_bien" name="type_bien" class="form-field-input" required>
+            <option value="">Sélectionnez...</option>
+            <option value="terrain">Terrain nu</option>
+            <option value="maison">Maison individuelle</option>
+            <option value="appartement">Appartement</option>
+            <option value="immeuble">Immeuble de rapport</option>
+            <option value="local_commercial">Local commercial</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+        <!-- Commune -->
+        <div class="form-field">
+          <label class="form-field-label" for="commune">Commune *</label>
+          <select id="commune" name="commune" class="form-field-input" required>
+            <option value="">Sélectionnez une commune...</option>
+            <option>Abymes</option><option>Anse-Bertrand</option><option>Baie-Mahault</option>
+            <option>Baillif</option><option>Basse-Terre</option><option>Bouillante</option>
+            <option>Capesterre-Belle-Eau</option><option>Capesterre-de-Marie-Galante</option>
+            <option>Deshaies</option><option>Gourbeyre</option><option>Goyave</option>
+            <option>Grand-Bourg</option><option>Lamentin</option><option>Le Gosier</option>
+            <option>Le Moule</option><option>Les Saintes (Terre-de-Bas)</option>
+            <option>Les Saintes (Terre-de-Haut)</option><option>Morne-à-l'Eau</option>
+            <option>Petit-Bourg</option><option>Petit-Canal</option><option>Pointe-Noire</option>
+            <option>Pointe-à-Pitre</option><option>Port-Louis</option><option>Saint-Claude</option>
+            <option>Saint-François</option><option>Saint-Louis</option><option>Sainte-Anne</option>
+            <option>Sainte-Rose</option><option>Trois-Rivières</option><option>Vieux-Fort</option>
+            <option>Vieux-Habitants</option><option>La Désirade</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <!-- Surface -->
+          <div class="form-field">
+            <label class="form-field-label" for="surface">Surface (m²) *</label>
+            <input type="number" id="surface" name="surface" class="form-field-input" placeholder="Ex: 500" min="1" required>
+          </div>
+          <!-- Budget -->
+          <div class="form-field">
+            <label class="form-field-label" for="budget">Budget (€) *</label>
+            <input type="number" id="budget" name="budget" class="form-field-input" placeholder="Ex: 200000" min="1" required>
+          </div>
+        </div>
+        <!-- Description projet -->
+        <div class="form-field">
+          <label class="form-field-label" for="description">Description du projet <span style="color:var(--text-3);font-weight:400;">(optionnel)</span></label>
+          <textarea id="description" name="description" class="form-field-input" rows="3" placeholder="Précisez votre projet : construction neuve, rénovation, division parcellaire, investissement locatif..."></textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <!-- Nom -->
+          <div class="form-field">
+            <label class="form-field-label" for="client_name">Nom complet *</label>
+            <input type="text" id="client_name" name="client_name" class="form-field-input" placeholder="Votre nom" required>
+          </div>
+          <!-- Téléphone -->
+          <div class="form-field">
+            <label class="form-field-label" for="client_phone">Téléphone *</label>
+            <input type="tel" id="client_phone" name="client_phone" class="form-field-input" placeholder="0690 XX XX XX" required>
+          </div>
+        </div>
+        <!-- Email -->
+        <div class="form-field">
+          <label class="form-field-label" for="client_email">Email *</label>
+          <input type="email" id="client_email" name="client_email" class="form-field-input" placeholder="votre@email.com" required>
+        </div>
+        <!-- Submit -->
+        <button type="submit" class="btn-primary" style="width:100%;justify-content:center;margin-top:8px;font-size:1rem;padding:16px;" id="form-submit-btn">
+          Procéder au paiement sécurisé &rarr;
+        </button>
+        <p style="text-align:center;font-size:.72rem;color:var(--text-3);margin-top:12px;">
+          Paiement 100% sécurisé par Stripe. Vos données sont protégées.
+        </p>
+      </form>
+    </div>
+  </section>
+
   <!-- ═══ CTA FINAL ═══ -->
-  <section class="cta-section" id="form-section">
+  <section class="cta-section">
     <h2>Prêt à analyser votre projet ?</h2>
     <p>Commandez votre rapport maintenant et recevez-le sous 24h. Paiement 100% sécurisé par Stripe.</p>
-    <a href="#pricing" class="btn-primary" style="font-size:1rem;padding:16px 36px">Commander mon rapport &rarr;</a>
+    <a href="#form-section" class="btn-primary" style="font-size:1rem;padding:16px 36px">Commander mon rapport &rarr;</a>
     <div class="cta-trust">
       <span>Paiement sécurisé Stripe</span>
       <span>Données officielles vérifiées</span>
@@ -1289,24 +1499,48 @@
       });
     });
 
-    /* Plan selection — highlight selected plan and scroll to form */
+    /* Stripe Payment Links */
+    const STRIPE_LINKS = {
+      essentielle: 'https://buy.stripe.com/test_00w3co3Ec4gvgFEfgqes000',
+      recommandee: 'https://buy.stripe.com/test_cNi5kw3Ec4gvahg6JUes001',
+      premium: 'https://buy.stripe.com/test_eVq14g6QofZdblk2tEes002'
+    };
+
+    /* Plan selection — scroll to form and pre-select plan */
     document.querySelectorAll('[data-plan]').forEach(btn => {
       btn.addEventListener('click', e => {
+        e.preventDefault();
         const plan = btn.dataset.plan;
-        /* Store selected plan for later use */
         window._kciSelectedPlan = plan;
+        const radio = document.querySelector(`#kci-order-form input[value="${plan}"]`);
+        if (radio) radio.checked = true;
+        document.getElementById('form-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     });
 
-    /* Stripe Payment Links — replace these with your actual Stripe Payment Links */
-    const STRIPE_LINKS = {
-      essentielle: '#', /* Replace: https://buy.stripe.com/xxx */
-      recommandee: '#', /* Replace: https://buy.stripe.com/xxx */
-      premium: '#'      /* Replace: https://buy.stripe.com/xxx */
-    };
+    /* Order form submission — redirect to Stripe */
+    document.getElementById('kci-order-form').addEventListener('submit', e => {
+      e.preventDefault();
+      const form = e.target;
+      const plan = form.querySelector('input[name="plan"]:checked')?.value || 'recommandee';
+      if (STRIPE_LINKS[plan] && STRIPE_LINKS[plan] !== '#') {
+        window.open(STRIPE_LINKS[plan], '_blank');
+      }
+    });
 
-    /* Handle payment button clicks — for now, scroll to contact */
-    /* Once Stripe Payment Links are created, replace href values above */
+    /* Hamburger mobile menu */
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const mobileNav = document.getElementById('mobile-nav');
+    if (hamburgerBtn && mobileNav) {
+      hamburgerBtn.addEventListener('click', () => {
+        mobileNav.classList.toggle('open');
+      });
+      mobileNav.querySelectorAll('a').forEach(a => {
+        a.addEventListener('click', () => {
+          mobileNav.classList.remove('open');
+        });
+      });
+    }
   </script>
 
 </body>
