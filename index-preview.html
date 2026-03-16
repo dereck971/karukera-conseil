@@ -53,22 +53,13 @@
   }
   </script>
 
-  <!-- Google Analytics GA4 — loaded only after cookie consent -->
+  <!-- Google Analytics GA4 — Remplacer G-XXXXXXXXXX par votre ID de mesure -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    function loadGA4() {
-      if (document.getElementById('ga4-script')) return;
-      var s = document.createElement('script');
-      s.id = 'ga4-script';
-      s.async = true;
-      s.src = 'https://www.googletagmanager.com/gtag/js?id=G-9K1DM6VZE8';
-      document.head.appendChild(s);
-      gtag('js', new Date());
-      gtag('config', 'G-9K1DM6VZE8');
-    }
-    /* Auto-load if already consented */
-    if (localStorage.getItem('kci_cookies') === 'accepted') { loadGA4(); }
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
   </script>
 
   <!-- Font: Inter only -->
@@ -127,6 +118,10 @@
   <!-- ═══ SOCIAL PROOF BAR ═══ -->
   <div class="proof-bar">
     <div class="proof-inner">
+      <div class="proof-stat">
+        <div class="proof-num">15<span>+</span></div>
+        <div class="proof-label">Rapports livrés</div>
+      </div>
       <div class="proof-stat">
         <div class="proof-num">32</div>
         <div class="proof-label">Communes couvertes</div>
@@ -742,17 +737,10 @@
         </div>
 
         <!-- Réassurance -->
-        <div style="background:var(--bg);border-radius:var(--radius);padding:14px 16px;margin:8px 0 4px;display:flex;gap:12px;align-items:flex-start;">
+        <div style="background:var(--bg);border-radius:var(--radius);padding:14px 16px;margin:8px 0 8px;display:flex;gap:12px;align-items:flex-start;">
           <span style="color:var(--green);font-size:1rem;flex-shrink:0;">&#128274;</span>
           <div style="font-size:.72rem;color:var(--text-2);line-height:1.6;">
             <strong style="color:var(--text);">Confidentialité garantie.</strong> Vos informations et documents sont utilisés exclusivement pour la production de votre rapport. Rien n'est partagé, revendu ou conservé au-delà du nécessaire. Paiement 100% sécurisé par Stripe.
-          </div>
-        </div>
-        <!-- Garantie correction -->
-        <div style="background:var(--green-bg);border:1px solid rgba(42,157,108,.12);border-radius:var(--radius);padding:14px 16px;margin:4px 0 8px;display:flex;gap:12px;align-items:flex-start;">
-          <span style="color:var(--green);font-size:1rem;flex-shrink:0;">&#10004;</span>
-          <div style="font-size:.72rem;color:var(--text-2);line-height:1.6;">
-            <strong style="color:var(--text);">Garantie exactitude.</strong> Si votre rapport contient une erreur factuelle vérifiable (donnée cadastrale, référence PLU, transaction DVF), nous le corrigeons et le renvoyons gratuitement sous 48h.
           </div>
         </div>
 
@@ -769,9 +757,9 @@
 
   <!-- ═══ CTA FINAL ═══ -->
   <section class="cta-section">
-    <h2>Votre rapport livré dans 24h,<br>à partir de 49 €</h2>
-    <p>Vous avez repéré un terrain ou un bien ? Dans 24 heures, vous saurez s'il vaut le coup — données vérifiées, score chiffré, recommandation claire.</p>
-    <a href="#form-section" class="btn-primary" style="font-size:1rem;padding:16px 36px">Recevoir mon rapport en 24h &rarr;</a>
+    <h2>Avant d'engager plus d'argent,<br>obtenez un premier filtre stratégique</h2>
+    <p>Un terrain ou un bien vous intéresse ? Obtenez en 24h une analyse chiffrée pour décider en toute confiance. Dès 49€.</p>
+    <a href="#form-section" class="btn-primary" style="font-size:1rem;padding:16px 36px">Démarrer mon analyse &rarr;</a>
     <div class="cta-trust">
       <span>Rapport PDF professionnel</span>
       <span>8+ sources officielles</span>
@@ -888,11 +876,11 @@
       });
     });
 
-    /* Stripe Payment Links — LIVE */
+    /* Stripe Payment Links */
     const STRIPE_LINKS = {
-      essentielle: 'https://buy.stripe.com/dRmaEY5FGcqP3mr8KD0Jq01',
-      recommandee: 'https://buy.stripe.com/8x28wQ7NO3Uj6yD8KD0Jq02',
-      premium: 'https://buy.stripe.com/14A5kE1pq4Yne15e4X0Jq00'
+      essentielle: 'https://buy.stripe.com/test_00w3co3Ec4gvgFEfgqes000',
+      recommandee: 'https://buy.stripe.com/test_cNi5kw3Ec4gvahg6JUes001',
+      premium: 'https://buy.stripe.com/test_eVq14g6QofZdblk2tEes002'
     };
 
     /* Plan selection — scroll to form and pre-select plan */
@@ -907,41 +895,18 @@
       });
     });
 
-    /* Order form submission — send data via Formspree then redirect to Stripe */
+    /* Order form submission — redirect to Stripe */
     document.getElementById('kci-order-form').addEventListener('submit', e => {
       e.preventDefault();
       const form = e.target;
       const plan = form.querySelector('input[name="plan"]:checked')?.value || 'recommandee';
-      const btn = document.getElementById('form-submit-btn');
-      btn.disabled = true;
-      btn.textContent = 'Envoi en cours…';
-
-      /* Collect form data */
-      const fd = new FormData(form);
-      fd.append('_subject', 'Nouvelle commande KCI — ' + plan.charAt(0).toUpperCase() + plan.slice(1));
-
-      /* Send to Formspree — you receive all data by email */
-      fetch('https://formspree.io/f/meerzzro', {
-        method: 'POST',
-        body: fd,
-        headers: { 'Accept': 'application/json' }
-      }).then(() => {
-        if (typeof gtag === 'function') {
-          gtag('event', 'begin_checkout', { plan: plan, currency: 'EUR' });
-        }
-        if (STRIPE_LINKS[plan] && STRIPE_LINKS[plan] !== '#') {
-          window.open(STRIPE_LINKS[plan], '_blank');
-        }
-        btn.disabled = false;
-        btn.innerHTML = 'Valider et procéder au paiement &rarr;';
-      }).catch(() => {
-        /* Redirect to Stripe even if Formspree fails */
-        if (STRIPE_LINKS[plan] && STRIPE_LINKS[plan] !== '#') {
-          window.open(STRIPE_LINKS[plan], '_blank');
-        }
-        btn.disabled = false;
-        btn.innerHTML = 'Valider et procéder au paiement &rarr;';
-      });
+      /* GA4 event */
+      if (typeof gtag === 'function') {
+        gtag('event', 'begin_checkout', { plan: plan, currency: 'EUR' });
+      }
+      if (STRIPE_LINKS[plan] && STRIPE_LINKS[plan] !== '#') {
+        window.open(STRIPE_LINKS[plan], '_blank');
+      }
     });
 
     /* GA4 — Track CTA clicks */
@@ -1031,35 +996,6 @@
       tab.style.borderColor = 'var(--gold)';
     }
   }
-  </script>
-
-  <!-- ═══ BANDEAU COOKIE RGPD ═══ -->
-  <div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--navy);border-top:1px solid rgba(194,160,96,.15);padding:16px 24px;box-shadow:0 -4px 20px rgba(0,0,0,.15);">
-    <div style="max-width:960px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-      <p style="flex:1;min-width:240px;font-size:.75rem;color:rgba(255,255,255,.6);line-height:1.6;margin:0;">
-        Ce site utilise des cookies d'analyse (Google Analytics) pour mesurer son audience. Aucun cookie publicitaire n'est utilisé. <a href="#mentions" style="color:var(--gold);text-decoration:underline;" onclick="document.getElementById('cookie-banner').style.display='none'">En savoir plus</a>
-      </p>
-      <div style="display:flex;gap:8px;flex-shrink:0;">
-        <button onclick="acceptCookies()" style="padding:8px 20px;background:var(--gold);color:var(--navy);border:0;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;">Accepter</button>
-        <button onclick="refuseCookies()" style="padding:8px 20px;background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.12);border-radius:6px;font-size:.75rem;cursor:pointer;">Refuser</button>
-      </div>
-    </div>
-  </div>
-  <script>
-    (function(){
-      if (!localStorage.getItem('kci_cookies')) {
-        document.getElementById('cookie-banner').style.display = 'block';
-      }
-    })();
-    function acceptCookies() {
-      localStorage.setItem('kci_cookies', 'accepted');
-      document.getElementById('cookie-banner').style.display = 'none';
-      loadGA4();
-    }
-    function refuseCookies() {
-      localStorage.setItem('kci_cookies', 'refused');
-      document.getElementById('cookie-banner').style.display = 'none';
-    }
   </script>
 
 </body>

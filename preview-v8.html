@@ -29,8 +29,8 @@
   <meta name="twitter:image" content="https://analyse-immo.vercel.app/og-image.png">
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.svg">
 
   <!-- Structured Data -->
   <script type="application/ld+json">
@@ -53,22 +53,13 @@
   }
   </script>
 
-  <!-- Google Analytics GA4 — loaded only after cookie consent -->
+  <!-- Google Analytics GA4 — Remplacer G-XXXXXXXXXX par votre ID de mesure -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    function loadGA4() {
-      if (document.getElementById('ga4-script')) return;
-      var s = document.createElement('script');
-      s.id = 'ga4-script';
-      s.async = true;
-      s.src = 'https://www.googletagmanager.com/gtag/js?id=G-9K1DM6VZE8';
-      document.head.appendChild(s);
-      gtag('js', new Date());
-      gtag('config', 'G-9K1DM6VZE8');
-    }
-    /* Auto-load if already consented */
-    if (localStorage.getItem('kci_cookies') === 'accepted') { loadGA4(); }
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
   </script>
 
   <!-- Font: Inter only -->
@@ -85,14 +76,18 @@
   <header class="header" role="banner">
     <div class="header-inner">
       <a href="#hero" class="logo" aria-label="KCI — Karukera Conseil Immobilier">
-        <img src="logo-kci-sm.png" alt="KCI" width="40" height="40" style="border-radius:50%;flex-shrink:0;border:2px solid var(--gold);box-shadow:0 0 8px rgba(194,160,96,.3);">
+        <svg class="logo-mark-svg" width="48" height="28" viewBox="0 0 48 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="48" height="28" rx="4" fill="#1B2A4A"/>
+          <text x="24" y="20" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-weight="800" font-size="16" fill="#C8A951" letter-spacing="2">KCI</text>
+        </svg>
+        <span class="logo-mark" style="display:none">KCI</span>
         <span class="logo-sep"></span>
         <span class="logo-sub">Karukera Conseil Immobilier</span>
       </a>
       <nav class="header-nav" aria-label="Navigation principale">
         <a href="#pricing" class="header-link">Offres</a>
         <a href="#faq" class="header-link">FAQ</a>
-        <a href="#form-section" class="header-cta">Commander un rapport</a>
+        <a href="#pricing" class="header-cta">Commander un rapport</a>
         <button class="hamburger" id="hamburger-btn" aria-label="Menu">
           <span></span><span></span><span></span>
         </button>
@@ -109,9 +104,9 @@
   <!-- ═══ HERO ═══ -->
   <section class="hero" id="hero" aria-label="Presentation principale">
     <div class="hero-badge">Cabinet d'analyse immobilière &bull; Guadeloupe</div>
-    <h1>Investissez en Guadeloupe<br><span>sans mauvaise surprise</span></h1>
+    <h1>Avant d'investir,<br>obtenez un <span>premier filtre stratégique</span></h1>
     <p class="hero-sub">
-      Avant d'engager notaire, géomètre ou banquier, sachez en 24h si votre projet tient la route. Score d'intérêt /10, estimation financière, risques identifiés — le tout signé par un architecte EPFL. Dès 49 €.
+      Un terrain ou un bien vous intéresse en Guadeloupe ? Recevez sous 24h une pré-étude de faisabilité chiffrée : score d'intérêt /10, estimation financière, analyse des risques. Signée par un architecte EPFL.
     </p>
     <div class="hero-ctas">
       <a href="#form-section" class="btn-primary">Obtenir mon rapport &rarr;</a>
@@ -223,13 +218,13 @@
         <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:28px;">
           <div style="font-size:.75rem;font-weight:600;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px;">7 critères évalués</div>
           <div style="display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Localisation</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Accessibilité</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">État général</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Rendement potentiel</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Demande marché</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Potentiel d'appréciation</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
-            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Risques environnementaux</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Potentiel du marché</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Conformité urbanistique</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Niveau de risques naturels</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Rentabilité estimée</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Cadre fiscal et juridique</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Accessibilité et environnement</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:.82rem;"><span style="color:var(--text);">Potentiel de valorisation</span><span style="color:var(--text-3);font-size:.7rem;">/10</span></div>
           </div>
           <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
             <span style="font-size:.85rem;font-weight:600;color:var(--navy);">Score d'intérêt global</span>
@@ -255,7 +250,7 @@
         <div class="price-card">
           <div class="price-badge" style="background:var(--navy);color:var(--gold);">Offre de lancement</div>
           <div class="price-name">Essentielle</div>
-          <div class="price-amount"><span style="text-decoration:line-through;font-size:.5em;color:var(--text-3);font-weight:400;margin-right:6px;">69€</span>49<small>€</small></div>
+          <div class="price-amount">49<small>€</small></div>
           <div class="price-desc">Le premier filtre. Savoir en 1 page si le projet mérite d'aller plus loin.</div>
           <ul class="price-features">
             <li>Score d'intérêt global /10 avec verdict</li>
@@ -272,7 +267,7 @@
         <div class="price-card featured">
           <div class="price-badge">Offre de lancement · La plus commandée</div>
           <div class="price-name">Complète</div>
-          <div class="price-amount"><span style="text-decoration:line-through;font-size:.5em;color:var(--text-3);font-weight:400;margin-right:6px;">159€</span>129<small>€</small></div>
+          <div class="price-amount">129<small>€</small></div>
           <div class="price-desc">L'analyse de référence pour prendre une décision éclairée.</div>
           <ul class="price-features">
             <li>7 sous-scores détaillés (marché, PLU, risques, rentabilité...)</li>
@@ -289,9 +284,8 @@
 
         <!-- Premium -->
         <div class="price-card">
-          <div class="price-badge" style="background:var(--navy);color:var(--gold);">Offre de lancement</div>
           <div class="price-name">Premium</div>
-          <div class="price-amount"><span style="text-decoration:line-through;font-size:.5em;color:var(--text-3);font-weight:400;margin-right:6px;">349€</span>299<small>€</small></div>
+          <div class="price-amount">299<small>€</small></div>
           <div class="price-desc">L'analyse stratégique complète pour les investisseurs exigeants.</div>
           <ul class="price-features">
             <li>Tout le rapport Complète inclus</li>
@@ -314,92 +308,42 @@
   <section class="section section-alt" id="preview">
     <div class="container">
       <h2 class="section-title">Aperçu d'un vrai rapport KCI</h2>
-      <p class="section-sub">Terrain 760 m² · Sainte-Anne · Score 7,4/10 — voici exactement ce que vous recevez selon l'offre choisie.</p>
+      <p class="section-sub">Maison créole à rénover · Sainte-Anne · Score 7,4/10 — voici exactement ce que vous recevez.</p>
 
-      <!-- Onglets offres -->
-      <div style="display:flex;justify-content:center;gap:8px;margin-bottom:28px;flex-wrap:wrap;" id="preview-tabs">
-        <button onclick="switchPreview('essentielle')" class="preview-tab" id="tab-essentielle" style="padding:10px 22px;border-radius:100px;font-size:.78rem;font-weight:600;letter-spacing:.5px;border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;transition:all .25s ease;">Essentielle · 49 €</button>
-        <button onclick="switchPreview('complete')" class="preview-tab active-tab" id="tab-complete" style="padding:10px 22px;border-radius:100px;font-size:.78rem;font-weight:600;letter-spacing:.5px;border:1px solid var(--gold);background:var(--gold);color:var(--navy);cursor:pointer;transition:all .25s ease;">Complète · 129 €</button>
-        <button onclick="switchPreview('premium')" class="preview-tab" id="tab-premium" style="padding:10px 22px;border-radius:100px;font-size:.78rem;font-weight:600;letter-spacing:.5px;border:1px solid var(--border);background:transparent;color:var(--text-2);cursor:pointer;transition:all .25s ease;">Premium · 299 €</button>
-      </div>
-
-      <!-- Essentielle (2 pages) -->
-      <div class="preview-panel" id="panel-essentielle" style="display:none;">
-        <div style="display:flex;gap:16px;justify-content:center;margin-bottom:24px;overflow-x:auto;padding:8px 0;">
-          <div style="flex-shrink:0;width:240px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-essentielle-p1.png" alt="Essentielle — Couverture" style="width:100%;display:block;" loading="lazy">
-          </div>
-          <div style="flex-shrink:0;width:240px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-essentielle-p2.png" alt="Essentielle — Synthèse" style="width:100%;display:block;" loading="lazy">
-            <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(11,21,38,.7));display:flex;align-items:flex-end;justify-content:center;padding:16px;">
-              <span style="font-size:.7rem;color:var(--gold);font-weight:600;letter-spacing:1px;text-transform:uppercase;">Contenu flouté</span>
-            </div>
-          </div>
+      <!-- Gallery de pages du rapport -->
+      <div style="display:flex;gap:16px;justify-content:center;margin-bottom:32px;overflow-x:auto;padding:8px 0;">
+        <div style="flex-shrink:0;width:220px;cursor:pointer;transition:transform .25s ease;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);" class="rapport-page active-page" data-page="1" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
+          <img src="rapport-preview-p1.png" alt="Couverture du rapport KCI — Score 7,4/10" style="width:100%;display:block;" loading="lazy">
         </div>
-        <div style="text-align:center;margin-bottom:16px;">
-          <span style="font-size:.75rem;color:var(--text-3);">2 pages · Score + KPIs + 7 sous-scores + synthèse exécutive</span>
+        <div style="flex-shrink:0;width:220px;cursor:pointer;transition:transform .25s ease;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;" class="rapport-page" data-page="2" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
+          <img src="rapport-preview-p2.png" alt="Page 2 — Indicateurs clés et sous-scores" style="width:100%;display:block;" loading="lazy">
+        </div>
+        <div style="flex-shrink:0;width:220px;cursor:pointer;transition:transform .25s ease;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;" class="rapport-page" data-page="3" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
+          <img src="rapport-preview-p3.png" alt="Page 3 — Tableau financier et analyse" style="width:100%;display:block;" loading="lazy">
+        </div>
+        <div style="flex-shrink:0;width:220px;cursor:pointer;transition:transform .25s ease;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;" class="rapport-page" data-page="4" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
+          <img src="rapport-preview-p4.png" alt="Page 4 — Checklist et conclusion" style="width:100%;display:block;" loading="lazy">
         </div>
       </div>
 
-      <!-- Complète (5 pages) — DEFAULT — Rapport vitrine 8/10 -->
-      <div class="preview-panel" id="panel-complete" style="display:block;">
-        <div style="display:flex;gap:16px;justify-content:center;margin-bottom:24px;overflow-x:auto;padding:8px 0;">
-          <div style="flex-shrink:0;width:200px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-complete-p1.png" alt="Complète — Couverture" style="width:100%;display:block;" loading="lazy">
-          </div>
-          <div style="flex-shrink:0;width:200px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-complete-p2.png" alt="Complète — KPIs et scores" style="width:100%;display:block;" loading="lazy">
-            <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(11,21,38,.5));display:flex;align-items:flex-end;justify-content:center;padding:12px;"><span style="font-size:.6rem;color:var(--gold);font-weight:600;letter-spacing:1px;text-transform:uppercase;">KPIs &amp; scores</span></div>
-          </div>
-          <div style="flex-shrink:0;width:200px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-complete-p3.png" alt="Complète — Financier" style="width:100%;display:block;" loading="lazy">
-            <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(11,21,38,.5));display:flex;align-items:flex-end;justify-content:center;padding:12px;"><span style="font-size:.6rem;color:var(--gold);font-weight:600;letter-spacing:1px;text-transform:uppercase;">Tableau financier</span></div>
-          </div>
-          <div style="flex-shrink:0;width:200px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-complete-p4.png" alt="Complète — Checklist" style="width:100%;display:block;" loading="lazy">
-            <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(11,21,38,.5));display:flex;align-items:flex-end;justify-content:center;padding:12px;"><span style="font-size:.6rem;color:var(--gold);font-weight:600;letter-spacing:1px;text-transform:uppercase;">Checklist &amp; conclusion</span></div>
-          </div>
-          <div style="flex-shrink:0;width:200px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-complete-p5.png" alt="Complète — Signature" style="width:100%;display:block;" loading="lazy">
-            <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(11,21,38,.5));display:flex;align-items:flex-end;justify-content:center;padding:12px;"><span style="font-size:.6rem;color:var(--gold);font-weight:600;letter-spacing:1px;text-transform:uppercase;">Signature</span></div>
-          </div>
-        </div>
-        <div style="text-align:center;margin-bottom:16px;">
-          <span style="font-size:.75rem;color:var(--text-3);">5 pages · Analyse complète avec tableau financier, FHR et checklist</span>
-        </div>
-      </div>
-
-      <!-- Premium (8 pages) -->
-      <div class="preview-panel" id="panel-premium" style="display:none;">
-        <div style="display:flex;gap:12px;justify-content:center;margin-bottom:24px;overflow-x:auto;padding:8px 0;">
-          <div style="flex-shrink:0;width:160px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-premium-p1.png" alt="Premium — Couverture" style="width:100%;display:block;" loading="lazy">
-          </div>
-          <div style="flex-shrink:0;width:160px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-premium-p2.png" alt="Premium — P2" style="width:100%;display:block;" loading="lazy">
-          </div>
-          <div style="flex-shrink:0;width:160px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-premium-p3.png" alt="Premium — P3" style="width:100%;display:block;" loading="lazy">
-          </div>
-          <div style="flex-shrink:0;width:160px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-premium-p4.png" alt="Premium — P4" style="width:100%;display:block;" loading="lazy">
-          </div>
-          <div style="flex-shrink:0;width:160px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-premium-p5.png" alt="Premium — P5" style="width:100%;display:block;" loading="lazy">
-          </div>
-          <div style="flex-shrink:0;width:160px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-premium-p6.png" alt="Premium — P6" style="width:100%;display:block;" loading="lazy">
-          </div>
-          <div style="flex-shrink:0;width:160px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-premium-p7.png" alt="Premium — P7" style="width:100%;display:block;" loading="lazy">
-          </div>
-          <div style="flex-shrink:0;width:160px;border-radius:8px;overflow:hidden;box-shadow:0 4px 20px rgba(11,21,38,.15);position:relative;transition:transform .25s ease;" onmouseenter="this.style.transform='translateY(-4px)'" onmouseleave="this.style.transform=''">
-            <img src="preview-premium-p8.png" alt="Premium — P8" style="width:100%;display:block;" loading="lazy">
-          </div>
-        </div>
-        <div style="text-align:center;margin-bottom:16px;">
-          <span style="font-size:.75rem;color:var(--text-3);">10 pages · 3 scénarios chiffrés + SWOT + comparatif marché + recommandation stratégique</span>
-        </div>
+      <!-- Labels des pages -->
+      <div style="display:flex;justify-content:center;gap:24px;margin-bottom:36px;flex-wrap:wrap;">
+        <span style="font-size:.7rem;color:var(--text-3);display:flex;align-items:center;gap:6px;">
+          <span style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:var(--gold);font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;">1</span>
+          Couverture &amp; score
+        </span>
+        <span style="font-size:.7rem;color:var(--text-3);display:flex;align-items:center;gap:6px;">
+          <span style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:var(--gold);font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;">2</span>
+          KPIs &amp; 7 sous-scores
+        </span>
+        <span style="font-size:.7rem;color:var(--text-3);display:flex;align-items:center;gap:6px;">
+          <span style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:var(--gold);font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;">3</span>
+          Tableau financier
+        </span>
+        <span style="font-size:.7rem;color:var(--text-3);display:flex;align-items:center;gap:6px;">
+          <span style="width:20px;height:20px;border-radius:50%;background:var(--navy);color:var(--gold);font-size:.6rem;font-weight:700;display:flex;align-items:center;justify-content:center;">4</span>
+          Checklist &amp; conclusion
+        </span>
       </div>
 
       <!-- Contenu descriptif -->
@@ -417,18 +361,18 @@
           </ul>
         </div>
         <div style="background:var(--navy);border-radius:var(--radius-lg);padding:28px;text-align:center;">
-          <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(194,160,96,.6);margin-bottom:12px;">Exemple réel analysé</div>
+          <div style="font-size:.65rem;letter-spacing:2px;text-transform:uppercase;color:rgba(194,160,96,.6);margin-bottom:12px;">Exemple de rapport</div>
           <div style="font-size:2.8rem;font-weight:800;color:var(--green);line-height:1;">7,4<span style="font-size:1rem;color:rgba(42,157,108,.5);">/10</span></div>
           <div style="font-size:.9rem;font-weight:600;color:var(--surface);margin:8px 0 4px;">Intéressant sous conditions</div>
-          <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-bottom:20px;">Terrain 760 m² · Sainte-Anne · Zone U</div>
+          <div style="font-size:.75rem;color:rgba(255,255,255,.4);margin-bottom:20px;">Maison créole · Sainte-Anne · 125 m²</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px;">
             <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:10px;">
-              <div style="font-size:1.1rem;font-weight:700;color:var(--gold);">107 k€</div>
-              <div style="font-size:.6rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.5px;">Prix FAI</div>
+              <div style="font-size:1.1rem;font-weight:700;color:var(--gold);">195 k€</div>
+              <div style="font-size:.6rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.5px;">Prix demandé</div>
             </div>
             <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:10px;">
-              <div style="font-size:1.1rem;font-weight:700;color:var(--gold);">140 €/m²</div>
-              <div style="font-size:.6rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.5px;">Prix au m²</div>
+              <div style="font-size:1.1rem;font-weight:700;color:var(--green);">7,2 %</div>
+              <div style="font-size:.6rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.5px;">Rendement brut</div>
             </div>
           </div>
           <a href="#form-section" class="btn-primary" style="width:100%;justify-content:center;">Commander mon rapport &rarr;</a>
@@ -731,28 +675,11 @@
           <span style="font-size:.65rem;color:var(--text-3);margin-top:4px;display:block;">Votre rapport sera envoyé à cette adresse.</span>
         </div>
 
-        <!-- WhatsApp -->
-        <div style="background:rgba(37,211,102,.06);border:1px solid rgba(37,211,102,.15);border-radius:var(--radius);padding:14px 16px;margin:16px 0 8px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="#25D366" style="flex-shrink:0;"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-          <div style="flex:1;min-width:180px;">
-            <div style="font-size:.78rem;font-weight:600;color:var(--text);margin-bottom:2px;">Une question avant de commander ?</div>
-            <div style="font-size:.7rem;color:var(--text-2);">Contactez-nous directement par WhatsApp.</div>
-          </div>
-          <a href="https://wa.me/41788113345?text=Bonjour%2C%20j%27ai%20une%20question%20sur%20vos%20rapports%20de%20faisabilit%C3%A9%20immobili%C3%A8re%20en%20Guadeloupe." target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:#25D366;color:#fff;border-radius:var(--radius);font-size:.75rem;font-weight:600;white-space:nowrap;text-decoration:none;transition:opacity .2s;" onmouseenter="this.style.opacity='.85'" onmouseleave="this.style.opacity='1'">WhatsApp</a>
-        </div>
-
         <!-- Réassurance -->
-        <div style="background:var(--bg);border-radius:var(--radius);padding:14px 16px;margin:8px 0 4px;display:flex;gap:12px;align-items:flex-start;">
+        <div style="background:var(--bg);border-radius:var(--radius);padding:14px 16px;margin:16px 0 8px;display:flex;gap:12px;align-items:flex-start;">
           <span style="color:var(--green);font-size:1rem;flex-shrink:0;">&#128274;</span>
           <div style="font-size:.72rem;color:var(--text-2);line-height:1.6;">
             <strong style="color:var(--text);">Confidentialité garantie.</strong> Vos informations et documents sont utilisés exclusivement pour la production de votre rapport. Rien n'est partagé, revendu ou conservé au-delà du nécessaire. Paiement 100% sécurisé par Stripe.
-          </div>
-        </div>
-        <!-- Garantie correction -->
-        <div style="background:var(--green-bg);border:1px solid rgba(42,157,108,.12);border-radius:var(--radius);padding:14px 16px;margin:4px 0 8px;display:flex;gap:12px;align-items:flex-start;">
-          <span style="color:var(--green);font-size:1rem;flex-shrink:0;">&#10004;</span>
-          <div style="font-size:.72rem;color:var(--text-2);line-height:1.6;">
-            <strong style="color:var(--text);">Garantie exactitude.</strong> Si votre rapport contient une erreur factuelle vérifiable (donnée cadastrale, référence PLU, transaction DVF), nous le corrigeons et le renvoyons gratuitement sous 48h.
           </div>
         </div>
 
@@ -769,9 +696,9 @@
 
   <!-- ═══ CTA FINAL ═══ -->
   <section class="cta-section">
-    <h2>Votre rapport livré dans 24h,<br>à partir de 49 €</h2>
-    <p>Vous avez repéré un terrain ou un bien ? Dans 24 heures, vous saurez s'il vaut le coup — données vérifiées, score chiffré, recommandation claire.</p>
-    <a href="#form-section" class="btn-primary" style="font-size:1rem;padding:16px 36px">Recevoir mon rapport en 24h &rarr;</a>
+    <h2>Avant d'engager plus d'argent,<br>obtenez un premier filtre stratégique</h2>
+    <p>Un terrain ou un bien vous intéresse ? Obtenez en 24h une analyse chiffrée pour décider en toute confiance. Dès 49€.</p>
+    <a href="#form-section" class="btn-primary" style="font-size:1rem;padding:16px 36px">Démarrer mon analyse &rarr;</a>
     <div class="cta-trust">
       <span>Rapport PDF professionnel</span>
       <span>8+ sources officielles</span>
@@ -782,10 +709,10 @@
   </section>
 
   <!-- ═══ MENTIONS LEGALES ═══ -->
-  <section id="mentions" class="legal-section" style="background:var(--bg);padding:40px 20px;">
+  <section id="mentions" class="legal-section" style="background:var(--bg);padding:60px 20px;">
     <div style="max-width:800px;margin:0 auto;">
-      <h2 style="font-size:0.85rem;color:var(--navy);margin-bottom:12px;">Mentions légales</h2>
-      <div style="color:var(--text-3);font-size:0.58rem;line-height:1.6;">
+      <h2 style="font-size:1.5rem;color:var(--navy);margin-bottom:24px;">Mentions légales</h2>
+      <div style="color:var(--text-2);font-size:0.85rem;line-height:1.8;">
         <p><strong>Éditeur du site :</strong> Karukera Conseil Immobilier (KCI)<br>
         Fondé par Dereck Rauzduel — Architecte EPFL<br>
         Email : <a href="mailto:dereck.rauzduel@gmail.com" style="color:var(--gold)">dereck.rauzduel@gmail.com</a></p>
@@ -805,10 +732,10 @@
   </section>
 
   <!-- ═══ CGV ═══ -->
-  <section id="cgv" class="legal-section" style="background:var(--surface);padding:40px 20px;">
+  <section id="cgv" class="legal-section" style="background:var(--surface);padding:60px 20px;">
     <div style="max-width:800px;margin:0 auto;">
-      <h2 style="font-size:0.85rem;color:var(--navy);margin-bottom:12px;">Conditions Générales de Vente</h2>
-      <div style="color:var(--text-3);font-size:0.58rem;line-height:1.6;">
+      <h2 style="font-size:1.5rem;color:var(--navy);margin-bottom:24px;">Conditions Générales de Vente</h2>
+      <div style="color:var(--text-2);font-size:0.85rem;line-height:1.8;">
         <p><strong>Article 1 — Objet :</strong> Les présentes CGV régissent la vente de rapports de pré-faisabilité immobilière par Karukera Conseil Immobilier (KCI), éditée par Dereck Rauzduel, architecte EPFL.</p>
 
         <p><strong>Article 2 — Offres et tarifs :</strong><br>
@@ -829,7 +756,7 @@
 
         <p><strong>Article 8 — Droit applicable :</strong> Les présentes CGV sont régies par le droit français. Tout litige sera soumis aux tribunaux compétents de Pointe-à-Pitre (Guadeloupe).</p>
 
-        <p style="margin-top:12px;font-size:0.6rem;color:var(--text-3);">Dernière mise à jour : 16 mars 2026</p>
+        <p style="margin-top:16px;font-size:0.78rem;color:var(--text-3);">Dernière mise à jour : 15 mars 2026</p>
       </div>
     </div>
   </section>
@@ -838,17 +765,13 @@
   <footer class="footer" role="contentinfo">
     <div class="footer-inner">
       <div class="footer-left">
-        <div class="footer-brand" style="display:flex;align-items:center;gap:8px;"><img src="logo-kci-sm.png" alt="KCI" width="28" height="28" style="border-radius:50%;"> <strong>KCI</strong> — Karukera Conseil Immobilier</div>
+        <div class="footer-brand"><strong>KCI</strong> — Karukera Conseil Immobilier</div>
         <div class="footer-copy">&copy; 2026 Karukera Conseil Immobilier. Tous droits réservés.</div>
       </div>
       <div class="footer-links">
         <a href="#mentions">Mentions légales</a>
         <a href="#cgv">CGV</a>
         <a href="#faq">FAQ</a>
-        <a href="https://www.instagram.com/karukera.conseil.immo/" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:4px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-          Instagram
-        </a>
       </div>
       <div class="footer-contact">
         Dereck Rauzduel — Architecte EPFL<br>
@@ -888,11 +811,11 @@
       });
     });
 
-    /* Stripe Payment Links — LIVE */
+    /* Stripe Payment Links */
     const STRIPE_LINKS = {
-      essentielle: 'https://buy.stripe.com/dRmaEY5FGcqP3mr8KD0Jq01',
-      recommandee: 'https://buy.stripe.com/8x28wQ7NO3Uj6yD8KD0Jq02',
-      premium: 'https://buy.stripe.com/14A5kE1pq4Yne15e4X0Jq00'
+      essentielle: 'https://buy.stripe.com/test_00w3co3Ec4gvgFEfgqes000',
+      recommandee: 'https://buy.stripe.com/test_cNi5kw3Ec4gvahg6JUes001',
+      premium: 'https://buy.stripe.com/test_eVq14g6QofZdblk2tEes002'
     };
 
     /* Plan selection — scroll to form and pre-select plan */
@@ -907,41 +830,18 @@
       });
     });
 
-    /* Order form submission — send data via Formspree then redirect to Stripe */
+    /* Order form submission — redirect to Stripe */
     document.getElementById('kci-order-form').addEventListener('submit', e => {
       e.preventDefault();
       const form = e.target;
       const plan = form.querySelector('input[name="plan"]:checked')?.value || 'recommandee';
-      const btn = document.getElementById('form-submit-btn');
-      btn.disabled = true;
-      btn.textContent = 'Envoi en cours…';
-
-      /* Collect form data */
-      const fd = new FormData(form);
-      fd.append('_subject', 'Nouvelle commande KCI — ' + plan.charAt(0).toUpperCase() + plan.slice(1));
-
-      /* Send to Formspree — you receive all data by email */
-      fetch('https://formspree.io/f/meerzzro', {
-        method: 'POST',
-        body: fd,
-        headers: { 'Accept': 'application/json' }
-      }).then(() => {
-        if (typeof gtag === 'function') {
-          gtag('event', 'begin_checkout', { plan: plan, currency: 'EUR' });
-        }
-        if (STRIPE_LINKS[plan] && STRIPE_LINKS[plan] !== '#') {
-          window.open(STRIPE_LINKS[plan], '_blank');
-        }
-        btn.disabled = false;
-        btn.innerHTML = 'Valider et procéder au paiement &rarr;';
-      }).catch(() => {
-        /* Redirect to Stripe even if Formspree fails */
-        if (STRIPE_LINKS[plan] && STRIPE_LINKS[plan] !== '#') {
-          window.open(STRIPE_LINKS[plan], '_blank');
-        }
-        btn.disabled = false;
-        btn.innerHTML = 'Valider et procéder au paiement &rarr;';
-      });
+      /* GA4 event */
+      if (typeof gtag === 'function') {
+        gtag('event', 'begin_checkout', { plan: plan, currency: 'EUR' });
+      }
+      if (STRIPE_LINKS[plan] && STRIPE_LINKS[plan] !== '#') {
+        window.open(STRIPE_LINKS[plan], '_blank');
+      }
     });
 
     /* GA4 — Track CTA clicks */
@@ -1013,52 +913,6 @@
           mobileNav.classList.remove('open');
         });
       });
-    }
-  // Preview tabs
-  function switchPreview(tier) {
-    document.querySelectorAll('.preview-panel').forEach(p => p.style.display = 'none');
-    document.querySelectorAll('.preview-tab').forEach(t => {
-      t.style.background = 'transparent';
-      t.style.color = 'var(--text-2)';
-      t.style.borderColor = 'var(--border)';
-    });
-    var panel = document.getElementById('panel-' + tier);
-    var tab = document.getElementById('tab-' + tier);
-    if (panel) panel.style.display = 'block';
-    if (tab) {
-      tab.style.background = 'var(--gold)';
-      tab.style.color = 'var(--navy)';
-      tab.style.borderColor = 'var(--gold)';
-    }
-  }
-  </script>
-
-  <!-- ═══ BANDEAU COOKIE RGPD ═══ -->
-  <div id="cookie-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:9999;background:var(--navy);border-top:1px solid rgba(194,160,96,.15);padding:16px 24px;box-shadow:0 -4px 20px rgba(0,0,0,.15);">
-    <div style="max-width:960px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-      <p style="flex:1;min-width:240px;font-size:.75rem;color:rgba(255,255,255,.6);line-height:1.6;margin:0;">
-        Ce site utilise des cookies d'analyse (Google Analytics) pour mesurer son audience. Aucun cookie publicitaire n'est utilisé. <a href="#mentions" style="color:var(--gold);text-decoration:underline;" onclick="document.getElementById('cookie-banner').style.display='none'">En savoir plus</a>
-      </p>
-      <div style="display:flex;gap:8px;flex-shrink:0;">
-        <button onclick="acceptCookies()" style="padding:8px 20px;background:var(--gold);color:var(--navy);border:0;border-radius:6px;font-size:.75rem;font-weight:600;cursor:pointer;">Accepter</button>
-        <button onclick="refuseCookies()" style="padding:8px 20px;background:transparent;color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.12);border-radius:6px;font-size:.75rem;cursor:pointer;">Refuser</button>
-      </div>
-    </div>
-  </div>
-  <script>
-    (function(){
-      if (!localStorage.getItem('kci_cookies')) {
-        document.getElementById('cookie-banner').style.display = 'block';
-      }
-    })();
-    function acceptCookies() {
-      localStorage.setItem('kci_cookies', 'accepted');
-      document.getElementById('cookie-banner').style.display = 'none';
-      loadGA4();
-    }
-    function refuseCookies() {
-      localStorage.setItem('kci_cookies', 'refused');
-      document.getElementById('cookie-banner').style.display = 'none';
     }
   </script>
 

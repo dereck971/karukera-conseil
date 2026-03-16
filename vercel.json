@@ -2,10 +2,24 @@
   "version": 2,
   "builds": [
     { "src": "api/**/*.js", "use": "@vercel/node" },
-    { "src": "index.html", "use": "@vercel/static" }
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "favicon.png", "use": "@vercel/static" },
+    { "src": "apple-touch-icon.png", "use": "@vercel/static" },
+    { "src": "logo-kci.png", "use": "@vercel/static" },
+    { "src": "logo-kci-sm.png", "use": "@vercel/static" },
+    { "src": "og-image.png", "use": "@vercel/static" },
+    { "src": "preview-*.png", "use": "@vercel/static" },
+    { "src": "rapport-exemple-*.pdf", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/favicon.png", "dest": "/favicon.png" },
+    { "src": "/apple-touch-icon.png", "dest": "/apple-touch-icon.png" },
+    { "src": "/logo-kci.png", "dest": "/logo-kci.png" },
+    { "src": "/logo-kci-sm.png", "dest": "/logo-kci-sm.png" },
+    { "src": "/og-image.png", "dest": "/og-image.png" },
+    { "src": "/preview-(.*).png", "dest": "/preview-$1.png" },
+    { "src": "/rapport-exemple-(.*).pdf", "dest": "/rapport-exemple-$1.pdf" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "env": {

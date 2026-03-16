@@ -3,11 +3,37 @@
 
 const crypto = require('crypto');
 
-// Stockage en mémoire (persist le temps de la function instance)
-const pendingReports = global._kciPending || (global._kciPending = new Map());
+// ─── STOCKAGE PERSISTANT ──────────────────────────────────────────
+// Utilise Vercel KV si disponible, sinon fallback RAM (dev local)
+let kvStore;
+try {
+  kvStore = require('@vercel/kv');
+} catch (e) {
+  kvStore = null;
+}
+
+const memoryFallback = global._kciPending || (global._kciPending = new Map());
+
+const store = {
+  async get(key) {
+    if (kvStore) {
+      return await kvStore.get(`report:${key}`);
+    }
+    return memoryFallback.get(key) || null;
+  },
+  async set(key, value, options = {}) {
+    if (kvStore) {
+      // TTL de 7 jours par défaut
+      await kvStore.set(`report:${key}`, JSON.stringify(value), { ex: options.ttl || 7 * 24 * 3600 });
+    } else {
+      memoryFallback.set(key, value);
+    }
+  }
+};
 
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://analyse-immo.vercel.app';
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -16,6 +42,23 @@ module.exports = async (req, res) => {
 
   const { prompt, clientEmail, clientName, clientPhone, bienData } = req.body;
   if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
+
+  // ─── VALIDATION DES CHAMPS ──────────────────────────────────────
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^[\d\s\-+().]{7,20}$/;
+
+  if (clientEmail && !emailRegex.test(clientEmail)) {
+    return res.status(400).json({ error: 'Adresse email invalide.' });
+  }
+  if (clientPhone && !phoneRegex.test(clientPhone)) {
+    return res.status(400).json({ error: 'Numéro de téléphone invalide.' });
+  }
+  if (!clientName || clientName.trim().length < 2) {
+    return res.status(400).json({ error: 'Le nom est obligatoire (minimum 2 caractères).' });
+  }
+  if (!clientEmail) {
+    return res.status(400).json({ error: 'L\'adresse email est obligatoire.' });
+  }
 
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -113,8 +156,8 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
       }
     }
   } catch (e) {
-    console.warn('[analyse] Vérification IA échouée (non bloquant):', e.message);
-    verificationResult = { valide: true, problemes: [] };
+    console.warn('[analyse] Vérification IA échouée — rapport mis en attente manuelle:', e.message);
+    verificationResult = { valide: false, problemes: ['Vérification IA indisponible — contrôle manuel requis'], verification_failed: true };
   }
 
   // ─── VÉRIFICATION : données client insuffisantes ────────────────
@@ -146,7 +189,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
     emailSent: false
   };
 
-  pendingReports.set(reportId, reportData);
+  await store.set(reportId, reportData);
 
   // ─── NOTIFICATION EMAIL ADMIN ────────────────────────────────────
   try {
