@@ -1,6 +1,6 @@
 {
   "name": "kci-analyse-immo",
-  "version": "7.0.0",
+  "version": "8.0.0",
   "description": "Karukera Conseil Immobilier — Pré-étude de faisabilité immobilière en Guadeloupe",
   "private": true,
   "scripts": {
