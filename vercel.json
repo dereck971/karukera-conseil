@@ -21,16 +21,5 @@
     { "src": "/preview-(.*).png", "dest": "/preview-$1.png" },
     { "src": "/rapport-exemple-(.*).pdf", "dest": "/rapport-exemple-$1.pdf" },
     { "src": "/(.*)", "dest": "/index.html" }
-  ],
-  "env": {
-    "ANTHROPIC_API_KEY": "@anthropic_api_key",
-    "STRIPE_SECRET_KEY": "@stripe_secret_key",
-    "STRIPE_WEBHOOK_SECRET": "@stripe_webhook_secret",
-    "TOKEN_SECRET": "@token_secret",
-    "RESEND_API_KEY": "@resend_api_key",
-    "ADMIN_EMAIL": "@admin_email",
-    "ADMIN_SECRET": "@admin_secret",
-    "FROM_EMAIL": "@from_email",
-    "BASE_URL": "@base_url"
-  }
+  ]
 }
