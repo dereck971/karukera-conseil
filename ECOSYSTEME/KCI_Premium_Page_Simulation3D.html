@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>KCI Premium 299€ — Page Simulation Volumétrique</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:#1a1a1a;display:flex;justify-content:center;padding:30px}
+.page{width:794px;min-height:1123px;background:#fff;color:#1a1a2e;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+
+/* Header band */
+.page-header{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);padding:20px 35px;display:flex;justify-content:space-between;align-items:center}
+.logo-area{display:flex;align-items:center;gap:12px}
+.logo-icon{width:36px;height:36px;background:#e6a817;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#1a1a2e}
+.logo-text{color:#fff;font-size:16px;font-weight:700;letter-spacing:0.5px}
+.logo-sub{color:#888;font-size:9px;margin-top:2px}
+.page-num{color:#e6a817;font-size:24px;font-weight:300}
+.page-num span{font-size:11px;color:#666;display:block;text-align:right}
+
+/* Gold accent bar */
+.gold-bar{height:3px;background:linear-gradient(90deg,#e6a817,#f0c040,#e6a817)}
+
+/* Section title */
+.section-header{padding:18px 35px 12px;border-bottom:1px solid #eee}
+.section-header h2{font-size:18px;font-weight:700;color:#1a1a2e}
+.section-header .tag{display:inline-block;background:#e6a817;color:#000;font-size:8px;font-weight:700;padding:2px 8px;border-radius:3px;margin-left:10px;vertical-align:middle;letter-spacing:1px}
+.section-header p{font-size:10px;color:#888;margin-top:4px}
+
+/* 3D viewport */
+.viewport-container{margin:15px 35px;position:relative;height:320px;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb}
+#canvas3d{width:100%;height:100%;display:block}
+.viewport-label{position:absolute;top:10px;left:10px;background:rgba(26,26,46,0.9);color:#e6a817;font-size:8px;font-weight:600;padding:4px 10px;border-radius:3px;letter-spacing:1px;text-transform:uppercase}
+.viewport-info{position:absolute;bottom:10px;left:10px;background:rgba(26,26,46,0.9);color:#fff;font-size:8px;padding:6px 10px;border-radius:3px;line-height:1.5}
+.viewport-compass{position:absolute;top:10px;right:10px;background:rgba(26,26,46,0.9);color:#fff;font-size:9px;padding:6px 10px;border-radius:3px}
+.viewport-compass .n{color:#e6a817;font-weight:700}
+
+/* KPI strip */
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;margin:0 35px;border:1px solid #e5e7eb;border-radius:6px;overflow:hidden}
+.kpi-cell{padding:10px 8px;text-align:center;border-right:1px solid #eee}
+.kpi-cell:last-child{border-right:none}
+.kpi-cell .label{font-size:7px;color:#888;text-transform:uppercase;letter-spacing:0.8px}
+.kpi-cell .value{font-size:16px;font-weight:700;color:#1a1a2e;margin-top:3px}
+.kpi-cell .unit{font-size:8px;color:#888}
+.kpi-cell.highlight{background:#fefce8}
+.kpi-cell.highlight .value{color:#b45309}
+
+/* Two columns section */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:15px 35px}
+.col h4{font-size:10px;font-weight:700;color:#1a1a2e;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #e6a817}
+
+/* Programme table */
+.prog-table{width:100%;font-size:9px}
+.prog-table tr{border-bottom:1px solid #f3f4f6}
+.prog-table td{padding:5px 4px;vertical-align:middle}
+.prog-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.prog-area{text-align:right;font-weight:600;color:#1a1a2e}
+
+/* Constraints */
+.constraint-row{display:flex;justify-content:space-between;padding:4px 0;font-size:9px;border-bottom:1px solid #f3f4f6}
+.constraint-row .key{color:#666}
+.constraint-row .val{font-weight:600;color:#1a1a2e}
+.constraint-row .ok{color:#16a34a}
+.constraint-row .warn{color:#d97706}
+
+/* Bottom analysis box */
+.analysis-box{margin:12px 35px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:14px 16px}
+.analysis-box h4{font-size:10px;font-weight:700;color:#1a1a2e;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.analysis-box h4 .icon{color:#e6a817}
+.analysis-box p{font-size:9px;color:#475569;line-height:1.7}
+.analysis-box .highlight-text{color:#b45309;font-weight:600}
+
+/* Footer */
+.page-footer{position:absolute;bottom:0;left:0;right:0;background:#f8fafc;border-top:1px solid #e5e7eb;padding:8px 35px;display:flex;justify-content:space-between;font-size:7px;color:#94a3b8}
+.page-footer .confidential{color:#ef4444;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+
+/* Score mini */
+.score-mini{display:flex;align-items:center;gap:8px;margin-top:8px}
+.score-bar-mini{flex:1;height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden}
+.score-fill-mini{height:100%;background:linear-gradient(90deg,#e6a817,#f0c040);border-radius:3px}
+.score-val{font-size:14px;font-weight:700;color:#1a1a2e}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="page-header">
+    <div class="logo-area">
+      <div class="logo-icon">K</div>
+      <div>
+        <div class="logo-text">Karukera Conseil Immobilier</div>
+        <div class="logo-sub">Pré-analyse de faisabilité immobilière — Guadeloupe</div>
+      </div>
+    </div>
+    <div class="page-num">07<span>/ 12</span></div>
+  </div>
+  <div class="gold-bar"></div>
+
+  <div class="section-header">
+    <h2>Simulation volumétrique <span class="tag">EXCLUSIF PREMIUM</span></h2>
+    <p>Masse bâtiment générée automatiquement selon les contraintes PLU de la zone UB — Le Gosier (97190)</p>
+  </div>
+
+  <div class="viewport-container">
+    <canvas id="canvas3d"></canvas>
+    <div class="viewport-label">Vue 3D — Bungalow T2 40m² sur parcelle 600m²</div>
+    <div class="viewport-info">
+      Terrain réel : MNT IGN 5m<br>
+      PLU : Zone UB · H max 9m · CES 50%
+    </div>
+    <div class="viewport-compass"><span class="n">N</span> ↑ Nord</div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi-cell"><div class="label">Surface</div><div class="value">40<span class="unit"> m²</span></div></div>
+    <div class="kpi-cell"><div class="label">Emprise</div><div class="value">48<span class="unit"> m²</span></div></div>
+    <div class="kpi-cell"><div class="label">CES réel</div><div class="value">8<span class="unit"> %</span></div></div>
+    <div class="kpi-cell"><div class="label">Hauteur</div><div class="value">4.5<span class="unit"> m</span></div></div>
+    <div class="kpi-cell highlight"><div class="label">Marge CES</div><div class="value">+252<span class="unit"> m²</span></div></div>
+    <div class="kpi-cell highlight"><div class="label">Potentiel</div><div class="value">×6<span class="unit"> unités</span></div></div>
+  </div>
+
+  <div class="two-col">
+    <div class="col">
+      <h4>Programme fonctionnel</h4>
+      <table class="prog-table">
+        <tr><td><span class="prog-dot" style="background:#4ade80"></span>Séjour / Cuisine ouverte</td><td class="prog-area">18 m²</td></tr>
+        <tr><td><span class="prog-dot" style="background:#60a5fa"></span>Chambre parentale</td><td class="prog-area">12 m²</td></tr>
+        <tr><td><span class="prog-dot" style="background:#c084fc"></span>Salle de bain</td><td class="prog-area">5 m²</td></tr>
+        <tr><td><span class="prog-dot" style="background:#f472b6"></span>WC séparé</td><td class="prog-area">2 m²</td></tr>
+        <tr><td><span class="prog-dot" style="background:#78716c"></span>Rangement / Buanderie</td><td class="prog-area">3 m²</td></tr>
+        <tr><td><span class="prog-dot" style="background:#94a3b8"></span>Terrasse couverte</td><td class="prog-area">15 m²</td></tr>
+      </table>
+      <div style="margin-top:10px;font-size:8px;color:#888">Total habitable: 40 m² · Total avec terrasse: 55 m²</div>
+    </div>
+    <div class="col">
+      <h4>Conformité PLU — Zone UB</h4>
+      <div class="constraint-row"><span class="key">Hauteur (max 9m)</span><span class="val ok">4.5 m ✓</span></div>
+      <div class="constraint-row"><span class="key">CES (max 50%)</span><span class="val ok">8% ✓</span></div>
+      <div class="constraint-row"><span class="key">Recul voie (min 5m)</span><span class="val ok">6 m ✓</span></div>
+      <div class="constraint-row"><span class="key">Recul limites (min 3m)</span><span class="val ok">4 m ✓</span></div>
+      <div class="constraint-row"><span class="key">Stationnement (1 pl.)</span><span class="val ok">1 place ✓</span></div>
+      <div class="constraint-row"><span class="key">Toiture</span><span class="val ok">2 pentes 30° ✓</span></div>
+
+      <div style="margin-top:12px">
+        <div style="font-size:8px;color:#888;text-transform:uppercase;letter-spacing:0.8px">Score de conformité PLU</div>
+        <div class="score-mini">
+          <div class="score-bar-mini"><div class="score-fill-mini" style="width:100%"></div></div>
+          <div class="score-val">6/6</div>
+        </div>
+      </div>
+
+      <div style="margin-top:10px;padding:8px;background:#f0fdf4;border-radius:4px;border-left:3px solid #16a34a">
+        <div style="font-size:8px;font-weight:600;color:#16a34a">POTENTIEL D'EXTENSION</div>
+        <div style="font-size:8px;color:#475569;margin-top:3px;line-height:1.5">La marge CES de 252 m² permet d'ajouter jusqu'à 5 bungalows supplémentaires sur cette parcelle, soit un mini-resort de 6 unités.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="analysis-box">
+    <h4><span class="icon">▸</span> Analyse volumétrique KCI</h4>
+    <p>Le bungalow T2 de 40 m² s'implante confortablement sur la parcelle de 600 m² en zone UB du Gosier, avec un CES de seulement 8% (max autorisé : 50%). La hauteur de faîtage de 4,5 m reste bien en-deçà du plafond réglementaire de 9 m. Cette marge considérable ouvre deux scénarios d'investissement : <span class="highlight-text">(1) un bungalow unique premium avec piscine et jardin tropical (rendement 21%)</span>, ou <span class="highlight-text">(2) un programme de 4 à 6 bungalows en mini-resort (rendement estimé 28-32%)</span>. L'orientation sud-ouest de la parcelle favorise la ventilation naturelle (alizés) et limite l'exposition cyclonique directe.</p>
+  </div>
+
+  <div class="page-footer">
+    <div>KCI — Karukera Conseil Immobilier · Rapport Premium 299€ · Réf. KCI-2026-0342</div>
+    <div class="confidential">Document confidentiel — Usage client exclusif</div>
+    <div>Généré le 19/03/2026 · Données PLU Le Gosier 2021 · DVF 2020-2025</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const canvas=document.getElementById('canvas3d');
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0xf0f4f8);
+const camera=new THREE.PerspectiveCamera(40,canvas.clientWidth/320,0.1,200);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setSize(canvas.clientWidth,320);renderer.shadowMap.enabled=true;
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+
+// Warm lighting for professional render
+scene.add(new THREE.AmbientLight(0xffffff,0.5));
+const sun=new THREE.DirectionalLight(0xfff5e0,0.9);
+sun.position.set(15,25,10);sun.castShadow=true;
+sun.shadow.mapSize.width=1024;sun.shadow.mapSize.height=1024;scene.add(sun);
+scene.add(new THREE.HemisphereLight(0x87ceeb,0x4a7a2a,0.3));
+
+// Terrain
+const tGeo=new THREE.PlaneGeometry(30,30,50,50);
+const tv=tGeo.attributes.position.array;
+for(let i=0;i<tv.length;i+=3){
+  const x=tv[i],y=tv[i+1];
+  tv[i+2]=Math.sin(x*0.25)*Math.cos(y*0.2)*1.2+Math.sin(x*0.6+y*0.4)*0.3+Math.cos(y*0.35)*0.5;
+}
+tGeo.computeVertexNormals();
+const terrain=new THREE.Mesh(tGeo,new THREE.MeshStandardMaterial({color:0x5a8a3a,roughness:0.92,flatShading:true}));
+terrain.rotation.x=-Math.PI/2;terrain.receiveShadow=true;scene.add(terrain);
+
+// Parcelle line on terrain
+const pPts=[];
+for(let i=0;i<=50;i++){const t=i/50,x=-12+24*t,z=-12.5;
+  pPts.push(new THREE.Vector3(x,Math.sin(x*0.25)*Math.cos(z*0.2)*1.2+0.2,z));}
+for(let i=0;i<=50;i++){const t=i/50,z=-12.5+25*t,x=12;
+  pPts.push(new THREE.Vector3(x,Math.sin(x*0.25)*Math.cos(z*0.2)*1.2+0.2,z));}
+for(let i=50;i>=0;i--){const t=i/50,x=-12+24*t,z=12.5;
+  pPts.push(new THREE.Vector3(x,Math.sin(x*0.25)*Math.cos(z*0.2)*1.2+0.2,z));}
+for(let i=50;i>=0;i--){const t=i/50,z=-12.5+25*t,x=-12;
+  pPts.push(new THREE.Vector3(x,Math.sin(x*0.25)*Math.cos(z*0.2)*1.2+0.2,z));}
+scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pPts),new THREE.LineBasicMaterial({color:0x22c55e,linewidth:2})));
+
+// Building
+const bY=Math.sin(0)*Math.cos(0)*1.2+0.3+0.1;
+// Foundation/slab
+const slab=new THREE.Mesh(new THREE.BoxGeometry(8.4,0.2,6.4),new THREE.MeshStandardMaterial({color:0xcccccc,roughness:0.8}));
+slab.position.set(0,bY,0);slab.receiveShadow=true;scene.add(slab);
+
+// Walls
+const wallMat=new THREE.MeshStandardMaterial({color:0xf5efe0,roughness:0.65});
+const body=new THREE.Mesh(new THREE.BoxGeometry(8,2.8,6),wallMat);
+body.position.set(0,bY+1.5,0);body.castShadow=true;body.receiveShadow=true;scene.add(body);
+
+// Accent band
+const accent=new THREE.Mesh(new THREE.BoxGeometry(8.1,0.15,6.1),new THREE.MeshStandardMaterial({color:0xe6a817,roughness:0.4,metalness:0.2}));
+accent.position.set(0,bY+0.4,0);scene.add(accent);
+
+// Windows
+const winMat=new THREE.MeshStandardMaterial({color:0x88c8e8,roughness:0.1,metalness:0.4,transparent:true,opacity:0.5});
+for(let x of[-2.5,0,2.5]){
+  const w=new THREE.Mesh(new THREE.BoxGeometry(1.2,1.2,0.06),winMat);
+  w.position.set(x,bY+1.8,3.01);scene.add(w);
+  scene.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(1.25,1.25,0.07)),new THREE.LineBasicMaterial({color:0x555})).translateX(x).translateY(bY+1.8).translateZ(3.01));
+}
+
+// Roof
+const rSh=new THREE.Shape();rSh.moveTo(-5,0);rSh.lineTo(0,2.3);rSh.lineTo(5,0);
+const rGeo=new THREE.ExtrudeGeometry(rSh,{depth:7.5,bevelEnabled:false});
+const roof=new THREE.Mesh(rGeo,new THREE.MeshStandardMaterial({color:0xb91c1c,roughness:0.45,metalness:0.15}));
+roof.rotation.x=-Math.PI/2;roof.position.set(0,bY+2.9,-3.75);roof.castShadow=true;scene.add(roof);
+
+// Deck / Terrasse
+const deckMat=new THREE.MeshStandardMaterial({color:0x8B6914,roughness:0.85});
+const deck=new THREE.Mesh(new THREE.BoxGeometry(9,0.12,3.5),deckMat);
+const deckZ=5;const deckY2=Math.sin(0)*Math.cos(deckZ*0.2)*1.2+0.2;
+deck.position.set(0,Math.max(bY,deckY2)+0.06,deckZ);deck.receiveShadow=true;scene.add(deck);
+
+// Pergola
+const bMat=new THREE.MeshStandardMaterial({color:0x5c3a1e,roughness:0.75});
+for(let x=-4;x<=4;x+=2){
+  const b=new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,4),bMat);
+  b.position.set(x,bY+2.5,deckZ);b.castShadow=true;scene.add(b);
+}
+for(let x of[-4,4]){for(let z of[3.5,6.5]){
+  const p=new THREE.Mesh(new THREE.BoxGeometry(0.12,2.5,0.12),bMat);
+  p.position.set(x,bY+1.25,z);p.castShadow=true;scene.add(p);
+}}
+
+// Trees
+function addTree(x,z){
+  const ty=Math.sin(x*0.25)*Math.cos(z*0.2)*1.2+Math.sin(x*0.6+z*0.4)*0.3;
+  const h=3+Math.random()*2;
+  const trunk=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.1,h,6),new THREE.MeshStandardMaterial({color:0x6b4226,roughness:0.9}));
+  trunk.position.set(x,ty+h/2,z);trunk.castShadow=true;scene.add(trunk);
+  const crown=new THREE.Mesh(new THREE.SphereGeometry(0.8+Math.random()*0.5,7,6),new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(0.28+Math.random()*0.06,0.55,0.22+Math.random()*0.08),roughness:0.85}));
+  crown.position.set(x,ty+h+0.3,z);crown.castShadow=true;scene.add(crown);
+}
+addTree(-8,3);addTree(9,-2);addTree(-6,-8);addTree(7,9);addTree(-10,-4);addTree(5,-9);addTree(-3,10);addTree(10,5);
+
+// Shrubs near building
+for(let i=0;i<8;i++){
+  const a=Math.random()*Math.PI*2,d=5+Math.random()*3;
+  const sx=Math.cos(a)*d,sz=Math.sin(a)*d;
+  const sy=Math.sin(sx*0.25)*Math.cos(sz*0.2)*1.2;
+  const s=new THREE.Mesh(new THREE.SphereGeometry(0.25+Math.random()*0.2,5,5),new THREE.MeshStandardMaterial({color:0x2d6b1a,roughness:0.9}));
+  s.position.set(sx,sy+0.25,sz);scene.add(s);
+}
+
+camera.position.set(18,12,18);camera.lookAt(0,bY+2,0);
+
+// Orbit
+let drag=false,px,py,th=Math.PI/4,ph=Math.PI/3.5,r=24;
+const tgt=new THREE.Vector3(0,bY+1.5,1);
+function upd(){camera.position.set(tgt.x+r*Math.sin(ph)*Math.cos(th),tgt.y+r*Math.cos(ph),tgt.z+r*Math.sin(ph)*Math.sin(th));camera.lookAt(tgt)}
+canvas.addEventListener('mousedown',e=>{drag=true;px=e.clientX;py=e.clientY});
+canvas.addEventListener('mousemove',e=>{if(!drag)return;th-=(e.clientX-px)*0.005;ph=Math.max(0.15,Math.min(1.4,ph-(e.clientY-py)*0.005));upd();px=e.clientX;py=e.clientY});
+canvas.addEventListener('mouseup',()=>drag=false);
+canvas.addEventListener('wheel',e=>{r=Math.max(10,Math.min(45,r+e.deltaY*0.03));upd()});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+upd();
+(function a(){requestAnimationFrame(a);renderer.render(scene,camera)})();
+</script>
+</body>
+</html>

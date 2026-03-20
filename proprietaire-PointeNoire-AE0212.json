@@ -1,0 +1,47 @@
+{
+  "parcelle": {
+    "reference": "971 AE 0212",
+    "code_parcelle": "97121000AE0212",
+    "commune": "Pointe-Noire",
+    "code_postal": "97116",
+    "code_insee": "97121",
+    "section": "AE",
+    "numero": "0212",
+    "surface_m2": 17655,
+    "centroid": [
+      16.252364,
+      -61.798664
+    ],
+    "zone_plu": "UBb"
+  },
+  "dvf": {
+    "mutations": [],
+    "status": "API indisponible (502/403) — 20/03/2026",
+    "nb_mutations_depuis_2014": 0
+  },
+  "proprietaire": {
+    "type": "inconnu — probablement particulier",
+    "nom": null,
+    "siren": null,
+    "sci_candidates_secteur": [
+      "SCI A.J.S.L (SIREN 500586664) — Section Baillargent (proche section AE)",
+      "VICTOR ALBINA (SIREN 433660024) — LD Baillargent"
+    ]
+  },
+  "spf": {
+    "cerfa_genere": true,
+    "fichier_cerfa": "CERFA_3233_Pointe-Noire_AE0212.pdf",
+    "spf_competent": "SPF de Basse-Terre"
+  },
+  "meta": {
+    "date_recherche": "2026-03-20",
+    "sources": [
+      "Cadastre IGN",
+      "DVF (indisponible)",
+      "Pappers Immobilier",
+      "API Recherche Entreprises"
+    ],
+    "skill_version": "1.0",
+    "nb_sci_pointe_noire": 70
+  }
+}

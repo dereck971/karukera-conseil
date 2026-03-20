@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<style>
+@page { size: A4; margin: 12mm 15mm 20mm; }
+:root {
+    --navy: #0B1526;
+    --gold: #C9A84C;
+    --green: #2A9D6C;
+    --orange: #D48A1A;
+    --red: #C43B2E;
+    --bg: #FAFAFA;
+    --text: #1A1A2E;
+    --text-sec: #555;
+    --text-ter: #888;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; font-size:9pt; color:var(--text); background:white; }
+.page { width:210mm; min-height:297mm; padding:10mm 15mm 20mm; position:relative; page-break-after:always; }
+.page:last-child { page-break-after:avoid; }
+
+/* Header */
+.qa-header { display:flex; justify-content:space-between; align-items:center; padding-bottom:4mm; border-bottom:.4mm solid var(--gold); margin-bottom:6mm; }
+.qa-title { font-size:14pt; font-weight:700; color:var(--navy); letter-spacing:1px; }
+.qa-subtitle { font-size:8pt; color:var(--text-ter); }
+
+/* Score circle */
+.score-circle { width:35mm; height:35mm; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; margin:4mm auto; }
+.score-circle.green { background:linear-gradient(135deg, #2A9D6C22, #2A9D6C44); border:1mm solid var(--green); }
+.score-circle.orange { background:linear-gradient(135deg, #D48A1A22, #D48A1A44); border:1mm solid var(--orange); }
+.score-circle.red { background:linear-gradient(135deg, #C43B2E22, #C43B2E44); border:1mm solid var(--red); }
+.score-val { font-size:20pt; font-weight:800; }
+.score-label { font-size:7pt; color:var(--text-sec); margin-top:1mm; }
+
+/* Recommendation badge */
+.rec-badge { display:inline-block; padding:2mm 5mm; border-radius:2mm; font-weight:700; font-size:10pt; text-align:center; margin:3mm auto; }
+.rec-badge.green { background:#2A9D6C22; color:var(--green); border:0.3mm solid var(--green); }
+.rec-badge.orange { background:#D48A1A22; color:var(--orange); border:0.3mm solid var(--orange); }
+.rec-badge.red { background:#C43B2E22; color:var(--red); border:0.3mm solid var(--red); }
+
+/* Info box */
+.info-box { background:var(--navy); color:white; padding:4mm; border-radius:2mm; margin:4mm 0; }
+.info-row { display:flex; justify-content:space-between; padding:1mm 0; font-size:8pt; }
+.info-label { color:var(--gold); font-weight:600; }
+
+/* Module summary */
+.mod-grid { display:grid; grid-template-columns:1fr 1fr; gap:3mm; margin:4mm 0; }
+.mod-card { padding:3mm; border:0.3mm solid #ddd; border-radius:2mm; background:white; }
+.mod-name { font-weight:700; font-size:9pt; color:var(--navy); margin-bottom:2mm; }
+.mod-stats { display:flex; gap:3mm; font-size:7.5pt; }
+.stat { padding:1mm 2mm; border-radius:1mm; }
+.stat-pass { background:#2A9D6C22; color:var(--green); }
+.stat-fail { background:#C43B2E22; color:var(--red); }
+.stat-warn { background:#D48A1A22; color:var(--orange); }
+.stat-skip { background:#eee; color:#888; }
+
+/* Check table */
+.check-table { width:100%; border-collapse:collapse; font-size:8pt; margin:3mm 0; }
+.check-table th { background:var(--navy); color:white; padding:2mm 3mm; text-align:left; font-size:7.5pt; }
+.check-table td { padding:2mm 3mm; border-bottom:0.2mm solid #eee; }
+.check-table tr.fail td { background:#C43B2E08; }
+.check-table tr.warn td { background:#D48A1A08; }
+.badge { display:inline-block; padding:0.5mm 2mm; border-radius:1mm; font-size:6.5pt; font-weight:700; }
+.badge-pass { background:#2A9D6C; color:white; }
+.badge-fail { background:#C43B2E; color:white; }
+.badge-warn { background:#D48A1A; color:white; }
+.badge-skip { background:#888; color:white; }
+.badge-manual { background:#6B7280; color:white; }
+
+/* Corrections section */
+.correction { padding:3mm; margin:2mm 0; border-left:1mm solid var(--red); background:#C43B2E06; border-radius:0 2mm 2mm 0; }
+.correction.warn { border-left-color:var(--orange); background:#D48A1A06; }
+.correction-id { font-weight:700; color:var(--red); font-size:8pt; }
+.correction.warn .correction-id { color:var(--orange); }
+.correction-text { font-size:8pt; color:var(--text-sec); margin-top:1mm; }
+
+/* Footer */
+.qa-footer { position:absolute; bottom:8mm; left:15mm; right:15mm; padding-top:2mm; border-top:0.3mm solid var(--gold); display:flex; justify-content:space-between; font-size:6pt; color:var(--text-ter); }
+</style>
+</head>
+<body>
+<div class="page">
+        <div class="qa-header">
+            <div>
+                <div class="qa-title">CONTRÔLE QUALITÉ — RAPPORT KCI</div>
+                <div class="qa-subtitle">Rapport Verificator · 2026-03-20</div>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <div class="info-row"><span class="info-label">Rapport vérifié</span><span>KCI_Rapport_Premium_BasDuBourg_260320.pdf</span></div>
+            <div class="info-row"><span class="info-label">Offre</span><span>299€</span></div>
+            <div class="info-row"><span class="info-label">Client</span><span>BasDuBourg</span></div>
+            <div class="info-row"><span class="info-label">Pages PDF</span><span>10</span></div>
+            <div class="info-row"><span class="info-label">HTML source</span><span>Non</span></div>
+        </div>
+
+        <div style="text-align:center; margin:6mm 0;">
+            <div class="score-circle green">
+                <div class="score-val" style="color:var(--green)">90.2%</div>
+                <div class="score-label">CONFORMITÉ</div>
+            </div>
+            <div class="rec-badge red">CORRECTIONS REQUISES</div>
+            <div style="font-size:8pt; color:var(--text-sec); margin-top:2mm;">Corrections bloquantes à apporter avant envoi</div>
+            <div style="font-size:7.5pt; color:var(--text-ter); margin-top:3mm;">
+                25 passés / 36 total — 2 bloquant(s), 1 avertissement(s)
+            </div>
+        </div>
+
+        <div style="margin-top:5mm;">
+            <div style="font-size:11pt; font-weight:700; color:var(--navy); margin-bottom:3mm;">Résumé par module</div>
+            <div class="mod-grid">
+                <div class="mod-card">
+            <div class="mod-name">Nomenclature</div>
+            <div class="mod-stats">
+                <span class="stat stat-pass">5 OK</span>
+                <span class="stat stat-fail">0 échec</span>
+                <span class="stat stat-warn">0 avert.</span>
+                
+            </div>
+        </div><div class="mod-card">
+            <div class="mod-name">Résiduels</div>
+            <div class="mod-stats">
+                <span class="stat stat-pass">2 OK</span>
+                <span class="stat stat-fail">0 échec</span>
+                <span class="stat stat-warn">0 avert.</span>
+                
+            </div>
+        </div><div class="mod-card">
+            <div class="mod-name">Financier</div>
+            <div class="mod-stats">
+                <span class="stat stat-pass">9 OK</span>
+                <span class="stat stat-fail">0 échec</span>
+                <span class="stat stat-warn">1 avert.</span>
+                <span class='stat stat-skip'>7 manuel</span>
+            </div>
+        </div><div class="mod-card">
+            <div class="mod-name">Scores</div>
+            <div class="mod-stats">
+                <span class="stat stat-pass">2 OK</span>
+                <span class="stat stat-fail">1 échec</span>
+                <span class="stat stat-warn">0 avert.</span>
+                
+            </div>
+        </div><div class="mod-card">
+            <div class="mod-name">Fiscal</div>
+            <div class="mod-stats">
+                <span class="stat stat-pass">0 OK</span>
+                <span class="stat stat-fail">1 échec</span>
+                <span class="stat stat-warn">0 avert.</span>
+                
+            </div>
+        </div><div class="mod-card">
+            <div class="mod-name">Graphique</div>
+            <div class="mod-stats">
+                <span class="stat stat-pass">0 OK</span>
+                <span class="stat stat-fail">0 échec</span>
+                <span class="stat stat-warn">0 avert.</span>
+                
+            </div>
+        </div><div class="mod-card">
+            <div class="mod-name">Éditorial</div>
+            <div class="mod-stats">
+                <span class="stat stat-pass">7 OK</span>
+                <span class="stat stat-fail">0 échec</span>
+                <span class="stat stat-warn">0 avert.</span>
+                
+            </div>
+        </div>
+            </div>
+        </div>
+
+        <div class="qa-footer">
+            <span>KCI Verificator — Contrôle Qualité Post-Production</span>
+            <span>1 / 3</span>
+        </div>
+    </div>
+<div class="page">
+        <div class="qa-header">
+            <div>
+                <div class="qa-title" style="font-size:11pt;">DÉTAIL DES VÉRIFICATIONS</div>
+                <div class="qa-subtitle">KCI_Rapport_Premium_BasDuBourg_260320.pdf</div>
+            </div>
+        </div>
+        <div style="font-size:10pt; font-weight:700; color:var(--navy); margin:4mm 0 2mm;">Module : Nomenclature</div>
+            <table class="check-table">
+            <tr><th style="width:8%">ID</th><th style="width:30%">Check</th><th style="width:8%">Statut</th><th style="width:8%">Gravité</th><th>Détail</th></tr><tr class="">
+            <td><strong>N1</strong></td>
+            <td>Format nom de fichier</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Format valide : offre=Premium, client=BasDuBourg, date=260320</td>
+        </tr><tr class="">
+            <td><strong>N2</strong></td>
+            <td>Offre valide</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Offre 'Premium' reconnue</td>
+        </tr><tr class="">
+            <td><strong>N3</strong></td>
+            <td>NomClient PascalCase</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">AVERTISSEMENT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Client 'BasDuBourg' en PascalCase</td>
+        </tr><tr class="">
+            <td><strong>N4</strong></td>
+            <td>Date AAMMJJ valide</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Date 260320 → 2026-03-20</td>
+        </tr><tr class="">
+            <td><strong>N5</strong></td>
+            <td>Cohérence offre/contenu</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Badge 'PREMIUM' trouvé dans le contenu</td>
+        </tr></table><div style="font-size:10pt; font-weight:700; color:var(--navy); margin:4mm 0 2mm;">Module : Résiduels</div>
+            <table class="check-table">
+            <tr><th style="width:8%">ID</th><th style="width:30%">Check</th><th style="width:8%">Statut</th><th style="width:8%">Gravité</th><th>Détail</th></tr><tr class="">
+            <td><strong>R1</strong></td>
+            <td>Placeholders {{...}}</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Aucun placeholder détecté</td>
+        </tr><tr class="">
+            <td><strong>R2</strong></td>
+            <td>Données résiduelles</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Aucune donnée résiduelle détectée</td>
+        </tr></table><div style="font-size:10pt; font-weight:700; color:var(--navy); margin:4mm 0 2mm;">Module : Financier</div>
+            <table class="check-table">
+            <tr><th style="width:8%">ID</th><th style="width:30%">Check</th><th style="width:8%">Statut</th><th style="width:8%">Gravité</th><th>Détail</th></tr><tr class="">
+            <td><strong>F11</strong></td>
+            <td>Pas de NaN/None</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Aucune valeur NaN/None/undefined/inf</td>
+        </tr><tr class="warn">
+            <td><strong>F12</strong></td>
+            <td>Format montants</td>
+            <td><span class="badge badge-fail">ÉCHEC</span></td>
+            <td style="font-size:6.5pt;">AVERTISSEMENT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Montants mal formatés (espaces milliers manquants) : ['1200 €', '1200€']</td>
+        </tr><tr class="">
+            <td><strong>F8</strong></td>
+            <td>Rendement brut plausible</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Rendement brut 3.2% dans la plage attendue</td>
+        </tr><tr class="">
+            <td><strong>F8</strong></td>
+            <td>Rendement brut plausible</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Rendement brut 4.7% dans la plage attendue</td>
+        </tr><tr class="">
+            <td><strong>F8</strong></td>
+            <td>Rendement brut plausible</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Rendement brut 6.0% dans la plage attendue</td>
+        </tr><tr class="">
+            <td><strong>F8</strong></td>
+            <td>Rendement brut plausible</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Rendement brut 3.2% dans la plage attendue</td>
+        </tr><tr class="">
+            <td><strong>F9</strong></td>
+            <td>Rendement net plausible</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Rendement net 2.2% dans la plage attendue</td>
+        </tr><tr class="">
+            <td><strong>F9</strong></td>
+            <td>Rendement net plausible</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Rendement net 3.5% dans la plage attendue</td>
+        </tr><tr class="">
+            <td><strong>F9</strong></td>
+            <td>Rendement net plausible</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Rendement net 4.8% dans la plage attendue</td>
+        </tr><tr class="">
+            <td><strong>F9</strong></td>
+            <td>Rendement net plausible</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Rendement net 2.2% dans la plage attendue</td>
+        </tr><tr class="">
+            <td><strong>F1</strong></td>
+            <td>Prix d'acquisition = prix annonce</td>
+            <td><span class="badge badge-manual">MANUEL</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Vérification manuelle requise — extraction automatique non disponible pour ce rapport</td>
+        </tr><tr class="">
+            <td><strong>F2</strong></td>
+            <td>Frais de notaire cohérents</td>
+            <td><span class="badge badge-manual">MANUEL</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Vérification manuelle requise — extraction automatique non disponible pour ce rapport</td>
+        </tr><tr class="">
+            <td><strong>F3</strong></td>
+            <td>Travaux = taux × surface</td>
+            <td><span class="badge badge-manual">MANUEL</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Vérification manuelle requise — extraction automatique non disponible pour ce rapport</td>
+        </tr><tr class="">
+            <td><strong>F4</strong></td>
+            <td>MOE = % × travaux</td>
+            <td><span class="badge badge-manual">MANUEL</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Vérification manuelle requise — extraction automatique non disponible pour ce rapport</td>
+        </tr><tr class="">
+            <td><strong>F5</strong></td>
+            <td>Total investissement = somme postes</td>
+            <td><span class="badge badge-manual">MANUEL</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Vérification manuelle requise — extraction automatique non disponible pour ce rapport</td>
+        </tr><tr class="">
+            <td><strong>F6</strong></td>
+            <td>Revenus bruts = loyer × 12</td>
+            <td><span class="badge badge-manual">MANUEL</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Vérification manuelle requise — extraction automatique non disponible pour ce rapport</td>
+        </tr><tr class="">
+            <td><strong>F7</strong></td>
+            <td>Revenu net = bruts − charges</td>
+            <td><span class="badge badge-manual">MANUEL</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Vérification manuelle requise — extraction automatique non disponible pour ce rapport</td>
+        </tr></table><div style="font-size:10pt; font-weight:700; color:var(--navy); margin:4mm 0 2mm;">Module : Scores</div>
+            <table class="check-table">
+            <tr><th style="width:8%">ID</th><th style="width:30%">Check</th><th style="width:8%">Statut</th><th style="width:8%">Gravité</th><th>Détail</th></tr><tr class="">
+            <td><strong>S1</strong></td>
+            <td>Score dans [0, 10]</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Score global : 8.2/10</td>
+        </tr><tr class="">
+            <td><strong>S2</strong></td>
+            <td>Verdict ↔ score</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Score 8.2 → verdict attendu 'TRÈS ATTRACTIF' trouvé</td>
+        </tr><tr class="fail">
+            <td><strong>S4</strong></td>
+            <td>7 sous-scores (129€/299€)</td>
+            <td><span class="badge badge-fail">ÉCHEC</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Seulement 2 sous-scores détectés (7 attendus)</td>
+        </tr></table><div style="font-size:10pt; font-weight:700; color:var(--navy); margin:4mm 0 2mm;">Module : Fiscal</div>
+            <table class="check-table">
+            <tr><th style="width:8%">ID</th><th style="width:30%">Check</th><th style="width:8%">Statut</th><th style="width:8%">Gravité</th><th>Détail</th></tr><tr class="fail">
+            <td><strong>FI4</strong></td>
+            <td>Pinel expiré</td>
+            <td><span class="badge badge-fail">ÉCHEC</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Mention de 'Pinel' détectée — Pinel OM expiré le 31/12/2024</td>
+        </tr></table><div style="font-size:10pt; font-weight:700; color:var(--navy); margin:4mm 0 2mm;">Module : Graphique</div>
+            <table class="check-table">
+            <tr><th style="width:8%">ID</th><th style="width:30%">Check</th><th style="width:8%">Statut</th><th style="width:8%">Gravité</th><th>Détail</th></tr><tr class="">
+            <td><strong>G0</strong></td>
+            <td>HTML source disponible</td>
+            <td><span class="badge badge-skip">N/A</span></td>
+            <td style="font-size:6.5pt;">INFO</td>
+            <td style="font-size:7pt; color:var(--text-sec);">HTML source non fourni — vérifications graphiques limitées au texte PDF</td>
+        </tr></table><div style="font-size:10pt; font-weight:700; color:var(--navy); margin:4mm 0 2mm;">Module : Éditorial</div>
+            <table class="check-table">
+            <tr><th style="width:8%">ID</th><th style="width:30%">Check</th><th style="width:8%">Statut</th><th style="width:8%">Gravité</th><th>Détail</th></tr><tr class="">
+            <td><strong>E1</strong></td>
+            <td>Pas de 'La Soufrière'</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Aucune mention de 'La Soufrière'</td>
+        </tr><tr class="">
+            <td><strong>E2</strong></td>
+            <td>Pas de 'volcan'</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Aucune mention de 'volcan'</td>
+        </tr><tr class="">
+            <td><strong>E3</strong></td>
+            <td>Formulations interdites</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">AVERTISSEMENT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Aucune formulation interdite détectée</td>
+        </tr><tr class="">
+            <td><strong>E5</strong></td>
+            <td>Méthodologie présente</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Section méthodologie détectée</td>
+        </tr><tr class="">
+            <td><strong>E6</strong></td>
+            <td>Mention non contractuel</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">BLOQUANT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">'Non contractuel' trouvé dans le rapport</td>
+        </tr><tr class="">
+            <td><strong>E7</strong></td>
+            <td>Site web correct</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">AVERTISSEMENT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Seules des URLs autorisées détectées</td>
+        </tr><tr class="">
+            <td><strong>E8</strong></td>
+            <td>Pas de nombre d'analyses</td>
+            <td><span class="badge badge-pass">OK</span></td>
+            <td style="font-size:6.5pt;">AVERTISSEMENT</td>
+            <td style="font-size:7pt; color:var(--text-sec);">Aucune mention de nombre d'analyses</td>
+        </tr></table>
+        <div class="qa-footer">
+            <span>KCI Verificator — Contrôle Qualité Post-Production</span>
+            <span>2 / 3</span>
+        </div>
+    </div>
+<div class="page">
+        <div class="qa-header">
+            <div>
+                <div class="qa-title" style="font-size:11pt;">ACTIONS CORRECTIVES</div>
+                <div class="qa-subtitle">3 correction(s) à apporter</div>
+            </div>
+        </div>
+        <div class="correction ">
+            <div class="correction-id">[FI4] Pinel expiré</div>
+            <div class="correction-text">Mention de 'Pinel' détectée — Pinel OM expiré le 31/12/2024</div>
+        </div><div class="correction ">
+            <div class="correction-id">[S4] 7 sous-scores (129€/299€)</div>
+            <div class="correction-text">Seulement 2 sous-scores détectés (7 attendus)</div>
+        </div><div class="correction warn">
+            <div class="correction-id">[F12] Format montants</div>
+            <div class="correction-text">Montants mal formatés (espaces milliers manquants) : ['1200 €', '1200€']</div>
+        </div>
+        <div class="qa-footer">
+            <span>KCI Verificator — Contrôle Qualité Post-Production</span>
+            <span>3 / 3</span>
+        </div>
+    </div>
+</body>
+</html>

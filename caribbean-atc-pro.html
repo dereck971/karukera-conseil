@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caribbean ATC Pro — Swiss Knife Aviation</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080c16;--surface:#0d1321;--surface2:#141a2e;--surface3:#1a2140;
+  --border:rgba(0,194,255,.1);--border2:rgba(255,255,255,.05);
+  --accent:#00c2ff;--accent2:#7b61ff;--accent3:#00d68f;--warn:#ffaa00;--danger:#ff3b5c;
+  --text:#e0e6f0;--text2:#a0aacc;--text3:#6b7394;--text4:#3d4563;
+  --radius:12px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ─── TOP BAR ─── */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:1000;height:52px;
+  background:linear-gradient(135deg,var(--surface),var(--surface2));
+  border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px}
+.logo{font-size:18px;font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap}
+.logo-dot{font-size:9px;color:var(--text3);font-weight:500;margin-left:4px;letter-spacing:1px}
+.live{background:var(--danger);color:#fff;font-size:9px;font-weight:700;padding:2px 8px;
+  border-radius:20px;animation:pulse 2s infinite;letter-spacing:1px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar-stats{display:flex;gap:20px;margin-left:auto}
+.tstat{text-align:center}
+.tstat-v{font-size:16px;font-weight:700;color:var(--accent)}
+.tstat-l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:1px}
+
+/* ─── MODE SWITCHER ─── */
+.mode-bar{position:fixed;top:52px;left:0;right:0;z-index:999;height:40px;
+  background:var(--surface);border-bottom:1px solid var(--border2);
+  display:flex;align-items:center;padding:0 16px;gap:4px;overflow-x:auto}
+.mode-btn{padding:6px 16px;font-size:11px;font-weight:600;color:var(--text3);
+  border:1px solid transparent;border-radius:8px;cursor:pointer;background:none;
+  transition:all .2s;white-space:nowrap;font-family:inherit}
+.mode-btn:hover{color:var(--text2);background:var(--surface2)}
+.mode-btn.active{color:var(--accent);background:rgba(0,194,255,.06);border-color:rgba(0,194,255,.15)}
+.mode-sep{width:1px;height:20px;background:var(--border2);margin:0 8px}
+.mode-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.config-btn{background:none;border:1px solid var(--border2);color:var(--text3);
+  padding:5px 12px;border-radius:8px;font-size:10px;font-weight:600;cursor:pointer;
+  font-family:inherit;transition:all .2s}
+.config-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ─── MAIN LAYOUT ─── */
+.main{position:fixed;top:92px;left:0;right:0;bottom:0;display:flex}
+#map{flex:1;z-index:1}
+.sidebar{width:400px;background:var(--surface);border-left:1px solid var(--border2);
+  display:flex;flex-direction:column;z-index:10;transition:width .3s}
+.sidebar.collapsed{width:0;overflow:hidden}
+
+/* ─── LEFT PANEL ─── */
+.left-panel{position:absolute;top:0;left:0;bottom:0;width:340px;z-index:100;
+  background:rgba(8,12,22,.96);backdrop-filter:blur(30px);border-right:1px solid var(--border2);
+  transform:translateX(-100%);transition:transform .3s;display:flex;flex-direction:column}
+.left-panel.open{transform:translateX(0)}
+.panel-header{padding:14px 16px;border-bottom:1px solid var(--border2);display:flex;
+  align-items:center;justify-content:space-between}
+.panel-title{font-size:14px;font-weight:700;color:#fff}
+.panel-close{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer}
+.panel-close:hover{color:#fff}
+.panel-body{flex:1;overflow-y:auto;padding:12px}
+
+/* ─── SIDEBAR TABS & CONTENT ─── */
+.stabs{display:flex;border-bottom:1px solid var(--border2)}
+.stab{flex:1;padding:10px 4px;text-align:center;font-size:10px;font-weight:600;
+  color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;
+  transition:all .2s;text-transform:uppercase;letter-spacing:.5px}
+.stab:hover{color:var(--text2)}
+.stab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.scontent{flex:1;overflow-y:auto;padding:10px}
+.search-wrap{position:relative;margin-bottom:10px}
+.search-wrap input{width:100%;padding:8px 12px 8px 32px;background:rgba(0,0,0,.3);
+  border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:12px;
+  font-family:inherit;outline:none}
+.search-wrap input:focus{border-color:rgba(0,194,255,.3)}
+.search-wrap input::placeholder{color:var(--text4)}
+.search-wrap .si{position:absolute;left:10px;top:50%;transform:translateY(-50%);
+  font-size:12px;color:var(--text4)}
+
+/* ─── CARDS ─── */
+.card{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);
+  padding:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.card:hover{border-color:rgba(0,194,255,.2);transform:translateY(-1px);
+  box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.card-row{display:flex;align-items:center;justify-content:space-between}
+.card-route{display:flex;align-items:center;gap:8px;margin:8px 0}
+.iata{font-size:18px;font-weight:800;color:#fff}
+.iata-sm{font-size:14px;font-weight:700;color:#fff}
+.city{font-size:9px;color:var(--text3)}
+.route-line{flex:1;height:1px;background:var(--text4);position:relative}
+.route-line::after{content:'✈';position:absolute;top:-9px;color:var(--accent);
+  font-size:12px;animation:fly 3s infinite linear}
+@keyframes fly{0%{left:0}100%{left:calc(100% - 12px)}}
+.tag{padding:2px 8px;border-radius:5px;font-size:9px;font-weight:600;white-space:nowrap}
+.tag-enroute{background:rgba(0,194,255,.12);color:var(--accent)}
+.tag-approach{background:rgba(255,170,0,.12);color:var(--warn)}
+.tag-boarding{background:rgba(123,97,255,.12);color:var(--accent2)}
+.tag-departed{background:rgba(0,214,143,.12);color:var(--accent3)}
+.tag-delayed{background:rgba(255,59,92,.12);color:var(--danger)}
+.tag-hub{background:rgba(255,170,0,.12);color:var(--warn)}
+.tag-intl{background:rgba(0,194,255,.12);color:var(--accent)}
+.tag-reg{background:rgba(123,97,255,.12);color:var(--accent2)}
+.meta-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.meta{display:flex;flex-direction:column}
+.meta-l{font-size:8px;color:var(--text4);text-transform:uppercase;letter-spacing:.5px}
+.meta-v{font-size:11px;color:var(--text2);font-weight:500}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px}
+.stat-box{background:rgba(0,0,0,.25);padding:8px;border-radius:8px;text-align:center}
+.stat-box .v{font-size:16px;font-weight:700;color:var(--accent)}
+.stat-box .l{font-size:8px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.section{margin-top:12px;padding-top:12px;border-top:1px solid var(--border2)}
+.section-title{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;
+  margin-bottom:8px;font-weight:600}
+.chip{display:inline-block;padding:2px 8px;border-radius:6px;font-size:9px;
+  font-weight:500;margin:2px}
+.chip-fleet{background:rgba(0,194,255,.08);color:var(--accent)}
+.chip-route{background:rgba(123,97,255,.08);color:var(--accent2)}
+.chip-hub{background:rgba(255,170,0,.08);color:var(--warn)}
+.chip-airline{padding:2px 8px;border-radius:6px;font-size:9px;font-weight:600}
+
+/* ─── KPI STRIP ─── */
+.kpi-strip{position:fixed;bottom:0;left:0;right:0;z-index:500;height:48px;
+  background:linear-gradient(180deg,transparent,var(--surface));pointer-events:none}
+.kpi-inner{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  display:flex;gap:16px;pointer-events:all;background:var(--surface2);
+  border:1px solid var(--border);border-radius:12px;padding:6px 20px}
+.kpi{text-align:center}
+.kpi-v{font-size:14px;font-weight:700;color:var(--accent)}
+.kpi-l{font-size:7px;color:var(--text3);text-transform:uppercase;letter-spacing:1px}
+
+/* ─── DETAIL OVERLAY ─── */
+.detail-overlay{position:fixed;top:92px;left:0;bottom:0;width:380px;z-index:200;
+  background:rgba(8,12,22,.97);backdrop-filter:blur(30px);
+  border-right:1px solid var(--border);overflow-y:auto;
+  transform:translateX(-100%);transition:transform .3s;padding:20px}
+.detail-overlay.open{transform:translateX(0)}
+
+/* ─── ANALYTICS OVERLAY ─── */
+.analytics-panel{position:fixed;top:92px;left:0;right:0;bottom:0;z-index:150;
+  background:var(--bg);overflow-y:auto;display:none;padding:24px}
+.analytics-panel.visible{display:block}
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.chart-box{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--radius);
+  padding:16px}
+.chart-box h3{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:12px;
+  text-transform:uppercase;letter-spacing:.5px}
+canvas{max-height:260px}
+
+/* ─── ALERT TICKER ─── */
+.alert-ticker{position:fixed;top:92px;left:0;right:0;z-index:800;height:0;overflow:hidden;transition:height .3s}
+.alert-ticker.show{height:32px}
+.alert-ticker-inner{height:32px;display:flex;align-items:center;padding:0 16px;gap:12px;
+  font-size:11px;font-weight:500;overflow:hidden;white-space:nowrap}
+.alert-ticker.warn .alert-ticker-inner{background:rgba(255,170,0,.1);color:var(--warn);border-bottom:1px solid rgba(255,170,0,.15)}
+.alert-ticker.danger .alert-ticker-inner{background:rgba(255,59,92,.1);color:var(--danger);border-bottom:1px solid rgba(255,59,92,.15)}
+.alert-ticker.info .alert-ticker-inner{background:rgba(0,194,255,.06);color:var(--accent);border-bottom:1px solid rgba(0,194,255,.1)}
+
+/* ─── TOOLS PANEL ─── */
+.tools-panel{position:fixed;top:92px;left:0;right:0;bottom:0;z-index:150;
+  background:var(--bg);overflow-y:auto;display:none;padding:24px}
+.tools-panel.visible{display:block}
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:16px}
+.tool-card{background:var(--surface2);border:1px solid var(--border2);border-radius:14px;
+  padding:20px;cursor:pointer;transition:all .2s}
+.tool-card:hover{border-color:rgba(0,194,255,.3);transform:translateY(-2px);box-shadow:0 8px 32px rgba(0,0,0,.3)}
+.tool-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;font-size:22px;margin-bottom:12px}
+.tool-name{font-size:15px;font-weight:700;color:#fff;margin-bottom:4px}
+.tool-desc{font-size:11px;color:var(--text3);line-height:1.5}
+
+/* ─── WEATHER PANEL ─── */
+.wx-overlay{position:fixed;top:92px;right:400px;z-index:100;width:260px;
+  background:rgba(8,12,22,.95);border:1px solid var(--border2);border-radius:var(--radius);
+  display:none;padding:14px;margin:12px}
+.wx-overlay.visible{display:block}
+
+/* ─── MAP ─── */
+.leaflet-popup-content-wrapper{background:rgba(13,19,33,.95)!important;color:var(--text)!important;
+  border:1px solid var(--border)!important;border-radius:12px!important;
+  box-shadow:0 12px 40px rgba(0,0,0,.5)!important}
+.leaflet-popup-tip{background:rgba(13,19,33,.95)!important}
+.leaflet-popup-content{margin:10px 14px!important;font-family:'Inter',sans-serif!important}
+.airport-dot{border-radius:50%;box-shadow:0 0 10px currentColor}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,194,255,.15);border-radius:3px}
+
+/* ─── PROGRESS ─── */
+.pbar{height:5px;background:rgba(255,255,255,.04);border-radius:3px;overflow:hidden;margin:8px 0}
+.pfill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:900px){.sidebar{width:100%;position:fixed;bottom:0;height:45vh;top:auto;border-left:none;border-top:1px solid var(--border2)}}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="logo">Caribbean ATC<span class="logo-dot"> PRO</span></div>
+  <span class="live">● LIVE</span>
+  <div class="topbar-stats">
+    <div class="tstat"><div class="tstat-v" id="sFlights">0</div><div class="tstat-l">Vols</div></div>
+    <div class="tstat"><div class="tstat-v" id="sAirports">0</div><div class="tstat-l">Aéroports</div></div>
+    <div class="tstat"><div class="tstat-v" id="sAirlines">0</div><div class="tstat-l">Compagnies</div></div>
+    <div class="tstat"><div class="tstat-v" id="sPax">0</div><div class="tstat-l">Passagers</div></div>
+    <div class="tstat"><div class="tstat-v mono" id="sClock">--:--:--</div><div class="tstat-l">UTC-4</div></div>
+  </div>
+</div>
+
+<!-- MODE BAR -->
+<div class="mode-bar">
+  <button class="mode-btn active" onclick="setMode('live')">🗺️ Trafic Live</button>
+  <button class="mode-btn" onclick="setMode('analytics')">📊 Analytics</button>
+  <button class="mode-btn" onclick="setMode('tools')">🧰 Outils</button>
+  <div class="mode-sep"></div>
+  <button class="mode-btn" onclick="toggleWeather()">🌦️ Météo</button>
+  <button class="mode-btn" onclick="toggleAlerts()">🔔 Alertes</button>
+  <button class="mode-btn" onclick="toggleHeatmap()">🔥 Densité</button>
+  <div class="mode-right">
+    <button class="config-btn" onclick="exportData()">📤 Export CSV</button>
+    <button class="config-btn" onclick="toggleSidebar()">◧ Panneau</button>
+  </div>
+</div>
+
+<!-- ALERT TICKER -->
+<div class="alert-ticker info" id="alertTicker">
+  <div class="alert-ticker-inner" id="alertText"></div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div id="map"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="stabs">
+      <div class="stab active" onclick="setTab('flights')">✈ Vols</div>
+      <div class="stab" onclick="setTab('airlines')">🏢 Compagnies</div>
+      <div class="stab" onclick="setTab('airports')">🛬 Aéroports</div>
+      <div class="stab" onclick="setTab('alerts')">⚡ Live</div>
+    </div>
+    <div class="scontent" id="sidebarBody"></div>
+  </div>
+</div>
+
+<!-- DETAIL -->
+<div class="detail-overlay" id="detailOverlay"></div>
+
+<!-- ANALYTICS -->
+<div class="analytics-panel" id="analyticsPanel">
+  <h2 style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px">📊 Analytics Dashboard</h2>
+  <p style="font-size:12px;color:var(--text3);margin-bottom:16px">Analyse temps réel du trafic aérien caribéen</p>
+  <div class="grid4" id="analyticKpis"></div>
+  <div class="chart-grid">
+    <div class="chart-box"><h3>Vols par compagnie</h3><canvas id="chartAirlines"></canvas></div>
+    <div class="chart-box"><h3>Trafic par aéroport (arrivées)</h3><canvas id="chartAirports"></canvas></div>
+    <div class="chart-box"><h3>Statuts des vols</h3><canvas id="chartStatus"></canvas></div>
+    <div class="chart-box"><h3>Altitude moyenne par compagnie</h3><canvas id="chartAltitude"></canvas></div>
+    <div class="chart-box"><h3>Répartition des appareils</h3><canvas id="chartAircraft"></canvas></div>
+    <div class="chart-box"><h3>Top 10 routes les plus desservies</h3><canvas id="chartRoutes"></canvas></div>
+  </div>
+</div>
+
+<!-- TOOLS -->
+<div class="tools-panel" id="toolsPanel">
+  <h2 style="font-size:18px;font-weight:800;color:#fff;margin-bottom:4px">🧰 Boîte à outils aviation</h2>
+  <p style="font-size:12px;color:var(--text3);margin-bottom:16px">Modules adaptables pour tout besoin aéronautique</p>
+  <div class="tool-grid" id="toolGrid"></div>
+</div>
+
+<!-- WEATHER -->
+<div class="wx-overlay" id="wxPanel">
+  <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:10px">🌦️ Conditions météo Caraïbes</div>
+  <div id="wxContent"></div>
+</div>
+
+<!-- KPI STRIP -->
+<div class="kpi-strip">
+  <div class="kpi-inner" id="kpiStrip"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  DATA ENGINE
+// ═══════════════════════════════════════════════════════════════════
+
+const AIRPORTS=[
+  {iata:"PTP",name:"Pôle Caraïbes",city:"Pointe-à-Pitre",country:"Guadeloupe 🇬🇵",lat:16.2653,lng:-61.5318,type:"hub",runways:[{id:"12/30",len:"3505m"}],elev:"11m",tz:"UTC-4",pax:"2.4M",mvt:28000,icao:"TFFR",airlines:["AF","TX","OR","SS","3S","WM"]},
+  {iata:"FDF",name:"Aimé Césaire",city:"Fort-de-France",country:"Martinique 🇲🇶",lat:14.591,lng:-61.003,type:"hub",runways:[{id:"09/27",len:"3300m"}],elev:"5m",tz:"UTC-4",pax:"2.1M",mvt:25000,icao:"TFFF",airlines:["AF","TX","OR","SS","3S","WM","CJ"]},
+  {iata:"SXM",name:"Princess Juliana",city:"Sint Maarten",country:"Sint Maarten 🇸🇽",lat:18.041,lng:-63.109,type:"hub",runways:[{id:"10/28",len:"2300m"}],elev:"4m",tz:"UTC-4",pax:"1.8M",mvt:32000,icao:"TNCM",airlines:["AA","JB","WN","DL","UA","WM","LI"]},
+  {iata:"SDQ",name:"Las Américas",city:"Saint-Domingue",country:"Rép. Dominicaine 🇩🇴",lat:18.43,lng:-69.669,type:"hub",runways:[{id:"17/35",len:"3354m"},{id:"09/27",len:"2400m"}],elev:"18m",tz:"UTC-4",pax:"4.2M",mvt:48000,icao:"MDSD",airlines:["AA","DL","JB","UA","WN","CM","AV"]},
+  {iata:"PUJ",name:"Punta Cana Intl",city:"Punta Cana",country:"Rép. Dominicaine 🇩🇴",lat:18.567,lng:-68.363,type:"hub",runways:[{id:"09/27",len:"3100m"}],elev:"14m",tz:"UTC-4",pax:"7.5M",mvt:55000,icao:"MDPC",airlines:["AA","DL","JB","UA","WN","AF"]},
+  {iata:"HAV",name:"José Martí",city:"La Havane",country:"Cuba 🇨🇺",lat:22.989,lng:-82.409,type:"hub",runways:[{id:"06/24",len:"4000m"},{id:"01/19",len:"2500m"}],elev:"64m",tz:"UTC-5",pax:"3.8M",mvt:35000,icao:"MUHA",airlines:["CU","AA","JB","AC","IB","AF"]},
+  {iata:"KIN",name:"Norman Manley",city:"Kingston",country:"Jamaïque 🇯🇲",lat:17.936,lng:-76.788,type:"intl",runways:[{id:"12/30",len:"2713m"}],elev:"3m",tz:"UTC-5",pax:"1.9M",mvt:22000,icao:"MKJP",airlines:["AA","JB","DL","BW","CM"]},
+  {iata:"MBJ",name:"Sangster Intl",city:"Montego Bay",country:"Jamaïque 🇯🇲",lat:18.504,lng:-77.913,type:"hub",runways:[{id:"07/25",len:"2662m"}],elev:"2m",tz:"UTC-5",pax:"4.5M",mvt:38000,icao:"MKJS",airlines:["AA","JB","DL","UA","WN","BA","VS","AC"]},
+  {iata:"NAS",name:"Lynden Pindling",city:"Nassau",country:"Bahamas 🇧🇸",lat:25.039,lng:-77.466,type:"hub",runways:[{id:"14/32",len:"3413m"}],elev:"5m",tz:"UTC-5",pax:"3.6M",mvt:42000,icao:"MYNN",airlines:["AA","JB","DL","UA","WN","BA","UP"]},
+  {iata:"BGI",name:"Grantley Adams",city:"Bridgetown",country:"Barbade 🇧🇧",lat:13.075,lng:-59.493,type:"intl",runways:[{id:"09/27",len:"3353m"}],elev:"52m",tz:"UTC-4",pax:"1.4M",mvt:18000,icao:"TBPB",airlines:["BA","VS","AA","JB","BW","WM","LI"]},
+  {iata:"POS",name:"Piarco Intl",city:"Port of Spain",country:"Trinidad 🇹🇹",lat:10.595,lng:-61.337,type:"intl",runways:[{id:"10/28",len:"3200m"}],elev:"17m",tz:"UTC-4",pax:"2.2M",mvt:26000,icao:"TTPP",airlines:["BW","AA","JB","UA","CM","AV","WM"]},
+  {iata:"CUR",name:"Hato Intl",city:"Willemstad",country:"Curaçao 🇨🇼",lat:12.189,lng:-68.96,type:"intl",runways:[{id:"11/29",len:"3410m"}],elev:"9m",tz:"UTC-4",pax:"1.6M",mvt:20000,icao:"TNCC",airlines:["KL","WM","AV","CM","DL"]},
+  {iata:"AUA",name:"Queen Beatrix",city:"Oranjestad",country:"Aruba 🇦🇼",lat:12.501,lng:-70.015,type:"intl",runways:[{id:"11/29",len:"2743m"}],elev:"18m",tz:"UTC-4",pax:"2.7M",mvt:30000,icao:"TNCA",airlines:["AA","DL","JB","UA","WN","KL","AV"]},
+  {iata:"SJU",name:"Luis Muñoz Marín",city:"San Juan",country:"Porto Rico 🇵🇷",lat:18.439,lng:-66.002,type:"hub",runways:[{id:"08/26",len:"3049m"},{id:"10/28",len:"2743m"}],elev:"3m",tz:"UTC-4",pax:"9.2M",mvt:85000,icao:"TJSJ",airlines:["AA","JB","DL","UA","WN","NK","LI"]},
+  {iata:"PAP",name:"Toussaint Louverture",city:"Port-au-Prince",country:"Haïti 🇭🇹",lat:18.58,lng:-72.293,type:"intl",runways:[{id:"10/28",len:"3040m"}],elev:"37m",tz:"UTC-5",pax:"1.2M",mvt:14000,icao:"MTPP",airlines:["AA","JB","NK","CM","SS"]},
+  {iata:"ANU",name:"V.C. Bird Intl",city:"Saint John's",country:"Antigua 🇦🇬",lat:17.137,lng:-61.793,type:"intl",runways:[{id:"07/25",len:"2744m"}],elev:"19m",tz:"UTC-4",pax:"1.0M",mvt:14000,icao:"TAPA",airlines:["BA","VS","AA","JB","WM","LI","BW"]},
+  {iata:"UVF",name:"Hewanorra Intl",city:"Vieux Fort",country:"Sainte-Lucie 🇱🇨",lat:13.733,lng:-60.953,type:"intl",runways:[{id:"10/28",len:"2743m"}],elev:"4m",tz:"UTC-4",pax:"820K",mvt:10000,icao:"TLPL",airlines:["BA","VS","AA","JB","WM","BW"]},
+  {iata:"GND",name:"Maurice Bishop",city:"Saint George's",country:"Grenade 🇬🇩",lat:12.004,lng:-61.786,type:"regional",runways:[{id:"10/28",len:"2743m"}],elev:"10m",tz:"UTC-4",pax:"540K",mvt:7000,icao:"TGPY",airlines:["AA","JB","BA","WM","LI","BW"]},
+  {iata:"DOM",name:"Douglas-Charles",city:"Marigot",country:"Dominique 🇩🇲",lat:15.547,lng:-61.3,type:"regional",runways:[{id:"09/27",len:"1707m"}],elev:"13m",tz:"UTC-4",pax:"120K",mvt:3000,icao:"TDPD",airlines:["LI","WM","3S"]},
+  {iata:"SKB",name:"R.L. Bradshaw",city:"Basseterre",country:"Saint-Kitts 🇰🇳",lat:17.311,lng:-62.719,type:"regional",runways:[{id:"07/25",len:"2438m"}],elev:"52m",tz:"UTC-4",pax:"380K",mvt:6000,icao:"TKPK",airlines:["AA","JB","BA","WM","LI"]},
+  {iata:"TAB",name:"A.N.R. Robinson",city:"Crown Point",country:"Tobago 🇹🇹",lat:11.15,lng:-60.832,type:"regional",runways:[{id:"09/27",len:"2743m"}],elev:"5m",tz:"UTC-4",pax:"280K",mvt:5000,icao:"TTCP",airlines:["BW","BA","VS","WM"]},
+  {iata:"SBH",name:"Gustaf III",city:"Gustavia",country:"Saint-Barthélemy 🇧🇱",lat:17.904,lng:-62.844,type:"regional",runways:[{id:"10/28",len:"646m"}],elev:"15m",tz:"UTC-4",pax:"200K",mvt:12000,icao:"TFFJ",airlines:["WM","3S"]},
+  {iata:"BON",name:"Flamingo Intl",city:"Kralendijk",country:"Bonaire 🇧🇶",lat:12.131,lng:-68.269,type:"regional",runways:[{id:"10/28",len:"2865m"}],elev:"6m",tz:"UTC-4",pax:"560K",mvt:8000,icao:"TNCB",airlines:["KL","WM"]},
+  {iata:"EIS",name:"T.B. Lettsome",city:"Beef Island",country:"BVI 🇻🇬",lat:18.445,lng:-64.543,type:"regional",runways:[{id:"07/25",len:"1341m"}],elev:"5m",tz:"UTC-4",pax:"190K",mvt:4500,icao:"TUPJ",airlines:["LI","WM","AA"]},
+  {iata:"SVD",name:"Argyle Intl",city:"Kingstown",country:"St-Vincent 🇻🇨",lat:13.157,lng:-61.15,type:"regional",runways:[{id:"04/22",len:"2743m"}],elev:"7m",tz:"UTC-4",pax:"160K",mvt:3500,icao:"TVSA",airlines:["LI","WM","BW","3S"]},
+  {iata:"STT",name:"Cyril E. King",city:"Saint-Thomas",country:"USVI 🇻🇮",lat:18.337,lng:-64.973,type:"intl",runways:[{id:"10/28",len:"2133m"}],elev:"7m",tz:"UTC-4",pax:"1.1M",mvt:16000,icao:"TIST",airlines:["AA","DL","JB","UA","LI","WM"]},
+  {iata:"STX",name:"H.E. Rohlsen",city:"Sainte-Croix",country:"USVI 🇻🇮",lat:17.702,lng:-64.799,type:"regional",runways:[{id:"10/28",len:"3048m"}],elev:"22m",tz:"UTC-4",pax:"420K",mvt:8000,icao:"TISX",airlines:["AA","DL","JB","LI"]},
+  {iata:"GBJ",name:"Les Bases",city:"Grand-Bourg",country:"Marie-Galante 🇬🇵",lat:15.869,lng:-61.27,type:"regional",runways:[{id:"13/31",len:"1270m"}],elev:"5m",tz:"UTC-4",pax:"30K",mvt:2000,icao:"TFFM",airlines:["3S"]},
+];
+
+const AIRLINES=[
+  {iata:"AF",name:"Air France",country:"France 🇫🇷",color:"#002157",fleet:["A350-900","A330-200","B777-300ER"],hubs:["CDG","ORY"],hq:"Paris",founded:1933,alliance:"SkyTeam",web:"airfrance.fr",routes:["CDG→PTP","CDG→FDF","ORY→PTP","ORY→FDF","CDG→PUJ","CDG→HAV","CDG→SDQ"],pax:"42M",emp:42000},
+  {iata:"TX",name:"Air Caraïbes",country:"Guadeloupe 🇬🇵",color:"#e6007e",fleet:["A350-1000","A350-900","A330-300","ATR 72-600"],hubs:["PTP","FDF","ORY"],hq:"Pointe-à-Pitre",founded:2000,alliance:"—",web:"aircaraibes.com",routes:["ORY→PTP","ORY→FDF","PTP→FDF","PTP→SXM","PTP→SDQ","PTP→PAP","PTP→HAV","FDF→PAP"],pax:"1.8M",emp:1800},
+  {iata:"SS",name:"Corsair",country:"France 🇫🇷",color:"#e30613",fleet:["A330-900neo","A330-300"],hubs:["ORY"],hq:"Rungis",founded:1981,alliance:"—",web:"corsair.fr",routes:["ORY→PTP","ORY→FDF","ORY→PAP","ORY→SDQ"],pax:"1.2M",emp:1200},
+  {iata:"OR",name:"French Bee",country:"France 🇫🇷",color:"#ffd100",fleet:["A350-1000","A350-900"],hubs:["ORY"],hq:"Paris",founded:2016,alliance:"—",web:"frenchbee.com",routes:["ORY→PTP","ORY→FDF"],pax:"800K",emp:500},
+  {iata:"3S",name:"Air Antilles",country:"Guadeloupe 🇬🇵",color:"#00a19a",fleet:["ATR 42-500","ATR 72-600","DHC-6"],hubs:["PTP","FDF"],hq:"Pointe-à-Pitre",founded:2002,alliance:"—",web:"airantilles.com",routes:["PTP→FDF","PTP→SXM","PTP→DOM","PTP→SBH","PTP→GBJ","FDF→DOM","FDF→SVD","PTP→ANU"],pax:"350K",emp:200},
+  {iata:"WM",name:"Winair",country:"Sint Maarten 🇸🇽",color:"#003087",fleet:["DHC-6 Twin Otter"],hubs:["SXM"],hq:"Sint Maarten",founded:1961,alliance:"—",web:"fly-winair.sx",routes:["SXM→SBH","SXM→ANU","SXM→SKB","SXM→DOM","SXM→EIS","SXM→STT","SXM→PTP"],pax:"180K",emp:150},
+  {iata:"LI",name:"LIAT",country:"Antigua 🇦🇬",color:"#6f2c91",fleet:["ATR 42-600","ATR 72-600","DHC-8-300"],hubs:["ANU","BGI"],hq:"Antigua",founded:1956,alliance:"—",web:"liatairline.com",routes:["ANU→BGI","ANU→SXM","ANU→DOM","ANU→GND","ANU→SKB","ANU→SVD","ANU→STT","BGI→GND","BGI→UVF","BGI→POS"],pax:"450K",emp:400},
+  {iata:"BW",name:"Caribbean Airlines",country:"Trinidad 🇹🇹",color:"#c8102e",fleet:["B737-800","ATR 72-600"],hubs:["POS","KIN"],hq:"Port of Spain",founded:2006,alliance:"—",web:"caribbean-airlines.com",routes:["POS→KIN","POS→BGI","POS→ANU","POS→GND","POS→TAB","POS→SDQ","KIN→NAS","KIN→MBJ"],pax:"2.5M",emp:2500},
+  {iata:"AA",name:"American Airlines",country:"USA 🇺🇸",color:"#0078d2",fleet:["B737-800","A321neo","B777-200","B787-9"],hubs:["MIA","DFW"],hq:"Fort Worth",founded:1930,alliance:"Oneworld",web:"aa.com",routes:["MIA→SJU","MIA→SDQ","MIA→PUJ","MIA→NAS","MIA→KIN","MIA→MBJ","MIA→BGI","MIA→POS","MIA→AUA","MIA→CUR","MIA→SXM","MIA→STT","MIA→ANU","MIA→HAV"],pax:"215M",emp:130000},
+  {iata:"JB",name:"JetBlue",country:"USA 🇺🇸",color:"#003876",fleet:["A321neo","A321LR","A220-300","E190"],hubs:["JFK","FLL","SJU"],hq:"New York",founded:2000,alliance:"—",web:"jetblue.com",routes:["JFK→SJU","JFK→SDQ","JFK→PUJ","JFK→NAS","JFK→BGI","JFK→AUA","FLL→NAS","JFK→PAP","JFK→STT","JFK→SXM"],pax:"42M",emp:23000},
+  {iata:"DL",name:"Delta",country:"USA 🇺🇸",color:"#003366",fleet:["B737-900ER","A321neo","B757-200"],hubs:["ATL","JFK"],hq:"Atlanta",founded:1924,alliance:"SkyTeam",web:"delta.com",routes:["ATL→SJU","ATL→NAS","ATL→MBJ","JFK→SJU","JFK→SDQ","JFK→PUJ","ATL→AUA","ATL→CUR","ATL→STT"],pax:"177M",emp:95000},
+  {iata:"UA",name:"United",country:"USA 🇺🇸",color:"#002244",fleet:["B737 MAX 9","A321neo","B787-10"],hubs:["EWR","IAH"],hq:"Chicago",founded:1926,alliance:"Star Alliance",web:"united.com",routes:["EWR→SJU","EWR→SDQ","EWR→PUJ","EWR→NAS","IAH→SJU","IAH→MBJ","EWR→STT","EWR→SXM","EWR→AUA"],pax:"158M",emp:92000},
+  {iata:"CM",name:"Copa Airlines",country:"Panama 🇵🇦",color:"#003b70",fleet:["B737-800","B737 MAX 9"],hubs:["PTY"],hq:"Panama City",founded:1947,alliance:"Star Alliance",web:"copaair.com",routes:["PTY→SJU","PTY→SDQ","PTY→PAP","PTY→KIN","PTY→HAV","PTY→POS"],pax:"15M",emp:9000},
+  {iata:"CU",name:"Cubana",country:"Cuba 🇨🇺",color:"#004e95",fleet:["An-158","Il-96-300"],hubs:["HAV"],hq:"La Havane",founded:1929,alliance:"—",web:"cubana.cu",routes:["HAV→SDQ","HAV→KIN","HAV→NAS","HAV→PAP"],pax:"500K",emp:3200},
+  {iata:"NK",name:"Spirit",country:"USA 🇺🇸",color:"#ffc72c",fleet:["A320neo","A321neo"],hubs:["FLL"],hq:"Dania Beach",founded:1980,alliance:"—",web:"spirit.com",routes:["FLL→SJU","FLL→SDQ","FLL→PAP","FLL→KIN","FLL→MBJ"],pax:"34M",emp:10000},
+  {iata:"KL",name:"KLM",country:"Pays-Bas 🇳🇱",color:"#00a1de",fleet:["B777-300ER","B787-10","A330-200"],hubs:["AMS"],hq:"Amstelveen",founded:1919,alliance:"SkyTeam",web:"klm.com",routes:["AMS→CUR","AMS→AUA","AMS→BON","AMS→SXM"],pax:"35M",emp:33000},
+  {iata:"BA",name:"British Airways",country:"UK 🇬🇧",color:"#1b3d6d",fleet:["B777-200","B787-9","A320neo"],hubs:["LHR","LGW"],hq:"Londres",founded:1974,alliance:"Oneworld",web:"ba.com",routes:["LGW→BGI","LGW→ANU","LGW→MBJ","LGW→NAS","LGW→GND","LGW→UVF","LGW→SKB","LGW→TAB"],pax:"40M",emp:30000},
+  {iata:"AV",name:"Avianca",country:"Colombie 🇨🇴",color:"#e30613",fleet:["A320neo","A321neo","B787-8"],hubs:["BOG"],hq:"Bogotá",founded:1919,alliance:"Star Alliance",web:"avianca.com",routes:["BOG→SDQ","BOG→SJU","BOG→POS","BOG→CUR","BOG→AUA"],pax:"30M",emp:20000},
+  {iata:"WN",name:"Southwest",country:"USA 🇺🇸",color:"#304CB2",fleet:["B737-800","B737 MAX 8"],hubs:["DAL","FLL"],hq:"Dallas",founded:1967,alliance:"—",web:"southwest.com",routes:["FLL→SJU","FLL→NAS","FLL→MBJ","FLL→AUA","FLL→PUJ"],pax:"130M",emp:66000},
+];
+
+// ═══ FLIGHT GENERATOR ═══
+const AIRCRAFT=["A350-900","A330-300","B737-800","A321neo","ATR 72-600","B787-9","B777-200","DHC-6","A320neo","E190","A350-1000","A330-900neo"];
+const STATUSES=["En route","En route","En route","Approche","Embarquement","Décollé","Retardé"];
+const STATUS_TAG={"En route":"enroute","Approche":"approach","Embarquement":"boarding","Décollé":"departed","Retardé":"delayed"};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const aptMap=Object.fromEntries(AIRPORTS.map(a=>[a.iata,a]));
+
+function genFlights(){
+  const fl=[];
+  AIRLINES.forEach(al=>{
+    al.routes.forEach(r=>{
+      const[from,to]=r.split('→');
+      const dA=aptMap[from],aA=aptMap[to];
+      if(!dA||!aA) return;
+      const n=Math.random()>.6?2:1;
+      for(let j=0;j<n;j++){
+        const st=pick(STATUSES);
+        const p=st==="En route"?Math.random()*.6+.2:st==="Approche"?Math.random()*.12+.88:
+          st==="Embarquement"?0:st==="Décollé"?Math.random()*.12:Math.random()*.5;
+        const dh=Math.floor(Math.random()*24),dm=Math.floor(Math.random()*60);
+        const dur=Math.floor(Math.random()*360+60);
+        const ah=(dh+Math.floor(dur/60))%24,am=(dm+dur%60)%60;
+        const lat=dA.lat+(aA.lat-dA.lat)*p,lng=dA.lng+(aA.lng-dA.lng)*p;
+        const alt=st==="Embarquement"?0:st==="Décollé"?Math.floor(Math.random()*15000+3000):
+          st==="Approche"?Math.floor(Math.random()*8000+1000):Math.floor(Math.random()*10000+28000);
+        const spd=st==="Embarquement"?0:st==="Décollé"?Math.floor(Math.random()*200+180):
+          st==="Approche"?Math.floor(Math.random()*100+200):Math.floor(Math.random()*80+780);
+        const pax=Math.floor(Math.random()*200+30);
+        const hdg=Math.atan2(aA.lng-dA.lng,aA.lat-dA.lat)*180/Math.PI;
+        fl.push({id:al.iata+Math.floor(Math.random()*9e3+1e3)+'-'+j,fn:al.iata+Math.floor(Math.random()*9e3+1e3),
+          al:al.iata,alName:al.name,alColor:al.color,from,to,
+          fromName:dA.name,toName:aA.name,fromCity:dA.city,toCity:aA.city,
+          dep:`${String(dh).padStart(2,'0')}:${String(dm).padStart(2,'0')}`,
+          arr:`${String(ah).padStart(2,'0')}:${String(am).padStart(2,'0')}`,
+          dur:`${Math.floor(dur/60)}h${String(dur%60).padStart(2,'0')}`,
+          st,p,lat,lng,alt,spd,ac:pick(AIRCRAFT),pax,hdg});
+      }
+    });
+  });
+  return fl;
+}
+
+let flights=genFlights();
+let tab='flights',mode='live';
+let planeMarkers=[],routeLines=[],heatCircles=[];
+let alertsLog=[];
+let showHeat=false,showWx=false,showAlertBar=false;
+let charts={};
+
+// ═══ CLOCK ═══
+function updateClock(){
+  const now=new Date();
+  const utc4=new Date(now.getTime()-4*3600000);
+  document.getElementById('sClock').textContent=
+    `${String(utc4.getUTCHours()).padStart(2,'0')}:${String(utc4.getUTCMinutes()).padStart(2,'0')}:${String(utc4.getUTCSeconds()).padStart(2,'0')}`;
+}
+setInterval(updateClock,1000);updateClock();
+
+// ═══ MAP ═══
+const map=L.map('map',{center:[18,-68],zoom:6,zoomControl:false,attributionControl:false});
+L.control.zoom({position:'bottomleft'}).addTo(map);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(map);
+
+// Airport markers
+const aptMarkers={};
+AIRPORTS.forEach(a=>{
+  const s=a.type==='hub'?14:a.type==='intl'?10:7;
+  const c=a.type==='hub'?'var(--warn)':a.type==='intl'?'var(--accent)':'var(--accent2)';
+  const icon=L.divIcon({html:`<div class="airport-dot" style="width:${s}px;height:${s}px;background:${c};color:${c}"></div>`,
+    className:'',iconSize:[s,s],iconAnchor:[s/2,s/2]});
+  const m=L.marker([a.lat,a.lng],{icon}).addTo(map);
+  m.bindPopup(`<div style="min-width:180px"><div style="font-size:18px;font-weight:800;color:#fff">${a.iata}</div>
+    <div style="font-size:11px;color:#a0aacc">${a.name}</div>
+    <div style="font-size:10px;color:#6b7394">${a.city}, ${a.country}</div>
+    <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:10px">
+    <div><span style="color:#6b7394">Pax/an</span><br><b style="color:#00c2ff">${a.pax}</b></div>
+    <div><span style="color:#6b7394">Mouvements</span><br><b style="color:#00c2ff">${a.mvt.toLocaleString()}</b></div>
+    <div><span style="color:#6b7394">ICAO</span><br><b style="color:#fff">${a.icao}</b></div>
+    <div><span style="color:#6b7394">Piste</span><br><b style="color:#fff">${a.runways[0].id} (${a.runways[0].len})</b></div>
+    </div></div>`,{maxWidth:280});
+  if(a.type==='hub'){
+    m.bindTooltip(`<span style="font-size:10px;font-weight:700;color:#fff;text-shadow:0 0 8px #000;letter-spacing:1px">${a.iata}</span>`,
+      {permanent:true,direction:'top',offset:[0,-10],className:'',opacity:.9});
+  }
+  aptMarkers[a.iata]=m;
+});
+
+// ═══ RENDER PLANES ═══
+function renderPlanes(){
+  planeMarkers.forEach(m=>map.removeLayer(m));
+  routeLines.forEach(l=>map.removeLayer(l));
+  planeMarkers=[];routeLines=[];
+
+  flights.forEach(f=>{
+    if(f.st==="Embarquement") return;
+    const icon=L.divIcon({
+      html:`<div style="transform:rotate(${f.hdg-90}deg);font-size:14px;color:${f.alColor};
+        filter:drop-shadow(0 0 3px ${f.alColor}80);transition:transform .4s linear">✈</div>`,
+      className:'',iconSize:[18,18],iconAnchor:[9,9]});
+    const m=L.marker([f.lat,f.lng],{icon}).addTo(map);
+    m.bindPopup(`<div style="min-width:160px"><b style="font-size:14px;color:#fff">${f.fn}</b>
+      <span style="font-size:10px;color:#a0aacc;margin-left:6px">${f.alName}</span>
+      <div style="font-size:12px;color:#fff;margin-top:6px;font-weight:600">${f.from} → ${f.to}</div>
+      <div style="font-size:10px;color:#6b7394">${f.fromCity} → ${f.toCity}</div>
+      <div style="margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:3px;font-size:10px">
+      <div><span style="color:#6b7394">Alt:</span> <span style="color:#00c2ff">${f.alt.toLocaleString()} ft</span></div>
+      <div><span style="color:#6b7394">Vit:</span> <span style="color:#00c2ff">${f.spd} km/h</span></div>
+      <div><span style="color:#6b7394">Type:</span> <span style="color:#fff">${f.ac}</span></div>
+      <div><span style="color:#6b7394">Pax:</span> <span style="color:#fff">${f.pax}</span></div>
+      </div></div>`,{maxWidth:240});
+    m.on('click',()=>openDetail(f));
+    planeMarkers.push(m);
+
+    const dA=aptMap[f.from],aA=aptMap[f.to];
+    if(dA&&aA){
+      routeLines.push(L.polyline([[dA.lat,dA.lng],[aA.lat,aA.lng]],
+        {color:f.alColor,weight:1,opacity:.1,dashArray:'4,8'}).addTo(map));
+    }
+  });
+}
+
+// ═══ HEATMAP ═══
+function renderHeat(){
+  heatCircles.forEach(c=>map.removeLayer(c));heatCircles=[];
+  if(!showHeat) return;
+  AIRPORTS.forEach(a=>{
+    const count=flights.filter(f=>f.from===a.iata||f.to===a.iata).length;
+    const r=Math.max(count*1200,8000);
+    heatCircles.push(L.circle([a.lat,a.lng],{radius:r,color:'transparent',
+      fillColor:'#ff3b5c',fillOpacity:Math.min(count*.015,.35)}).addTo(map));
+  });
+}
+
+// ═══ SIDEBAR ═══
+function setTab(t){
+  tab=t;
+  document.querySelectorAll('.stab').forEach((el,i)=>el.classList.toggle('active',['flights','airlines','airports','alerts'][i]===t));
+  renderTab();
+}
+
+function renderTab(){
+  const el=document.getElementById('sidebarBody');
+  if(tab==='flights') renderFlightsTab(el);
+  else if(tab==='airlines') renderAirlinesTab(el);
+  else if(tab==='airports') renderAirportsTab(el);
+  else renderLiveTab(el);
+}
+
+function renderFlightsTab(el){
+  const sorted=[...flights].sort((a,b)=>{
+    const o={"En route":0,"Approche":1,"Décollé":2,"Retardé":3,"Embarquement":4};
+    return(o[a.st]||5)-(o[b.st]||5);
+  });
+  let h=`<div class="search-wrap"><span class="si">🔍</span>
+    <input placeholder="Vol, route, compagnie..." id="sFlightSearch" oninput="filterCards('flight')"></div>`;
+  sorted.slice(0,80).forEach(f=>{
+    h+=`<div class="card flight-card-item" onclick="openDetail(flights.find(x=>x.id==='${f.id}'))">
+      <div class="card-row"><span class="iata-sm">${f.fn}</span>
+        <span class="chip-airline" style="background:${f.alColor}20;color:${f.alColor}">${f.alName}</span></div>
+      <div class="card-route"><div><div class="iata">${f.from}</div><div class="city">${f.fromCity}</div>
+        <div class="city">${f.dep}</div></div>
+        <div class="route-line"></div>
+        <div style="text-align:right"><div class="iata">${f.to}</div><div class="city">${f.toCity}</div>
+        <div class="city">${f.arr}</div></div></div>
+      <div class="meta-row">
+        <div class="meta"><span class="meta-l">Avion</span><span class="meta-v">${f.ac}</span></div>
+        <div class="meta"><span class="meta-l">Alt.</span><span class="meta-v mono">${f.alt.toLocaleString()} ft</span></div>
+        <div class="meta"><span class="meta-l">Vit.</span><span class="meta-v mono">${f.spd} km/h</span></div>
+        <div class="meta"><span class="meta-l">Statut</span><span class="tag tag-${STATUS_TAG[f.st]||'enroute'}">${f.st}</span></div>
+      </div></div>`;
+  });
+  h+=`<div style="text-align:center;padding:14px;color:var(--text4);font-size:11px">${flights.length} vols actifs</div>`;
+  el.innerHTML=h;
+}
+
+function renderAirlinesTab(el){
+  let h=`<div class="search-wrap"><span class="si">🔍</span>
+    <input placeholder="Compagnie..." id="sAirlineSearch" oninput="filterCards('airline')"></div>`;
+  AIRLINES.forEach(a=>{
+    const active=flights.filter(f=>f.al===a.iata).length;
+    h+=`<div class="card airline-card-item">
+      <div class="card-row" style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:40px;height:40px;border-radius:10px;background:${a.color};display:flex;
+            align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff">${a.iata}</div>
+          <div><div style="font-size:14px;font-weight:700;color:#fff">${a.name}</div>
+            <div style="font-size:10px;color:var(--text3)">${a.country} · ${a.alliance}</div></div>
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="stat-box"><div class="v">${active}</div><div class="l">Vols actifs</div></div>
+        <div class="stat-box"><div class="v">${a.routes.length}</div><div class="l">Routes</div></div>
+        <div class="stat-box"><div class="v">${a.pax}</div><div class="l">Pax/an</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Infos</div>
+        <div class="grid2" style="font-size:10px">
+          <div><span style="color:var(--text4)">Fondée</span><br><span style="color:var(--text2)">${a.founded}</span></div>
+          <div><span style="color:var(--text4)">Siège</span><br><span style="color:var(--text2)">${a.hq}</span></div>
+          <div><span style="color:var(--text4)">Employés</span><br><span style="color:var(--text2)">${a.emp?.toLocaleString()}</span></div>
+          <div><span style="color:var(--text4)">Site</span><br><span style="color:var(--accent)">${a.web}</span></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Flotte</div>
+        <div>${a.fleet.map(f=>`<span class="chip chip-fleet">${f}</span>`).join('')}</div>
+      </div>
+      <div class="section">
+        <div class="section-title">Hubs</div>
+        <div>${a.hubs.map(h=>`<span class="chip chip-hub">${h}</span>`).join('')}</div>
+      </div>
+      <div class="section">
+        <div class="section-title">Routes Caraïbes</div>
+        <div>${a.routes.map(r=>`<span class="chip chip-route">${r}</span>`).join('')}</div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML=h;
+}
+
+function renderAirportsTab(el){
+  let h=`<div class="search-wrap"><span class="si">🔍</span>
+    <input placeholder="Aéroport, ville..." id="sAptSearch" oninput="filterCards('apt')"></div>`;
+  const sorted=[...AIRPORTS].sort((a,b)=>{const o={hub:0,intl:1,regional:2};return(o[a.type]||3)-(o[b.type]||3)});
+  sorted.forEach(a=>{
+    const arr=flights.filter(f=>f.to===a.iata).length;
+    const dep=flights.filter(f=>f.from===a.iata).length;
+    const tCls=a.type==='hub'?'tag-hub':a.type==='intl'?'tag-intl':'tag-reg';
+    const tLbl=a.type==='hub'?'HUB':a.type==='intl'?'INTL':'REG';
+    const alObjs=AIRLINES.filter(al=>a.airlines.includes(al.iata));
+    h+=`<div class="card apt-card-item" onclick="map.flyTo([${a.lat},${a.lng}],10)">
+      <div class="card-row">
+        <div><div style="font-size:24px;font-weight:900;color:#fff;line-height:1">${a.iata}</div>
+          <div style="font-size:11px;color:var(--text2)">${a.name}</div>
+          <div style="font-size:10px;color:var(--text3)">${a.city}, ${a.country}</div></div>
+        <span class="tag ${tCls}">${tLbl}</span>
+      </div>
+      <div class="grid4" style="margin-top:10px">
+        <div class="stat-box"><div class="v">${arr}</div><div class="l">Arrivées</div></div>
+        <div class="stat-box"><div class="v">${dep}</div><div class="l">Départs</div></div>
+        <div class="stat-box"><div class="v">${a.pax}</div><div class="l">Pax/an</div></div>
+        <div class="stat-box"><div class="v">${a.mvt.toLocaleString()}</div><div class="l">Mvt/an</div></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Infos techniques</div>
+        <div class="grid2" style="font-size:10px">
+          <div><span style="color:var(--text4)">ICAO</span><br><span style="color:#fff;font-weight:600">${a.icao}</span></div>
+          <div><span style="color:var(--text4)">Élévation</span><br><span style="color:var(--text2)">${a.elev}</span></div>
+          <div><span style="color:var(--text4)">Fuseau</span><br><span style="color:var(--text2)">${a.tz}</span></div>
+          <div><span style="color:var(--text4)">Piste(s)</span><br><span style="color:var(--text2)">${a.runways.map(r=>r.id).join(', ')}</span></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-title">Compagnies</div>
+        <div>${alObjs.map(al=>`<span class="chip-airline" style="background:${al.color}20;color:${al.color};display:inline-block;margin:2px">${al.name}</span>`).join('')}</div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML=h;
+}
+
+function renderLiveTab(el){
+  let h=`<div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:12px">⚡ Fil d'activité live</div>`;
+  alertsLog.slice(-30).reverse().forEach(a=>{
+    h+=`<div style="padding:8px 10px;border-left:2px solid ${a.color};margin-bottom:6px;font-size:10px;
+      background:rgba(0,0,0,.2);border-radius:0 6px 6px 0">
+      <div style="color:var(--text3);margin-bottom:2px">${a.time}</div>
+      <div style="color:var(--text)">${a.msg}</div></div>`;
+  });
+  if(!alertsLog.length) h+=`<div style="text-align:center;padding:40px;color:var(--text4);font-size:11px">En attente d'événements...</div>`;
+  el.innerHTML=h;
+}
+
+// ═══ SEARCH FILTER ═══
+function filterCards(type){
+  const map={flight:'sFlightSearch',airline:'sAirlineSearch',apt:'sAptSearch'};
+  const cls={flight:'.flight-card-item',airline:'.airline-card-item',apt:'.apt-card-item'};
+  const q=document.getElementById(map[type])?.value.toLowerCase()||'';
+  document.querySelectorAll(cls[type]).forEach(c=>{c.style.display=c.textContent.toLowerCase().includes(q)?'':'none'});
+}
+
+// ═══ DETAIL OVERLAY ═══
+function openDetail(f){
+  if(!f) return;
+  map.flyTo([f.lat,f.lng],8,{duration:.8});
+  const ol=document.getElementById('detailOverlay');
+  ol.innerHTML=`<button class="panel-close" style="position:absolute;top:12px;right:12px" onclick="document.getElementById('detailOverlay').classList.remove('open')">✕</button>
+    <div style="font-size:24px;font-weight:900;color:#fff">${f.fn}</div>
+    <div style="font-size:13px;color:${f.alColor};margin-bottom:16px">${f.alName}</div>
+    <span class="tag tag-${STATUS_TAG[f.st]||'enroute'}" style="font-size:11px;padding:4px 12px">${f.st}</span>
+    <div style="display:flex;align-items:center;gap:14px;margin:18px 0;padding:16px;background:rgba(0,0,0,.2);border-radius:12px">
+      <div style="text-align:center"><div class="iata">${f.from}</div><div class="city">${f.fromName}</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:600;margin-top:4px">${f.dep}</div></div>
+      <div style="flex:1;text-align:center"><div style="font-size:22px;color:var(--accent)">✈</div>
+        <div style="font-size:11px;color:var(--text3)">${f.dur}</div></div>
+      <div style="text-align:center"><div class="iata">${f.to}</div><div class="city">${f.toName}</div>
+        <div style="font-size:12px;color:var(--accent);font-weight:600;margin-top:4px">${f.arr}</div></div>
+    </div>
+    <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Progression: ${Math.round(f.p*100)}%</div>
+    <div class="pbar"><div class="pfill" style="width:${f.p*100}%"></div></div>
+    <div class="grid2" style="margin-top:16px">
+      <div><div class="meta-l">Appareil</div><div style="font-size:14px;color:#fff;font-weight:600">${f.ac}</div></div>
+      <div><div class="meta-l">Altitude</div><div style="font-size:14px;color:var(--accent);font-weight:600" class="mono">${f.alt.toLocaleString()} ft</div></div>
+      <div><div class="meta-l">Vitesse sol</div><div style="font-size:14px;color:var(--accent);font-weight:600" class="mono">${f.spd} km/h</div></div>
+      <div><div class="meta-l">Cap</div><div style="font-size:14px;color:#fff;font-weight:600" class="mono">${Math.round(((f.hdg%360)+360)%360)}°</div></div>
+      <div><div class="meta-l">Passagers est.</div><div style="font-size:14px;color:#fff;font-weight:600">${f.pax}</div></div>
+      <div><div class="meta-l">Durée</div><div style="font-size:14px;color:#fff;font-weight:600">${f.dur}</div></div>
+    </div>
+    <div class="section"><div class="section-title">Position GPS</div>
+      <div class="mono" style="font-size:12px;color:var(--text2)">Lat: ${f.lat.toFixed(4)}° · Lng: ${f.lng.toFixed(4)}°</div>
+    </div>`;
+  ol.classList.add('open');
+}
+
+// ═══ MODE SWITCHING ═══
+function setMode(m){
+  mode=m;
+  document.querySelectorAll('.mode-btn').forEach((b,i)=>b.classList.toggle('active',['live','analytics','tools'][i]===m));
+  document.getElementById('analyticsPanel').classList.toggle('visible',m==='analytics');
+  document.getElementById('toolsPanel').classList.toggle('visible',m==='tools');
+  if(m==='analytics') renderAnalytics();
+  if(m==='tools') renderTools();
+}
+
+// ═══ ANALYTICS ═══
+function renderAnalytics(){
+  // KPIs
+  const totalPax=flights.reduce((s,f)=>s+f.pax,0);
+  const avgAlt=Math.round(flights.filter(f=>f.alt>0).reduce((s,f)=>s+f.alt,0)/flights.filter(f=>f.alt>0).length);
+  const avgSpd=Math.round(flights.filter(f=>f.spd>0).reduce((s,f)=>s+f.spd,0)/flights.filter(f=>f.spd>0).length);
+  const delayed=flights.filter(f=>f.st==="Retardé").length;
+  const enroute=flights.filter(f=>f.st==="En route").length;
+  const approaching=flights.filter(f=>f.st==="Approche").length;
+  document.getElementById('analyticKpis').innerHTML=`
+    <div class="stat-box"><div class="v">${flights.length}</div><div class="l">Vols actifs</div></div>
+    <div class="stat-box"><div class="v">${totalPax.toLocaleString()}</div><div class="l">Passagers</div></div>
+    <div class="stat-box"><div class="v">${avgAlt.toLocaleString()} ft</div><div class="l">Alt. moyenne</div></div>
+    <div class="stat-box"><div class="v">${avgSpd} km/h</div><div class="l">Vit. moyenne</div></div>`;
+
+  // Destroy old charts
+  Object.values(charts).forEach(c=>c.destroy?.());charts={};
+  const colors=['#00c2ff','#7b61ff','#00d68f','#ffaa00','#ff3b5c','#e6007e','#ffd100','#003087','#6f2c91','#c8102e','#0078d2','#304CB2'];
+  const opt={responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
+    scales:{x:{ticks:{color:'#6b7394',font:{size:9}},grid:{color:'rgba(255,255,255,.03)'}},
+      y:{ticks:{color:'#6b7394',font:{size:9}},grid:{color:'rgba(255,255,255,.03)'}}}};
+
+  // By airline
+  const alCounts=AIRLINES.map(a=>({name:a.name,count:flights.filter(f=>f.al===a.iata).length,color:a.color})).sort((a,b)=>b.count-a.count).slice(0,12);
+  charts.airlines=new Chart(document.getElementById('chartAirlines'),{type:'bar',
+    data:{labels:alCounts.map(a=>a.name),datasets:[{data:alCounts.map(a=>a.count),backgroundColor:alCounts.map(a=>a.color+'cc')}]},options:opt});
+
+  // By airport
+  const aptCounts=AIRPORTS.map(a=>({iata:a.iata,count:flights.filter(f=>f.to===a.iata).length})).sort((a,b)=>b.count-a.count).slice(0,12);
+  charts.airports=new Chart(document.getElementById('chartAirports'),{type:'bar',
+    data:{labels:aptCounts.map(a=>a.iata),datasets:[{data:aptCounts.map(a=>a.count),backgroundColor:colors}]},options:opt});
+
+  // Status
+  const stCounts={};flights.forEach(f=>{stCounts[f.st]=(stCounts[f.st]||0)+1});
+  const stColors={"En route":"#00c2ff","Approche":"#ffaa00","Embarquement":"#7b61ff","Décollé":"#00d68f","Retardé":"#ff3b5c"};
+  charts.status=new Chart(document.getElementById('chartStatus'),{type:'doughnut',
+    data:{labels:Object.keys(stCounts),datasets:[{data:Object.values(stCounts),backgroundColor:Object.keys(stCounts).map(s=>stColors[s]||'#444')}]},
+    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{color:'#a0aacc',font:{size:10}}}}}});
+
+  // Altitude by airline
+  const altByAl=AIRLINES.map(a=>{const fls=flights.filter(f=>f.al===a.iata&&f.alt>0);
+    return{name:a.name,avg:fls.length?Math.round(fls.reduce((s,f)=>s+f.alt,0)/fls.length):0,color:a.color}}).sort((a,b)=>b.avg-a.avg).slice(0,10);
+  charts.altitude=new Chart(document.getElementById('chartAltitude'),{type:'bar',
+    data:{labels:altByAl.map(a=>a.name),datasets:[{data:altByAl.map(a=>a.avg),backgroundColor:altByAl.map(a=>a.color+'cc')}]},
+    options:{...opt,indexAxis:'y'}});
+
+  // Aircraft
+  const acCounts={};flights.forEach(f=>{acCounts[f.ac]=(acCounts[f.ac]||0)+1});
+  const acSorted=Object.entries(acCounts).sort((a,b)=>b[1]-a[1]);
+  charts.aircraft=new Chart(document.getElementById('chartAircraft'),{type:'doughnut',
+    data:{labels:acSorted.map(a=>a[0]),datasets:[{data:acSorted.map(a=>a[1]),backgroundColor:colors}]},
+    options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{color:'#a0aacc',font:{size:9}}}}}});
+
+  // Top routes
+  const routeCounts={};flights.forEach(f=>{const k=f.from+'→'+f.to;routeCounts[k]=(routeCounts[k]||0)+1});
+  const topRoutes=Object.entries(routeCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  charts.routes=new Chart(document.getElementById('chartRoutes'),{type:'bar',
+    data:{labels:topRoutes.map(r=>r[0]),datasets:[{data:topRoutes.map(r=>r[1]),backgroundColor:colors}]},
+    options:{...opt,indexAxis:'y'}});
+}
+
+// ═══ TOOLS ═══
+function renderTools(){
+  const tools=[
+    {icon:'📡',name:'Radar ADS-B Simulé',desc:'Radar temps réel avec position, altitude, vitesse et cap de chaque aéronef. Filtrable par compagnie, zone et altitude.',color:'var(--accent)',action:()=>setMode('live')},
+    {icon:'📊',name:'Analytics & KPIs',desc:'Dashboard complet : trafic par compagnie, par aéroport, répartition des statuts, altitude moyenne, routes les plus fréquentées.',color:'var(--accent2)',action:()=>setMode('analytics')},
+    {icon:'🔥',name:'Carte de densité',desc:'Visualisation heatmap de la concentration du trafic autour de chaque aéroport. Identifie les points de congestion.',color:'var(--danger)',action:toggleHeatmap},
+    {icon:'🌦️',name:'Météo Caraïbes',desc:'Conditions météo simulées pour chaque aéroport : vent, visibilité, température, QNH, METAR synthétique.',color:'#00d68f',action:toggleWeather},
+    {icon:'📤',name:'Export CSV',desc:'Exporte l\'intégralité des données de vol en CSV : numéro, compagnie, route, altitude, vitesse, statut, position.',color:'var(--warn)',action:exportData},
+    {icon:'⏱️',name:'Calculateur de vol',desc:'Estime le temps de vol, la distance et la consommation entre deux aéroports de la Caraïbe.',color:'#e6007e',action:()=>openCalcPanel()},
+    {icon:'🛬',name:'Board d\'arrivées/départs',desc:'Panneau type FIDS (Flight Information Display) pour n\'importe quel aéroport. Mode plein écran disponible.',color:'var(--accent)',action:()=>openFIDS()},
+    {icon:'📋',name:'Annuaire compagnies',desc:'Fiche complète de chaque compagnie : flotte, hubs, routes, alliance, employés, passagers, historique.',color:'var(--accent2)',action:()=>{setMode('live');setTab('airlines')}},
+    {icon:'🗺️',name:'Carte des aéroports',desc:'28 aéroports caribéens mappés avec données ICAO, pistes, élévation, trafic annuel, compagnies desservant.',color:'#6f2c91',action:()=>{setMode('live');setTab('airports')}},
+    {icon:'🔔',name:'Système d\'alertes',desc:'Fil d\'activité live : retards, atterrissages, décollages, changements de cap. Notifications en temps réel.',color:'var(--danger)',action:()=>{setTab('alerts');showAlertBar=true;renderAlertBar()}},
+    {icon:'🧮',name:'Statistiques par zone',desc:'Analyse du trafic par zone géographique : Grandes Antilles, Petites Antilles, ABC Islands, Bahamas.',color:'var(--warn)',action:()=>setMode('analytics')},
+    {icon:'✈️',name:'Suivi de flotte',desc:'Vision globale de la flotte en vol par compagnie. Type d\'appareil, utilisation, taux de rotation.',color:'#003087',action:()=>{setMode('live');setTab('airlines')}},
+  ];
+  document.getElementById('toolGrid').innerHTML=tools.map(t=>`
+    <div class="tool-card" onclick="(${t.action.toString()})()">
+      <div class="tool-icon" style="background:${t.color}15;color:${t.color}">${t.icon}</div>
+      <div class="tool-name">${t.name}</div>
+      <div class="tool-desc">${t.desc}</div>
+    </div>`).join('');
+}
+
+// ═══ CALC PANEL ═══
+function openCalcPanel(){
+  setMode('live');
+  const ol=document.getElementById('detailOverlay');
+  let opts=AIRPORTS.map(a=>`<option value="${a.iata}">${a.iata} - ${a.city}</option>`).join('');
+  ol.innerHTML=`<button class="panel-close" style="position:absolute;top:12px;right:12px" onclick="document.getElementById('detailOverlay').classList.remove('open')">✕</button>
+    <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:16px">⏱️ Calculateur de vol</div>
+    <div class="meta-l" style="margin-bottom:4px">Départ</div>
+    <select id="calcFrom" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border2);
+      border-radius:8px;color:#fff;font-family:inherit;margin-bottom:12px">${opts}</select>
+    <div class="meta-l" style="margin-bottom:4px">Arrivée</div>
+    <select id="calcTo" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border2);
+      border-radius:8px;color:#fff;font-family:inherit;margin-bottom:16px">${opts}</select>
+    <button onclick="calcFlight()" style="width:100%;padding:10px;background:var(--accent);color:#000;
+      border:none;border-radius:8px;font-weight:700;font-family:inherit;cursor:pointer;font-size:13px">Calculer</button>
+    <div id="calcResult" style="margin-top:16px"></div>`;
+  ol.classList.add('open');
+}
+
+function calcFlight(){
+  const from=aptMap[document.getElementById('calcFrom').value];
+  const to=aptMap[document.getElementById('calcTo').value];
+  if(!from||!to) return;
+  const R=6371;
+  const dLat=(to.lat-from.lat)*Math.PI/180;
+  const dLng=(to.lng-from.lng)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(from.lat*Math.PI/180)*Math.cos(to.lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  const dist=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  const distNm=dist*0.539957;
+  const timeJet=dist/850; // hours
+  const timeTurbo=dist/450;
+  const fuelJet=Math.round(dist*2.8); // kg approx
+  const fuelTurbo=Math.round(dist*1.2);
+  document.getElementById('calcResult').innerHTML=`
+    <div class="grid2" style="margin-top:8px">
+      <div class="stat-box"><div class="v">${Math.round(dist)} km</div><div class="l">Distance</div></div>
+      <div class="stat-box"><div class="v">${Math.round(distNm)} nm</div><div class="l">Nautiques</div></div>
+      <div class="stat-box"><div class="v">${Math.floor(timeJet)}h${String(Math.round((timeJet%1)*60)).padStart(2,'0')}</div><div class="l">Temps jet</div></div>
+      <div class="stat-box"><div class="v">${Math.floor(timeTurbo)}h${String(Math.round((timeTurbo%1)*60)).padStart(2,'0')}</div><div class="l">Temps turbo</div></div>
+      <div class="stat-box"><div class="v">${fuelJet.toLocaleString()} kg</div><div class="l">Fuel jet est.</div></div>
+      <div class="stat-box"><div class="v">${fuelTurbo.toLocaleString()} kg</div><div class="l">Fuel turbo est.</div></div>
+    </div>`;
+}
+
+// ═══ FIDS ═══
+function openFIDS(){
+  setMode('live');
+  const ol=document.getElementById('detailOverlay');
+  let opts=AIRPORTS.map(a=>`<option value="${a.iata}">${a.iata} - ${a.city}</option>`).join('');
+  ol.innerHTML=`<button class="panel-close" style="position:absolute;top:12px;right:12px" onclick="document.getElementById('detailOverlay').classList.remove('open')">✕</button>
+    <div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:12px">🛬 Tableau FIDS</div>
+    <select id="fidsApt" onchange="renderFIDS()" style="width:100%;padding:8px;background:var(--surface2);
+      border:1px solid var(--border2);border-radius:8px;color:#fff;font-family:inherit;margin-bottom:16px">${opts}</select>
+    <div id="fidsContent"></div>`;
+  ol.classList.add('open');
+  renderFIDS();
+}
+
+function renderFIDS(){
+  const iata=document.getElementById('fidsApt')?.value;
+  if(!iata) return;
+  const arr=flights.filter(f=>f.to===iata);
+  const dep=flights.filter(f=>f.from===iata);
+  let h=`<div style="font-size:11px;font-weight:700;color:var(--accent3);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Arrivées (${arr.length})</div>`;
+  arr.forEach(f=>{
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;
+      background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px;font-size:11px">
+      <span style="font-weight:600;color:#fff;width:60px">${f.fn}</span>
+      <span style="color:var(--text2);width:40px">${f.from}</span>
+      <span class="mono" style="color:var(--text2);width:50px">${f.arr}</span>
+      <span class="tag tag-${STATUS_TAG[f.st]||'enroute'}">${f.st}</span></div>`;
+  });
+  h+=`<div style="font-size:11px;font-weight:700;color:var(--accent);margin:16px 0 8px;text-transform:uppercase;letter-spacing:1px">Départs (${dep.length})</div>`;
+  dep.forEach(f=>{
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;
+      background:rgba(0,0,0,.2);border-radius:6px;margin-bottom:4px;font-size:11px">
+      <span style="font-weight:600;color:#fff;width:60px">${f.fn}</span>
+      <span style="color:var(--text2);width:40px">${f.to}</span>
+      <span class="mono" style="color:var(--text2);width:50px">${f.dep}</span>
+      <span class="tag tag-${STATUS_TAG[f.st]||'enroute'}">${f.st}</span></div>`;
+  });
+  document.getElementById('fidsContent').innerHTML=h;
+}
+
+// ═══ WEATHER ═══
+function toggleWeather(){
+  showWx=!showWx;
+  document.getElementById('wxPanel').classList.toggle('visible',showWx);
+  if(showWx){
+    const wxData=AIRPORTS.filter(a=>a.type==='hub').map(a=>{
+      const temp=Math.floor(Math.random()*8+26);
+      const wind=Math.floor(Math.random()*25+5);
+      const dir=Math.floor(Math.random()*360);
+      const vis=Math.floor(Math.random()*6+5);
+      const qnh=Math.floor(Math.random()*8+1010);
+      const conditions=pick(['CAVOK','FEW025','SCT040','BKN015','OVC010','TSRA']);
+      return{...a,temp,wind,dir,vis,qnh,conditions};
+    });
+    document.getElementById('wxContent').innerHTML=wxData.map(w=>`
+      <div style="padding:8px;background:rgba(0,0,0,.2);border-radius:8px;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:700;color:#fff">${w.iata}</span>
+          <span class="mono" style="font-size:10px;color:var(--accent)">${w.conditions}</span>
+        </div>
+        <div class="mono" style="font-size:9px;color:var(--text3);margin-top:4px">
+          ${w.temp}°C · Vent ${String(w.dir).padStart(3,'0')}°/${w.wind}kt · VIS ${w.vis}km · QNH ${w.qnh}
+        </div>
+      </div>`).join('');
+  }
+}
+
+// ═══ HEATMAP ═══
+function toggleHeatmap(){
+  showHeat=!showHeat;
+  renderHeat();
+}
+
+// ═══ ALERTS ═══
+function toggleAlerts(){
+  showAlertBar=!showAlertBar;
+  renderAlertBar();
+}
+
+function renderAlertBar(){
+  const el=document.getElementById('alertTicker');
+  el.classList.toggle('show',showAlertBar);
+  if(showAlertBar) generateAlert();
+}
+
+function generateAlert(){
+  const f=pick(flights);
+  const types=[
+    {msg:`✈ ${f.fn} (${f.alName}) en approche ${f.to}`,cls:'info',color:'var(--accent)'},
+    {msg:`⚠ ${f.fn} signale un retard — re-routage possible`,cls:'warn',color:'var(--warn)'},
+    {msg:`🛫 ${f.fn} décollé de ${f.fromCity} vers ${f.toCity}`,cls:'info',color:'var(--accent3)'},
+    {msg:`📡 ${f.fn} altitude ${f.alt.toLocaleString()} ft — vitesse ${f.spd} km/h au cap ${Math.round(((f.hdg%360)+360)%360)}°`,cls:'info',color:'var(--accent)'},
+  ];
+  const a=pick(types);
+  const now=new Date();
+  const time=`${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  alertsLog.push({time,msg:a.msg,color:a.color});
+  if(alertsLog.length>100) alertsLog.shift();
+
+  document.getElementById('alertTicker').className=`alert-ticker show ${a.cls}`;
+  document.getElementById('alertText').textContent=`${time} — ${a.msg}`;
+  if(tab==='alerts') renderLiveTab(document.getElementById('sidebarBody'));
+}
+
+// ═══ EXPORT CSV ═══
+function exportData(){
+  let csv='Flight,Airline,From,To,Departure,Arrival,Status,Aircraft,Altitude_ft,Speed_kmh,Passengers,Lat,Lng,Heading\n';
+  flights.forEach(f=>{
+    csv+=`${f.fn},${f.alName},${f.from},${f.to},${f.dep},${f.arr},${f.st},${f.ac},${f.alt},${f.spd},${f.pax},${f.lat.toFixed(4)},${f.lng.toFixed(4)},${Math.round(f.hdg)}\n`;
+  });
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`caribbean-flights-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();URL.revokeObjectURL(url);
+}
+
+// ═══ TOGGLE SIDEBAR ═══
+function toggleSidebar(){
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+// ═══ STATS & KPI ═══
+function updateStats(){
+  document.getElementById('sFlights').textContent=flights.length;
+  document.getElementById('sAirports').textContent=AIRPORTS.length;
+  document.getElementById('sAirlines').textContent=AIRLINES.length;
+  const pax=flights.reduce((s,f)=>s+f.pax,0);
+  document.getElementById('sPax').textContent=pax.toLocaleString();
+
+  const enroute=flights.filter(f=>f.st==="En route").length;
+  const approach=flights.filter(f=>f.st==="Approche").length;
+  const delayed=flights.filter(f=>f.st==="Retardé").length;
+  const avgAlt=Math.round(flights.filter(f=>f.alt>0).reduce((s,f)=>s+f.alt,0)/Math.max(flights.filter(f=>f.alt>0).length,1));
+  document.getElementById('kpiStrip').innerHTML=`
+    <div class="kpi"><div class="kpi-v">${enroute}</div><div class="kpi-l">En route</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--warn)">${approach}</div><div class="kpi-l">Approche</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--danger)">${delayed}</div><div class="kpi-l">Retardés</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--accent3)">${avgAlt.toLocaleString()} ft</div><div class="kpi-l">Alt. moy.</div></div>
+    <div class="kpi"><div class="kpi-v">${AIRPORTS.length}</div><div class="kpi-l">Aéroports</div></div>
+    <div class="kpi"><div class="kpi-v">${AIRLINES.length}</div><div class="kpi-l">Compagnies</div></div>`;
+}
+
+// ═══ LIVE SIMULATION ═══
+function simulate(){
+  flights.forEach(f=>{
+    if(f.st==="Embarquement") return;
+    const dA=aptMap[f.from],aA=aptMap[f.to];
+    if(!dA||!aA) return;
+    f.p+=.001+Math.random()*.002;
+    if(f.p>=1){f.p=Math.random()*.2;f.st=pick(STATUSES)}
+    f.lat=dA.lat+(aA.lat-dA.lat)*f.p;
+    f.lng=dA.lng+(aA.lng-dA.lng)*f.p;
+    if(f.p<.1){f.alt=Math.floor(f.p*350000);f.spd=Math.floor(300+f.p*5000)}
+    else if(f.p>.85){f.alt=Math.floor((1-f.p)*230000);f.spd=Math.floor(200+(1-f.p)*3500)}
+    else{f.alt=Math.floor(30000+Math.sin(f.p*10)*5000);f.spd=Math.floor(820+Math.sin(f.p*7)*40)}
+    if(f.p>.85) f.st="Approche";else if(f.p<.1) f.st="Décollé";
+    else if(Math.random()<.001) f.st="Retardé";else f.st="En route";
+  });
+  renderPlanes();if(showHeat) renderHeat();
+}
+
+// ═══ INIT ═══
+renderPlanes();renderTab();updateStats();
+
+setInterval(()=>{simulate();updateStats()},3000);
+setInterval(()=>{if(showAlertBar) generateAlert()},5000);
+setInterval(()=>{if(tab==='flights'){const q=document.getElementById('sFlightSearch')?.value||'';
+  renderFlightsTab(document.getElementById('sidebarBody'));
+  if(q){const i=document.getElementById('sFlightSearch');if(i){i.value=q;filterCards('flight')}}}},6000);
+
+</script>
+</body>
+</html>

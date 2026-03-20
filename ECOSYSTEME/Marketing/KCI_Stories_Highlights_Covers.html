@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KCI — Covers Stories à la Une Instagram</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #111;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+    font-family: 'Inter', sans-serif;
+    gap: 50px;
+  }
+
+  .instructions {
+    color: #ccc;
+    font-size: 14px;
+    text-align: center;
+    max-width: 700px;
+    line-height: 1.7;
+    background: rgba(255,255,255,0.05);
+    padding: 24px 30px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .instructions strong { color: #d4a853; }
+
+  .section-title {
+    color: #fff;
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    text-align: center;
+  }
+
+  /* Preview row: how it looks on the profile */
+  .profile-preview {
+    background: #000;
+    border-radius: 20px;
+    padding: 40px 50px;
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+  .preview-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .preview-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid #d4a853;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    background: rgba(212,168,83,0.1);
+  }
+  .preview-label {
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    max-width: 70px;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  /* Individual cover containers */
+  .covers-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 40px;
+    justify-content: center;
+  }
+
+  .cover-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .cover-label {
+    color: #888;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+  }
+
+  /* ===== COVER : 1080x1080 circular crop display ===== */
+  .cover {
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 3px solid rgba(212,168,83,0.5);
+  }
+
+  .cover-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .cover-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 40px;
+  }
+
+  .cover-icon {
+    font-size: 64px;
+    margin-bottom: 8px;
+  }
+
+  .cover-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 32px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    line-height: 1.3;
+  }
+
+  .cover-subtext {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+  }
+
+  /* Specific backgrounds */
+  .cover-offres .cover-bg {
+    background: linear-gradient(160deg, #0a0e27 0%, #0d1b3e 50%, #162451 100%);
+  }
+  .cover-exemple .cover-bg {
+    background: linear-gradient(160deg, #0a0e27 0%, #0d2818 50%, #0a3520 100%);
+  }
+  .cover-faq .cover-bg {
+    background: linear-gradient(160deg, #0a0e27 0%, #1a1040 50%, #251555 100%);
+  }
+  .cover-gwada .cover-bg {
+    background: linear-gradient(160deg, #0a0e27 0%, #1a2d5e 50%, #0d4060 100%);
+  }
+  .cover-qui .cover-bg {
+    background: linear-gradient(160deg, #0a0e27 0%, #2a1a0a 50%, #3d2810 100%);
+  }
+
+  /* Gold ring decoration */
+  .cover::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    border: 1px solid rgba(212,168,83,0.2);
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* ===== SQUARE EXPORT VERSIONS ===== */
+  .export-section {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    align-items: center;
+  }
+
+  .export-note {
+    color: #888;
+    font-size: 13px;
+    text-align: center;
+    max-width: 500px;
+    line-height: 1.6;
+  }
+
+  .export-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    justify-content: center;
+  }
+
+  .export-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .export-cover {
+    width: 300px;
+    height: 300px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .export-cover .cover-bg { position: absolute; inset: 0; }
+  .export-cover .cover-content {
+    position: relative; z-index: 2;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px; padding: 30px;
+  }
+  .export-cover .cover-icon { font-size: 52px; }
+  .export-cover .cover-text {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px; font-weight: 700; color: #fff;
+    letter-spacing: 3px; text-transform: uppercase;
+  }
+
+  .export-cover.cover-offres .cover-bg { background: linear-gradient(160deg, #0a0e27, #0d1b3e, #162451); }
+  .export-cover.cover-exemple .cover-bg { background: linear-gradient(160deg, #0a0e27, #0d2818, #0a3520); }
+  .export-cover.cover-faq .cover-bg { background: linear-gradient(160deg, #0a0e27, #1a1040, #251555); }
+  .export-cover.cover-gwada .cover-bg { background: linear-gradient(160deg, #0a0e27, #1a2d5e, #0d4060); }
+  .export-cover.cover-qui .cover-bg { background: linear-gradient(160deg, #0a0e27, #2a1a0a, #3d2810); }
+
+  .export-label {
+    color: #666;
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="instructions">
+  <strong>STORIES À LA UNE — COVERS INSTAGRAM KCI</strong><br>
+  5 covers pour les stories highlights de @karuconseilimmo.<br>
+  Instagram affiche les covers en cercle — les deux formats sont fournis ci-dessous.<br>
+  Pour exporter : capture d'écran de chaque cover (le carré en bas est plus pratique pour l'export).
+</div>
+
+<!-- ===== PREVIEW : HOW IT LOOKS ON PROFILE ===== -->
+<div class="section-title">Aperçu sur le profil</div>
+<div class="profile-preview">
+  <div class="preview-item">
+    <div class="preview-circle">💰</div>
+    <div class="preview-label">OFFRES</div>
+  </div>
+  <div class="preview-item">
+    <div class="preview-circle">📊</div>
+    <div class="preview-label">EXEMPLE</div>
+  </div>
+  <div class="preview-item">
+    <div class="preview-circle">❓</div>
+    <div class="preview-label">FAQ</div>
+  </div>
+  <div class="preview-item">
+    <div class="preview-circle">🏝️</div>
+    <div class="preview-label">GWADA</div>
+  </div>
+  <div class="preview-item">
+    <div class="preview-circle">👤</div>
+    <div class="preview-label">QUI</div>
+  </div>
+</div>
+
+<!-- ===== CIRCULAR COVERS (DETAIL VIEW) ===== -->
+<div class="section-title">Covers détaillées (vue cercle)</div>
+<div class="covers-grid">
+
+  <div class="cover-wrapper">
+    <div class="cover-label">1 — Offres</div>
+    <div class="cover cover-offres">
+      <div class="cover-bg"></div>
+      <div class="cover-content">
+        <div class="cover-icon">💰</div>
+        <div class="cover-text">OFFRES</div>
+        <div class="cover-subtext">49 · 129 · 299€</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-wrapper">
+    <div class="cover-label">2 — Exemple</div>
+    <div class="cover cover-exemple">
+      <div class="cover-bg"></div>
+      <div class="cover-content">
+        <div class="cover-icon">📊</div>
+        <div class="cover-text">EXEMPLE</div>
+        <div class="cover-subtext">Rapport réel</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-wrapper">
+    <div class="cover-label">3 — FAQ</div>
+    <div class="cover cover-faq">
+      <div class="cover-bg"></div>
+      <div class="cover-content">
+        <div class="cover-icon">❓</div>
+        <div class="cover-text">FAQ</div>
+        <div class="cover-subtext">Vos questions</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-wrapper">
+    <div class="cover-label">4 — Gwada</div>
+    <div class="cover cover-gwada">
+      <div class="cover-bg"></div>
+      <div class="cover-content">
+        <div class="cover-icon">🏝️</div>
+        <div class="cover-text">GWADA</div>
+        <div class="cover-subtext">Marché immo 971</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cover-wrapper">
+    <div class="cover-label">5 — Qui</div>
+    <div class="cover cover-qui">
+      <div class="cover-bg"></div>
+      <div class="cover-content">
+        <div class="cover-icon">👤</div>
+        <div class="cover-text">QUI</div>
+        <div class="cover-subtext">Notre histoire</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== SQUARE EXPORT VERSIONS ===== -->
+<div class="export-section">
+  <div class="section-title">Export carrés (pour upload Instagram)</div>
+  <div class="export-note">
+    Ces versions carrées sont plus faciles à capturer.<br>
+    Instagram les recadrera automatiquement en cercle sur le profil.
+  </div>
+
+  <div class="export-grid">
+    <div class="export-wrapper">
+      <div class="export-cover cover-offres">
+        <div class="cover-bg"></div>
+        <div class="cover-content">
+          <div class="cover-icon">💰</div>
+          <div class="cover-text">OFFRES</div>
+        </div>
+      </div>
+      <div class="export-label">offres</div>
+    </div>
+
+    <div class="export-wrapper">
+      <div class="export-cover cover-exemple">
+        <div class="cover-bg"></div>
+        <div class="cover-content">
+          <div class="cover-icon">📊</div>
+          <div class="cover-text">EXEMPLE</div>
+        </div>
+      </div>
+      <div class="export-label">exemple</div>
+    </div>
+
+    <div class="export-wrapper">
+      <div class="export-cover cover-faq">
+        <div class="cover-bg"></div>
+        <div class="cover-content">
+          <div class="cover-icon">❓</div>
+          <div class="cover-text">FAQ</div>
+        </div>
+      </div>
+      <div class="export-label">faq</div>
+    </div>
+
+    <div class="export-wrapper">
+      <div class="export-cover cover-gwada">
+        <div class="cover-bg"></div>
+        <div class="cover-content">
+          <div class="cover-icon">🏝️</div>
+          <div class="cover-text">GWADA</div>
+        </div>
+      </div>
+      <div class="export-label">gwada</div>
+    </div>
+
+    <div class="export-wrapper">
+      <div class="export-cover cover-qui">
+        <div class="cover-bg"></div>
+        <div class="cover-content">
+          <div class="cover-icon">👤</div>
+          <div class="cover-text">QUI</div>
+        </div>
+      </div>
+      <div class="export-label">qui</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caribbean Air Traffic Live Tracker</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',sans-serif; background:#0a0e1a; color:#e0e6f0; overflow:hidden; height:100vh; }
+
+/* ─── HEADER ─── */
+.header {
+  position:fixed; top:0; left:0; right:0; z-index:1000;
+  background:linear-gradient(135deg,#0d1321 0%,#1a1f35 100%);
+  border-bottom:1px solid rgba(0,194,255,.15);
+  padding:10px 24px; display:flex; align-items:center; justify-content:space-between;
+  backdrop-filter:blur(20px); height:56px;
+}
+.header-left { display:flex; align-items:center; gap:14px; }
+.logo { font-size:22px; font-weight:800; background:linear-gradient(135deg,#00c2ff,#7b61ff);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:-.5px; }
+.logo-sub { font-size:11px; color:#6b7394; font-weight:500; letter-spacing:1px; text-transform:uppercase; }
+.live-badge { background:#ff3b5c; color:#fff; font-size:10px; font-weight:700;
+  padding:3px 10px; border-radius:20px; animation:pulse 2s infinite; letter-spacing:1px; }
+@keyframes pulse { 0%,100%{ opacity:1; } 50%{ opacity:.5; } }
+.stats-bar { display:flex; gap:24px; }
+.stat { text-align:center; }
+.stat-val { font-size:18px; font-weight:700; color:#00c2ff; }
+.stat-label { font-size:9px; color:#6b7394; text-transform:uppercase; letter-spacing:1px; }
+
+/* ─── MAP ─── */
+#map { position:fixed; top:56px; left:0; right:0; bottom:0; z-index:1; }
+
+/* ─── SIDEBAR ─── */
+.sidebar {
+  position:fixed; top:56px; right:0; bottom:0; width:420px; z-index:900;
+  background:rgba(13,19,33,.95); backdrop-filter:blur(30px);
+  border-left:1px solid rgba(0,194,255,.1);
+  overflow-y:auto; transition:transform .3s ease;
+}
+.sidebar.hidden { transform:translateX(100%); }
+.sidebar-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,.06); }
+.sidebar-tab {
+  flex:1; padding:14px 8px; text-align:center; font-size:11px; font-weight:600;
+  text-transform:uppercase; letter-spacing:1px; color:#6b7394; cursor:pointer;
+  border-bottom:2px solid transparent; transition:all .2s;
+}
+.sidebar-tab:hover { color:#a0aacc; }
+.sidebar-tab.active { color:#00c2ff; border-bottom-color:#00c2ff; }
+.sidebar-content { padding:16px; }
+
+.toggle-sidebar {
+  position:fixed; right:420px; top:72px; z-index:901;
+  background:rgba(13,19,33,.9); border:1px solid rgba(0,194,255,.2);
+  color:#00c2ff; width:32px; height:32px; border-radius:8px 0 0 8px;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  font-size:14px; transition:all .3s;
+}
+.toggle-sidebar.shifted { right:0; }
+
+/* ─── FLIGHT CARDS ─── */
+.flight-card {
+  background:linear-gradient(135deg,rgba(26,31,53,.8),rgba(20,25,45,.9));
+  border:1px solid rgba(0,194,255,.08); border-radius:12px;
+  padding:14px; margin-bottom:10px; cursor:pointer;
+  transition:all .2s;
+}
+.flight-card:hover { border-color:rgba(0,194,255,.3); transform:translateY(-1px);
+  box-shadow:0 8px 24px rgba(0,0,0,.3); }
+.flight-card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.flight-number { font-size:16px; font-weight:700; color:#fff; }
+.flight-airline-tag { font-size:10px; padding:3px 8px; border-radius:6px; font-weight:600; }
+.flight-route { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.flight-airport { text-align:center; }
+.flight-iata { font-size:20px; font-weight:800; color:#fff; }
+.flight-city { font-size:10px; color:#6b7394; }
+.flight-time { font-size:11px; color:#a0aacc; font-weight:500; }
+.flight-line { flex:1; position:relative; height:2px; background:rgba(255,255,255,.1); }
+.flight-line::after { content:'✈'; position:absolute; top:-8px; font-size:14px;
+  color:#00c2ff; animation:flyAcross 3s infinite linear; }
+@keyframes flyAcross { 0%{left:0} 100%{left:calc(100% - 14px)} }
+.flight-details { display:flex; gap:12px; flex-wrap:wrap; }
+.flight-detail { display:flex; flex-direction:column; }
+.flight-detail-label { font-size:9px; color:#6b7394; text-transform:uppercase; letter-spacing:.5px; }
+.flight-detail-value { font-size:12px; color:#c8d0e8; font-weight:500; }
+.flight-status { padding:2px 8px; border-radius:4px; font-size:10px; font-weight:600; }
+.status-enroute { background:rgba(0,194,255,.15); color:#00c2ff; }
+.status-landing { background:rgba(255,170,0,.15); color:#ffaa00; }
+.status-boarding { background:rgba(123,97,255,.15); color:#7b61ff; }
+.status-departed { background:rgba(0,214,143,.15); color:#00d68f; }
+.status-delayed { background:rgba(255,59,92,.15); color:#ff3b5c; }
+
+/* ─── AIRLINE CARDS ─── */
+.airline-card {
+  background:linear-gradient(135deg,rgba(26,31,53,.8),rgba(20,25,45,.9));
+  border:1px solid rgba(0,194,255,.08); border-radius:14px;
+  padding:18px; margin-bottom:12px; cursor:pointer; transition:all .2s;
+}
+.airline-card:hover { border-color:rgba(0,194,255,.3); }
+.airline-header { display:flex; align-items:center; gap:14px; margin-bottom:14px; }
+.airline-logo { width:48px; height:48px; border-radius:12px; display:flex;
+  align-items:center; justify-content:center; font-size:20px; font-weight:800; color:#fff; }
+.airline-name { font-size:16px; font-weight:700; color:#fff; }
+.airline-iata { font-size:12px; color:#6b7394; font-weight:500; }
+.airline-country { font-size:11px; color:#a0aacc; }
+.airline-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+.airline-stat { background:rgba(0,0,0,.2); padding:10px; border-radius:8px; text-align:center; }
+.airline-stat-val { font-size:18px; font-weight:700; color:#00c2ff; }
+.airline-stat-label { font-size:9px; color:#6b7394; text-transform:uppercase; letter-spacing:.5px; }
+.airline-routes { display:flex; flex-wrap:wrap; gap:6px; }
+.airline-route-tag { background:rgba(123,97,255,.1); color:#7b61ff; padding:3px 8px;
+  border-radius:6px; font-size:10px; font-weight:500; }
+.airline-detail-section { margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.05); }
+.airline-detail-title { font-size:11px; color:#6b7394; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+.airline-fleet { display:flex; flex-wrap:wrap; gap:6px; }
+.fleet-tag { background:rgba(0,194,255,.08); color:#00c2ff; padding:3px 8px;
+  border-radius:6px; font-size:10px; font-weight:500; }
+
+/* ─── AIRPORT CARDS ─── */
+.airport-card {
+  background:linear-gradient(135deg,rgba(26,31,53,.8),rgba(20,25,45,.9));
+  border:1px solid rgba(0,194,255,.08); border-radius:14px;
+  padding:18px; margin-bottom:12px; cursor:pointer; transition:all .2s;
+}
+.airport-card:hover { border-color:rgba(0,194,255,.3); }
+.airport-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+.airport-iata-big { font-size:28px; font-weight:900; color:#fff; line-height:1; }
+.airport-name { font-size:13px; color:#a0aacc; font-weight:500; max-width:220px; }
+.airport-location { font-size:11px; color:#6b7394; }
+.airport-badge { padding:4px 10px; border-radius:8px; font-size:10px; font-weight:600; }
+.badge-hub { background:rgba(255,170,0,.15); color:#ffaa00; }
+.badge-intl { background:rgba(0,194,255,.15); color:#00c2ff; }
+.badge-regional { background:rgba(123,97,255,.15); color:#7b61ff; }
+.airport-stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:12px 0; }
+.airport-stat { background:rgba(0,0,0,.2); padding:10px; border-radius:8px; text-align:center; }
+.airport-stat-val { font-size:16px; font-weight:700; color:#00c2ff; }
+.airport-stat-label { font-size:9px; color:#6b7394; text-transform:uppercase; letter-spacing:.5px; }
+.airport-info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+.airport-info-item { }
+.airport-info-label { font-size:9px; color:#6b7394; text-transform:uppercase; letter-spacing:.5px; }
+.airport-info-value { font-size:12px; color:#c8d0e8; font-weight:500; }
+.airport-airlines { display:flex; flex-wrap:wrap; gap:6px; margin-top:12px; }
+.airport-airline-tag { padding:3px 8px; border-radius:6px; font-size:10px; font-weight:500; }
+
+/* ─── FLIGHT DETAIL PANEL ─── */
+.flight-detail-panel {
+  position:fixed; top:56px; left:0; bottom:0; width:380px; z-index:950;
+  background:rgba(10,14,26,.97); backdrop-filter:blur(30px);
+  border-right:1px solid rgba(0,194,255,.1);
+  overflow-y:auto; transform:translateX(-100%); transition:transform .3s ease;
+  padding:24px;
+}
+.flight-detail-panel.open { transform:translateX(0); }
+.close-detail { position:absolute; top:16px; right:16px; background:none; border:none;
+  color:#6b7394; font-size:20px; cursor:pointer; }
+.close-detail:hover { color:#fff; }
+.detail-flight-num { font-size:28px; font-weight:900; color:#fff; margin-bottom:4px; }
+.detail-airline { font-size:14px; color:#a0aacc; margin-bottom:20px; }
+.detail-route-visual { display:flex; align-items:center; gap:16px; margin:20px 0;
+  padding:20px; background:rgba(0,0,0,.2); border-radius:12px; }
+.detail-apt { text-align:center; }
+.detail-apt-iata { font-size:24px; font-weight:800; color:#fff; }
+.detail-apt-name { font-size:10px; color:#6b7394; max-width:100px; }
+.detail-apt-time { font-size:13px; color:#00c2ff; font-weight:600; margin-top:4px; }
+.detail-route-line { flex:1; text-align:center; }
+.detail-duration { font-size:12px; color:#a0aacc; }
+.detail-plane-icon { font-size:24px; color:#00c2ff; }
+.detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:20px 0; }
+.detail-item { }
+.detail-item-label { font-size:9px; color:#6b7394; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+.detail-item-value { font-size:14px; color:#e0e6f0; font-weight:600; }
+.progress-bar { height:6px; background:rgba(255,255,255,.06); border-radius:3px; margin:20px 0; overflow:hidden; }
+.progress-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,#00c2ff,#7b61ff); transition:width 1s; }
+
+/* ─── SEARCH ─── */
+.search-box { position:relative; margin-bottom:16px; }
+.search-box input { width:100%; padding:10px 14px 10px 36px; background:rgba(0,0,0,.3);
+  border:1px solid rgba(255,255,255,.06); border-radius:10px; color:#e0e6f0;
+  font-size:13px; font-family:inherit; outline:none; transition:border-color .2s; }
+.search-box input:focus { border-color:rgba(0,194,255,.3); }
+.search-box input::placeholder { color:#4a5070; }
+.search-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#4a5070; font-size:14px; }
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(0,194,255,.2); border-radius:3px; }
+
+/* ─── MAP CUSTOM ─── */
+.leaflet-popup-content-wrapper { background:rgba(13,19,33,.95)!important; color:#e0e6f0!important;
+  border:1px solid rgba(0,194,255,.2)!important; border-radius:12px!important;
+  backdrop-filter:blur(20px); box-shadow:0 12px 40px rgba(0,0,0,.5)!important; }
+.leaflet-popup-tip { background:rgba(13,19,33,.95)!important; border:1px solid rgba(0,194,255,.2)!important; }
+.leaflet-popup-content { margin:12px 16px!important; font-family:'Inter',sans-serif!important; }
+
+.airport-marker {
+  background:rgba(0,194,255,.15); border:2px solid #00c2ff;
+  border-radius:50%; width:12px; height:12px;
+  box-shadow:0 0 12px rgba(0,194,255,.4);
+}
+.airport-marker-hub {
+  background:rgba(255,170,0,.2); border:2px solid #ffaa00;
+  border-radius:50%; width:16px; height:16px;
+  box-shadow:0 0 16px rgba(255,170,0,.4);
+}
+
+.plane-icon { transition:transform .5s linear; }
+
+/* Responsive */
+@media(max-width:900px){
+  .sidebar { width:100%; top:auto; bottom:0; height:50vh; border-left:none; border-top:1px solid rgba(0,194,255,.1); }
+  .toggle-sidebar { display:none; }
+  .flight-detail-panel { width:100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="logo">Caribbean ATC</div>
+      <div class="logo-sub">Air Traffic Control &mdash; Live</div>
+    </div>
+    <span class="live-badge">● LIVE</span>
+  </div>
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-val" id="totalFlights">0</div>
+      <div class="stat-label">Vols actifs</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="totalAirports">0</div>
+      <div class="stat-label">Aéroports</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="totalAirlines">0</div>
+      <div class="stat-label">Compagnies</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val" id="totalPax">0</div>
+      <div class="stat-label">Passagers est.</div>
+    </div>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<button class="toggle-sidebar" id="toggleBtn" onclick="toggleSidebar()">◀</button>
+
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-tabs">
+    <div class="sidebar-tab active" onclick="switchTab('flights')">✈ Vols</div>
+    <div class="sidebar-tab" onclick="switchTab('airlines')">🏢 Compagnies</div>
+    <div class="sidebar-tab" onclick="switchTab('airports')">🛬 Aéroports</div>
+  </div>
+  <div class="sidebar-content" id="sidebarContent"></div>
+</div>
+
+<div class="flight-detail-panel" id="flightDetail"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DATA: CARIBBEAN AIRPORTS
+// ═══════════════════════════════════════════════════════════════
+const airports = [
+  { iata:"PTP", name:"Pôle Caraïbes", city:"Pointe-à-Pitre", country:"Guadeloupe 🇬🇵", lat:16.2653, lng:-61.5318, type:"hub",
+    runways:[{id:"12/30",length:"3505m",surface:"Asphalte"}], elevation:"11m", timezone:"UTC-4",
+    paxYear:"2.4M", movements:28000, airlines:["AF","TX","OR","SS","3S","WM"], icao:"TFFR" },
+  { iata:"FDF", name:"Aimé Césaire", city:"Fort-de-France", country:"Martinique 🇲🇶", lat:14.591, lng:-61.0032, type:"hub",
+    runways:[{id:"09/27",length:"3300m",surface:"Asphalte"}], elevation:"5m", timezone:"UTC-4",
+    paxYear:"2.1M", movements:25000, airlines:["AF","TX","OR","SS","3S","WM","CJ"], icao:"TFFF" },
+  { iata:"SXM", name:"Princess Juliana", city:"Sint Maarten", country:"Sint Maarten 🇸🇽", lat:18.0410, lng:-63.1089, type:"hub",
+    runways:[{id:"10/28",length:"2300m",surface:"Asphalte"}], elevation:"4m", timezone:"UTC-4",
+    paxYear:"1.8M", movements:32000, airlines:["AA","JB","WN","DL","UA","WM","LI"], icao:"TNCM" },
+  { iata:"SDQ", name:"Las Américas", city:"Saint-Domingue", country:"Rép. Dominicaine 🇩🇴", lat:18.4297, lng:-69.6689, type:"hub",
+    runways:[{id:"17/35",length:"3354m",surface:"Asphalte"},{id:"09/27",length:"2400m",surface:"Asphalte"}], elevation:"18m", timezone:"UTC-4",
+    paxYear:"4.2M", movements:48000, airlines:["AA","DL","JB","UA","WN","CM","AV"], icao:"MDSD" },
+  { iata:"PUJ", name:"Punta Cana Intl", city:"Punta Cana", country:"Rép. Dominicaine 🇩🇴", lat:18.5674, lng:-68.3634, type:"hub",
+    runways:[{id:"09/27",length:"3100m",surface:"Asphalte"},{id:"08/26",length:"2800m",surface:"Asphalte"}], elevation:"14m", timezone:"UTC-4",
+    paxYear:"7.5M", movements:55000, airlines:["AA","DL","JB","UA","WN","DE","TOM","AF"], icao:"MDPC" },
+  { iata:"HAV", name:"José Martí", city:"La Havane", country:"Cuba 🇨🇺", lat:22.9892, lng:-82.4091, type:"hub",
+    runways:[{id:"06/24",length:"4000m",surface:"Asphalte"},{id:"01/19",length:"2500m",surface:"Asphalte"}], elevation:"64m", timezone:"UTC-5",
+    paxYear:"3.8M", movements:35000, airlines:["CU","AA","JB","AC","IB","AZ","AF"], icao:"MUHA" },
+  { iata:"KIN", name:"Norman Manley", city:"Kingston", country:"Jamaïque 🇯🇲", lat:17.9357, lng:-76.7875, type:"intl",
+    runways:[{id:"12/30",length:"2713m",surface:"Asphalte"}], elevation:"3m", timezone:"UTC-5",
+    paxYear:"1.9M", movements:22000, airlines:["AA","JB","DL","BW","WM","CM"], icao:"MKJP" },
+  { iata:"MBJ", name:"Sangster Intl", city:"Montego Bay", country:"Jamaïque 🇯🇲", lat:18.5037, lng:-77.9133, type:"hub",
+    runways:[{id:"07/25",length:"2662m",surface:"Asphalte"}], elevation:"2m", timezone:"UTC-5",
+    paxYear:"4.5M", movements:38000, airlines:["AA","JB","DL","UA","WN","BA","VS","AC"], icao:"MKJS" },
+  { iata:"NAS", name:"Lynden Pindling", city:"Nassau", country:"Bahamas 🇧🇸", lat:25.039, lng:-77.4662, type:"hub",
+    runways:[{id:"14/32",length:"3413m",surface:"Asphalte"}], elevation:"5m", timezone:"UTC-5",
+    paxYear:"3.6M", movements:42000, airlines:["AA","JB","DL","UA","WN","BA","UP"], icao:"MYNN" },
+  { iata:"BGI", name:"Grantley Adams", city:"Bridgetown", country:"Barbade 🇧🇧", lat:13.0746, lng:-59.4925, type:"intl",
+    runways:[{id:"09/27",length:"3353m",surface:"Asphalte"}], elevation:"52m", timezone:"UTC-4",
+    paxYear:"1.4M", movements:18000, airlines:["BA","VS","AA","JB","BW","WM","LI"], icao:"TBPB" },
+  { iata:"POS", name:"Piarco Intl", city:"Port of Spain", country:"Trinidad 🇹🇹", lat:10.5953, lng:-61.3372, type:"intl",
+    runways:[{id:"10/28",length:"3200m",surface:"Asphalte"}], elevation:"17m", timezone:"UTC-4",
+    paxYear:"2.2M", movements:26000, airlines:["BW","AA","JB","UA","CM","AV","WM"], icao:"TTPP" },
+  { iata:"CUR", name:"Hato Intl", city:"Willemstad", country:"Curaçao 🇨🇼", lat:12.1889, lng:-68.9598, type:"intl",
+    runways:[{id:"11/29",length:"3410m",surface:"Asphalte"}], elevation:"9m", timezone:"UTC-4",
+    paxYear:"1.6M", movements:20000, airlines:["KL","TU","WM","AV","CM","DL"], icao:"TNCC" },
+  { iata:"AUA", name:"Queen Beatrix", city:"Oranjestad", country:"Aruba 🇦🇼", lat:12.5014, lng:-70.0152, type:"intl",
+    runways:[{id:"11/29",length:"2743m",surface:"Asphalte"}], elevation:"18m", timezone:"UTC-4",
+    paxYear:"2.7M", movements:30000, airlines:["AA","DL","JB","UA","WN","KL","AV"], icao:"TNCA" },
+  { iata:"SJU", name:"Luis Muñoz Marín", city:"San Juan", country:"Porto Rico 🇵🇷", lat:18.4394, lng:-66.0018, type:"hub",
+    runways:[{id:"08/26",length:"3049m",surface:"Asphalte"},{id:"10/28",length:"2743m",surface:"Asphalte"}], elevation:"3m", timezone:"UTC-4",
+    paxYear:"9.2M", movements:85000, airlines:["AA","JB","DL","UA","WN","NK","B6","LI"], icao:"TJSJ" },
+  { iata:"PAP", name:"Toussaint Louverture", city:"Port-au-Prince", country:"Haïti 🇭🇹", lat:18.58, lng:-72.2925, type:"intl",
+    runways:[{id:"10/28",length:"3040m",surface:"Asphalte"}], elevation:"37m", timezone:"UTC-5",
+    paxYear:"1.2M", movements:14000, airlines:["AA","JB","NK","CM","SS","IJ"], icao:"MTPP" },
+  { iata:"STX", name:"Henry E. Rohlsen", city:"Sainte-Croix", country:"USVI 🇻🇮", lat:17.7019, lng:-64.7986, type:"regional",
+    runways:[{id:"10/28",length:"3048m",surface:"Asphalte"}], elevation:"22m", timezone:"UTC-4",
+    paxYear:"420K", movements:8000, airlines:["AA","DL","JB","LI"], icao:"TISX" },
+  { iata:"STT", name:"Cyril E. King", city:"Saint-Thomas", country:"USVI 🇻🇮", lat:18.3373, lng:-64.9734, type:"intl",
+    runways:[{id:"10/28",length:"2133m",surface:"Asphalte"}], elevation:"7m", timezone:"UTC-4",
+    paxYear:"1.1M", movements:16000, airlines:["AA","DL","JB","UA","LI","WM"], icao:"TIST" },
+  { iata:"ANU", name:"V.C. Bird Intl", city:"Saint John's", country:"Antigua 🇦🇬", lat:17.1367, lng:-61.7926, type:"intl",
+    runways:[{id:"07/25",length:"2744m",surface:"Asphalte"}], elevation:"19m", timezone:"UTC-4",
+    paxYear:"1.0M", movements:14000, airlines:["BA","VS","AA","JB","WM","LI","BW"], icao:"TAPA" },
+  { iata:"UVF", name:"Hewanorra Intl", city:"Vieux Fort", country:"Sainte-Lucie 🇱🇨", lat:13.7332, lng:-60.9526, type:"intl",
+    runways:[{id:"10/28",length:"2743m",surface:"Asphalte"}], elevation:"4m", timezone:"UTC-4",
+    paxYear:"820K", movements:10000, airlines:["BA","VS","AA","JB","WM","BW"], icao:"TLPL" },
+  { iata:"GND", name:"Maurice Bishop", city:"Saint George's", country:"Grenade 🇬🇩", lat:12.0042, lng:-61.7862, type:"regional",
+    runways:[{id:"10/28",length:"2743m",surface:"Asphalte"}], elevation:"10m", timezone:"UTC-4",
+    paxYear:"540K", movements:7000, airlines:["AA","JB","BA","WM","LI","BW"], icao:"TGPY" },
+  { iata:"DOM", name:"Douglas-Charles", city:"Marigot", country:"Dominique 🇩🇲", lat:15.547, lng:-61.2999, type:"regional",
+    runways:[{id:"09/27",length:"1707m",surface:"Asphalte"}], elevation:"13m", timezone:"UTC-4",
+    paxYear:"120K", movements:3000, airlines:["LI","WM","3S"], icao:"TDPD" },
+  { iata:"SKB", name:"R.L. Bradshaw", city:"Basseterre", country:"Saint-Kitts 🇰🇳", lat:17.3112, lng:-62.7187, type:"regional",
+    runways:[{id:"07/25",length:"2438m",surface:"Asphalte"}], elevation:"52m", timezone:"UTC-4",
+    paxYear:"380K", movements:6000, airlines:["AA","JB","BA","WM","LI"], icao:"TKPK" },
+  { iata:"TAB", name:"A.N.R. Robinson", city:"Crown Point", country:"Tobago 🇹🇹", lat:11.1497, lng:-60.8322, type:"regional",
+    runways:[{id:"09/27",length:"2743m",surface:"Asphalte"}], elevation:"5m", timezone:"UTC-4",
+    paxYear:"280K", movements:5000, airlines:["BW","BA","VS","WM"], icao:"TTCP" },
+  { iata:"SBH", name:"Gustaf III", city:"Gustavia", country:"Saint-Barthélemy 🇧🇱", lat:17.9044, lng:-62.8436, type:"regional",
+    runways:[{id:"10/28",length:"646m",surface:"Asphalte"}], elevation:"15m", timezone:"UTC-4",
+    paxYear:"200K", movements:12000, airlines:["WM","3S"], icao:"TFFJ" },
+  { iata:"GBJ", name:"Les Bases", city:"Grand-Bourg", country:"Marie-Galante 🇬🇵", lat:15.8687, lng:-61.2702, type:"regional",
+    runways:[{id:"13/31",length:"1270m",surface:"Asphalte"}], elevation:"5m", timezone:"UTC-4",
+    paxYear:"30K", movements:2000, airlines:["3S"], icao:"TFFM" },
+  { iata:"LSS", name:"Les Saintes", city:"Terre-de-Haut", country:"Les Saintes 🇬🇵", lat:15.8644, lng:-61.5806, type:"regional",
+    runways:[{id:"10/28",length:"590m",surface:"Asphalte"}], elevation:"14m", timezone:"UTC-4",
+    paxYear:"15K", movements:1500, airlines:["3S"], icao:"TFFS" },
+  { iata:"BON", name:"Flamingo Intl", city:"Kralendijk", country:"Bonaire 🇧🇶", lat:12.131, lng:-68.2685, type:"regional",
+    runways:[{id:"10/28",length:"2865m",surface:"Asphalte"}], elevation:"6m", timezone:"UTC-4",
+    paxYear:"560K", movements:8000, airlines:["KL","TU","WM"], icao:"TNCB" },
+  { iata:"EIS", name:"Terrance B. Lettsome", city:"Beef Island", country:"BVI 🇻🇬", lat:18.4448, lng:-64.543, type:"regional",
+    runways:[{id:"07/25",length:"1341m",surface:"Asphalte"}], elevation:"5m", timezone:"UTC-4",
+    paxYear:"190K", movements:4500, airlines:["LI","WM","AA"], icao:"TUPJ" },
+  { iata:"SVD", name:"Argyle Intl", city:"Kingstown", country:"St-Vincent 🇻🇨", lat:13.1568, lng:-61.1499, type:"regional",
+    runways:[{id:"04/22",length:"2743m",surface:"Asphalte"}], elevation:"7m", timezone:"UTC-4",
+    paxYear:"160K", movements:3500, airlines:["LI","WM","BW","3S"], icao:"TVSA" },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// DATA: AIRLINES
+// ═══════════════════════════════════════════════════════════════
+const airlines = [
+  { iata:"AF", name:"Air France", country:"France 🇫🇷", color:"#002157", accent:"#ed2939",
+    fleet:["A350-900","A330-200","B777-300ER"], hubs:["CDG","ORY"], headquarters:"Paris",
+    founded:1933, alliance:"SkyTeam", website:"airfrance.fr",
+    caribRoutes:["CDG→PTP","CDG→FDF","ORY→PTP","ORY→FDF","CDG→PUJ","CDG→HAV","CDG→SDQ"],
+    paxYear:"42M", employees:42000 },
+  { iata:"TX", name:"Air Caraïbes", country:"France/Guadeloupe 🇬🇵", color:"#e6007e", accent:"#00a5e3",
+    fleet:["A350-1000","A350-900","A330-300","ATR 72-600"], hubs:["PTP","FDF","ORY"], headquarters:"Pointe-à-Pitre",
+    founded:2000, alliance:"Aucune", website:"aircaraibes.com",
+    caribRoutes:["ORY→PTP","ORY→FDF","PTP→FDF","PTP→SXM","PTP→SDQ","PTP→PAP","PTP→HAV","FDF→PAP"],
+    paxYear:"1.8M", employees:1800 },
+  { iata:"SS", name:"Corsair", country:"France 🇫🇷", color:"#e30613", accent:"#004990",
+    fleet:["A330-900neo","A330-300"], hubs:["ORY"], headquarters:"Rungis",
+    founded:1981, alliance:"Aucune", website:"corsair.fr",
+    caribRoutes:["ORY→PTP","ORY→FDF","ORY→PAP","ORY→SDQ"],
+    paxYear:"1.2M", employees:1200 },
+  { iata:"OR", name:"French Bee", country:"France 🇫🇷", color:"#ffd100", accent:"#1a1a1a",
+    fleet:["A350-1000","A350-900"], hubs:["ORY"], headquarters:"Paris",
+    founded:2016, alliance:"Aucune", website:"frenchbee.com",
+    caribRoutes:["ORY→PTP","ORY→FDF"],
+    paxYear:"800K", employees:500 },
+  { iata:"3S", name:"Air Antilles", country:"Guadeloupe 🇬🇵", color:"#00a19a", accent:"#f7941d",
+    fleet:["ATR 42-500","ATR 72-600","DHC-6 Twin Otter"], hubs:["PTP","FDF"], headquarters:"Pointe-à-Pitre",
+    founded:2002, alliance:"Aucune", website:"airantilles.com",
+    caribRoutes:["PTP→FDF","PTP→SXM","PTP→DOM","PTP→SBH","PTP→GBJ","PTP→LSS","FDF→DOM","FDF→SVD","PTP→ANU","PTP→SKB"],
+    paxYear:"350K", employees:200 },
+  { iata:"WM", name:"Winair", country:"Sint Maarten 🇸🇽", color:"#003087", accent:"#c8102e",
+    fleet:["DHC-6 Twin Otter 300"], hubs:["SXM"], headquarters:"Sint Maarten",
+    founded:1961, alliance:"Aucune", website:"fly-winair.sx",
+    caribRoutes:["SXM→SBH","SXM→ANU","SXM→SKB","SXM→DOM","SXM→EIS","SXM→STT","SXM→PTP"],
+    paxYear:"180K", employees:150 },
+  { iata:"LI", name:"LIAT", country:"Antigua 🇦🇬", color:"#6f2c91", accent:"#fdb813",
+    fleet:["ATR 42-600","ATR 72-600","DHC-8-300"], hubs:["ANU","BGI"], headquarters:"Antigua",
+    founded:1956, alliance:"Aucune", website:"liatairline.com",
+    caribRoutes:["ANU→BGI","ANU→SXM","ANU→DOM","ANU→GND","ANU→SKB","ANU→SVD","ANU→STT","BGI→GND","BGI→UVF","BGI→SVD","BGI→POS"],
+    paxYear:"450K", employees:400 },
+  { iata:"BW", name:"Caribbean Airlines", country:"Trinidad 🇹🇹", color:"#c8102e", accent:"#00263a",
+    fleet:["B737-800","ATR 72-600"], hubs:["POS","KIN"], headquarters:"Port of Spain",
+    founded:2006, alliance:"Aucune", website:"caribbean-airlines.com",
+    caribRoutes:["POS→KIN","POS→BGI","POS→ANU","POS→GND","POS→TAB","POS→SDQ","KIN→NAS","KIN→MBJ"],
+    paxYear:"2.5M", employees:2500 },
+  { iata:"AA", name:"American Airlines", country:"USA 🇺🇸", color:"#0078d2", accent:"#d6001c",
+    fleet:["B737-800","A321neo","B777-200","B787-9"], hubs:["MIA","DFW","CLT"], headquarters:"Fort Worth, TX",
+    founded:1930, alliance:"Oneworld", website:"aa.com",
+    caribRoutes:["MIA→SJU","MIA→SDQ","MIA→PUJ","MIA→NAS","MIA→KIN","MIA→MBJ","MIA→BGI","MIA→POS","MIA→AUA","MIA→CUR","MIA→SXM","MIA→STT","MIA→ANU","MIA→HAV"],
+    paxYear:"215M", employees:130000 },
+  { iata:"JB", name:"JetBlue Airways", country:"USA 🇺🇸", color:"#003876", accent:"#0033a0",
+    fleet:["A321neo","A321LR","A220-300","E190"], hubs:["JFK","BOS","FLL","SJU"], headquarters:"New York",
+    founded:2000, alliance:"Aucune", website:"jetblue.com",
+    caribRoutes:["JFK→SJU","JFK→SDQ","JFK→PUJ","JFK→NAS","JFK→BGI","JFK→AUA","FLL→NAS","FLL→SJU","BOS→SJU","JFK→PAP","JFK→STT","JFK→SXM"],
+    paxYear:"42M", employees:23000 },
+  { iata:"DL", name:"Delta Air Lines", country:"USA 🇺🇸", color:"#003366", accent:"#c8102e",
+    fleet:["B737-900ER","A321neo","B757-200","B767-400"], hubs:["ATL","JFK","DTW","MSP"], headquarters:"Atlanta",
+    founded:1924, alliance:"SkyTeam", website:"delta.com",
+    caribRoutes:["ATL→SJU","ATL→NAS","ATL→MBJ","JFK→SJU","JFK→SDQ","JFK→PUJ","ATL→AUA","ATL→CUR","ATL→STT"],
+    paxYear:"177M", employees:95000 },
+  { iata:"UA", name:"United Airlines", country:"USA 🇺🇸", color:"#002244", accent:"#00b5e2",
+    fleet:["B737 MAX 9","A321neo","B757-300","B787-10"], hubs:["EWR","IAH","SFO","ORD"], headquarters:"Chicago",
+    founded:1926, alliance:"Star Alliance", website:"united.com",
+    caribRoutes:["EWR→SJU","EWR→SDQ","EWR→PUJ","EWR→NAS","IAH→SJU","IAH→MBJ","EWR→STT","EWR→SXM","EWR→AUA"],
+    paxYear:"158M", employees:92000 },
+  { iata:"CM", name:"Copa Airlines", country:"Panama 🇵🇦", color:"#003b70", accent:"#c8a600",
+    fleet:["B737-800","B737 MAX 9"], hubs:["PTY"], headquarters:"Panama City",
+    founded:1947, alliance:"Star Alliance", website:"copaair.com",
+    caribRoutes:["PTY→SJU","PTY→SDQ","PTY→PAP","PTY→KIN","PTY→HAV","PTY→POS"],
+    paxYear:"15M", employees:9000 },
+  { iata:"CU", name:"Cubana de Aviación", country:"Cuba 🇨🇺", color:"#004e95", accent:"#d42027",
+    fleet:["An-158","Il-96-300"], hubs:["HAV"], headquarters:"La Havane",
+    founded:1929, alliance:"Aucune", website:"cubana.cu",
+    caribRoutes:["HAV→SDQ","HAV→KIN","HAV→NAS","HAV→PAP"],
+    paxYear:"500K", employees:3200 },
+  { iata:"NK", name:"Spirit Airlines", country:"USA 🇺🇸", color:"#ffc72c", accent:"#1a1a1a",
+    fleet:["A320neo","A321neo","A319"], hubs:["FLL","ATL","LAS"], headquarters:"Dania Beach, FL",
+    founded:1980, alliance:"Aucune", website:"spirit.com",
+    caribRoutes:["FLL→SJU","FLL→SDQ","FLL→PAP","FLL→KIN","FLL→MBJ"],
+    paxYear:"34M", employees:10000 },
+  { iata:"KL", name:"KLM", country:"Pays-Bas 🇳🇱", color:"#00a1de", accent:"#003087",
+    fleet:["B777-300ER","B787-10","A330-200"], hubs:["AMS"], headquarters:"Amstelveen",
+    founded:1919, alliance:"SkyTeam", website:"klm.com",
+    caribRoutes:["AMS→CUR","AMS→AUA","AMS→BON","AMS→SXM"],
+    paxYear:"35M", employees:33000 },
+  { iata:"BA", name:"British Airways", country:"Royaume-Uni 🇬🇧", color:"#1b3d6d", accent:"#c8102e",
+    fleet:["B777-200","B787-9","A320neo"], hubs:["LHR","LGW"], headquarters:"Londres",
+    founded:1974, alliance:"Oneworld", website:"ba.com",
+    caribRoutes:["LGW→BGI","LGW→ANU","LGW→MBJ","LGW→NAS","LGW→GND","LGW→UVF","LGW→SKB","LGW→TAB"],
+    paxYear:"40M", employees:30000 },
+  { iata:"AV", name:"Avianca", country:"Colombie 🇨🇴", color:"#e30613", accent:"#003366",
+    fleet:["A320neo","A321neo","B787-8"], hubs:["BOG"], headquarters:"Bogotá",
+    founded:1919, alliance:"Star Alliance", website:"avianca.com",
+    caribRoutes:["BOG→SDQ","BOG→SJU","BOG→POS","BOG→CUR","BOG→AUA"],
+    paxYear:"30M", employees:20000 },
+  { iata:"WN", name:"Southwest Airlines", country:"USA 🇺🇸", color:"#304CB2", accent:"#FFBF27",
+    fleet:["B737-800","B737 MAX 8"], hubs:["DAL","BWI","MDW","DEN"], headquarters:"Dallas",
+    founded:1967, alliance:"Aucune", website:"southwest.com",
+    caribRoutes:["FLL→SJU","FLL→NAS","BWI→SJU","FLL→MBJ","FLL→AUA","FLL→PUJ"],
+    paxYear:"130M", employees:66000 },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// DATA: SIMULATED FLIGHTS
+// ═══════════════════════════════════════════════════════════════
+const aircraftTypes = ["A350-900","A330-300","B737-800","A321neo","ATR 72-600","B787-9","B777-200","DHC-6","A320neo","E190","A350-1000","B757-200","A330-900neo"];
+const statuses = ["En route","En route","En route","En route","Approche","Embarquement","Décollé","Retardé"];
+const statusClasses = { "En route":"enroute","Approche":"landing","Embarquement":"boarding","Décollé":"departed","Retardé":"delayed" };
+
+function generateFlightNumber(airlineIata) {
+  return airlineIata + Math.floor(Math.random()*9000+1000);
+}
+
+function randomFrom(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+
+function getAirportByIata(iata) { return airports.find(a=>a.iata===iata); }
+
+function parseRoute(route) {
+  const [from,to] = route.split('→');
+  return {from,to};
+}
+
+function generateFlights() {
+  const flights = [];
+  const now = new Date();
+
+  airlines.forEach(airline => {
+    airline.caribRoutes.forEach((route,i) => {
+      const {from,to} = parseRoute(route);
+      const depAirport = getAirportByIata(from);
+      const arrAirport = getAirportByIata(to);
+      if(!depAirport || !arrAirport) return;
+
+      // Generate 1-2 flights per route
+      const count = Math.random() > 0.5 ? 2 : 1;
+      for(let j=0; j<count; j++) {
+        const status = randomFrom(statuses);
+        const progress = status==="En route" ? Math.random()*0.6+0.2 :
+                         status==="Approche" ? Math.random()*0.15+0.85 :
+                         status==="Embarquement" ? 0 :
+                         status==="Décollé" ? Math.random()*0.15 :
+                         Math.random()*0.5;
+
+        const depHour = Math.floor(Math.random()*24);
+        const depMin = Math.floor(Math.random()*60);
+        const duration = Math.floor(Math.random()*360+60); // 1h-7h
+        const arrHour = (depHour + Math.floor(duration/60)) % 24;
+        const arrMin = (depMin + duration%60) % 60;
+
+        const lat = depAirport.lat + (arrAirport.lat - depAirport.lat) * progress;
+        const lng = depAirport.lng + (arrAirport.lng - depAirport.lng) * progress;
+
+        const alt = status==="Embarquement" ? 0 :
+                    status==="Décollé" ? Math.floor(Math.random()*15000+3000) :
+                    status==="Approche" ? Math.floor(Math.random()*8000+1000) :
+                    Math.floor(Math.random()*12000+28000);
+        const speed = status==="Embarquement" ? 0 :
+                      status==="Décollé" ? Math.floor(Math.random()*200+150) :
+                      status==="Approche" ? Math.floor(Math.random()*100+180) :
+                      Math.floor(Math.random()*100+750);
+
+        const pax = Math.floor(Math.random()*180+40);
+
+        flights.push({
+          id: generateFlightNumber(airline.iata) + '-' + j,
+          flightNumber: generateFlightNumber(airline.iata),
+          airline: airline.iata,
+          airlineName: airline.name,
+          airlineColor: airline.color,
+          from: from, to: to,
+          fromName: depAirport.name, toName: arrAirport.name,
+          fromCity: depAirport.city, toCity: arrAirport.city,
+          depTime: `${String(depHour).padStart(2,'0')}:${String(depMin).padStart(2,'0')}`,
+          arrTime: `${String(arrHour).padStart(2,'0')}:${String(arrMin).padStart(2,'0')}`,
+          duration: `${Math.floor(duration/60)}h${String(duration%60).padStart(2,'0')}`,
+          status: status,
+          progress: progress,
+          lat: lat, lng: lng,
+          altitude: alt,
+          speed: speed,
+          aircraft: randomFrom(aircraftTypes),
+          passengers: pax,
+          heading: Math.atan2(arrAirport.lng-depAirport.lng, arrAirport.lat-depAirport.lat) * 180/Math.PI
+        });
+      }
+    });
+  });
+
+  return flights;
+}
+
+let flights = generateFlights();
+let currentTab = 'flights';
+let sidebarVisible = true;
+let selectedFlight = null;
+let planeMarkers = [];
+let routeLines = [];
+
+// ═══════════════════════════════════════════════════════════════
+// MAP SETUP
+// ═══════════════════════════════════════════════════════════════
+const map = L.map('map', {
+  center:[18.5,-68],
+  zoom:6,
+  zoomControl:false,
+  attributionControl:false
+});
+
+L.control.zoom({position:'bottomleft'}).addTo(map);
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  maxZoom:19,
+  subdomains:'abcd'
+}).addTo(map);
+
+// Airport markers
+const airportMarkers = {};
+airports.forEach(apt => {
+  const isHub = apt.type === 'hub';
+  const icon = L.divIcon({
+    className: isHub ? 'airport-marker-hub' : 'airport-marker',
+    iconSize: isHub ? [16,16] : [12,12],
+    iconAnchor: isHub ? [8,8] : [6,6]
+  });
+
+  const marker = L.marker([apt.lat, apt.lng], {icon}).addTo(map);
+  const popupContent = `
+    <div style="min-width:200px">
+      <div style="font-size:20px;font-weight:800;color:#fff;margin-bottom:2px">${apt.iata}</div>
+      <div style="font-size:12px;color:#a0aacc;margin-bottom:8px">${apt.name}</div>
+      <div style="font-size:11px;color:#6b7394">${apt.city}, ${apt.country}</div>
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div><span style="font-size:9px;color:#6b7394;text-transform:uppercase">Passagers/an</span><br>
+          <span style="font-size:13px;color:#00c2ff;font-weight:600">${apt.paxYear}</span></div>
+        <div><span style="font-size:9px;color:#6b7394;text-transform:uppercase">Mouvements</span><br>
+          <span style="font-size:13px;color:#00c2ff;font-weight:600">${apt.movements.toLocaleString()}</span></div>
+        <div><span style="font-size:9px;color:#6b7394;text-transform:uppercase">ICAO</span><br>
+          <span style="font-size:13px;color:#fff;font-weight:600">${apt.icao}</span></div>
+        <div><span style="font-size:9px;color:#6b7394;text-transform:uppercase">Type</span><br>
+          <span style="font-size:13px;color:#fff;font-weight:600">${apt.type}</span></div>
+      </div>
+    </div>`;
+  marker.bindPopup(popupContent, {maxWidth:300});
+
+  // Label
+  if(isHub || map.getZoom() > 7) {
+    const label = L.tooltip({permanent:true, direction:'top', offset:[0,-12],
+      className:'airport-label', opacity:0.9});
+    label.setContent(`<span style="font-size:11px;font-weight:700;color:#fff;
+      text-shadow:0 0 8px rgba(0,0,0,.8);letter-spacing:1px">${apt.iata}</span>`);
+    marker.bindTooltip(label);
+  }
+
+  airportMarkers[apt.iata] = marker;
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PLANE MARKERS
+// ═══════════════════════════════════════════════════════════════
+function createPlaneIcon(heading, color) {
+  return L.divIcon({
+    html:`<div style="transform:rotate(${heading-90}deg);font-size:16px;color:${color};
+      filter:drop-shadow(0 0 4px ${color}80);transition:transform .5s">✈</div>`,
+    className:'plane-icon',
+    iconSize:[20,20],
+    iconAnchor:[10,10]
+  });
+}
+
+function renderPlanes() {
+  planeMarkers.forEach(m => map.removeLayer(m));
+  routeLines.forEach(l => map.removeLayer(l));
+  planeMarkers = [];
+  routeLines = [];
+
+  flights.forEach(f => {
+    if(f.status === "Embarquement") return;
+
+    const icon = createPlaneIcon(f.heading, f.airlineColor || '#00c2ff');
+    const marker = L.marker([f.lat, f.lng], {icon}).addTo(map);
+
+    const popup = `
+      <div style="min-width:180px">
+        <div style="font-size:16px;font-weight:800;color:#fff">${f.flightNumber}</div>
+        <div style="font-size:11px;color:#a0aacc;margin-bottom:8px">${f.airlineName}</div>
+        <div style="font-size:13px;color:#fff;font-weight:600">${f.from} → ${f.to}</div>
+        <div style="font-size:11px;color:#6b7394">${f.fromCity} → ${f.toCity}</div>
+        <div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px">
+          <div><span style="color:#6b7394">Alt:</span> <span style="color:#00c2ff">${f.altitude.toLocaleString()} ft</span></div>
+          <div><span style="color:#6b7394">Vit:</span> <span style="color:#00c2ff">${f.speed} km/h</span></div>
+          <div><span style="color:#6b7394">Avion:</span> <span style="color:#fff">${f.aircraft}</span></div>
+          <div><span style="color:#6b7394">Statut:</span> <span style="color:#00c2ff">${f.status}</span></div>
+        </div>
+      </div>`;
+    marker.bindPopup(popup, {maxWidth:250});
+
+    marker.on('click', () => showFlightDetail(f));
+    planeMarkers.push(marker);
+
+    // Route line
+    const depApt = getAirportByIata(f.from);
+    const arrApt = getAirportByIata(f.to);
+    if(depApt && arrApt) {
+      const line = L.polyline(
+        [[depApt.lat,depApt.lng],[arrApt.lat,arrApt.lng]],
+        {color:f.airlineColor||'#00c2ff', weight:1, opacity:0.15, dashArray:'5,8'}
+      ).addTo(map);
+      routeLines.push(line);
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SIDEBAR RENDERING
+// ═══════════════════════════════════════════════════════════════
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.sidebar-tab').forEach((t,i) => {
+    t.classList.toggle('active', ['flights','airlines','airports'][i]===tab);
+  });
+  renderSidebar();
+}
+
+function renderSidebar() {
+  const el = document.getElementById('sidebarContent');
+  if(currentTab === 'flights') renderFlights(el);
+  else if(currentTab === 'airlines') renderAirlines(el);
+  else renderAirports(el);
+}
+
+function renderFlights(el) {
+  let html = `<div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" placeholder="Rechercher un vol, une route..." id="flightSearch" oninput="filterFlights()">
+  </div>`;
+
+  const sorted = [...flights].sort((a,b) => {
+    const order = {"En route":0,"Approche":1,"Décollé":2,"Embarquement":3,"Retardé":4};
+    return (order[a.status]||5) - (order[b.status]||5);
+  });
+
+  const displayed = sorted.slice(0,60);
+
+  displayed.forEach(f => {
+    html += `
+    <div class="flight-card" onclick="showFlightDetail(flights.find(x=>x.id==='${f.id}'))">
+      <div class="flight-card-header">
+        <span class="flight-number">${f.flightNumber}</span>
+        <span class="flight-airline-tag" style="background:${f.airlineColor}20;color:${f.airlineColor}">${f.airlineName}</span>
+      </div>
+      <div class="flight-route">
+        <div class="flight-airport">
+          <div class="flight-iata">${f.from}</div>
+          <div class="flight-city">${f.fromCity}</div>
+          <div class="flight-time">${f.depTime}</div>
+        </div>
+        <div class="flight-line"></div>
+        <div class="flight-airport">
+          <div class="flight-iata">${f.to}</div>
+          <div class="flight-city">${f.toCity}</div>
+          <div class="flight-time">${f.arrTime}</div>
+        </div>
+      </div>
+      <div class="flight-details">
+        <div class="flight-detail">
+          <span class="flight-detail-label">Avion</span>
+          <span class="flight-detail-value">${f.aircraft}</span>
+        </div>
+        <div class="flight-detail">
+          <span class="flight-detail-label">Altitude</span>
+          <span class="flight-detail-value">${f.altitude.toLocaleString()} ft</span>
+        </div>
+        <div class="flight-detail">
+          <span class="flight-detail-label">Vitesse</span>
+          <span class="flight-detail-value">${f.speed} km/h</span>
+        </div>
+        <div class="flight-detail">
+          <span class="flight-detail-label">Statut</span>
+          <span class="flight-status status-${statusClasses[f.status]||'enroute'}">${f.status}</span>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  html += `<div style="text-align:center;padding:16px;color:#6b7394;font-size:12px">
+    ${flights.length} vols actifs dans la Caraïbe</div>`;
+  el.innerHTML = html;
+}
+
+function renderAirlines(el) {
+  let html = `<div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" placeholder="Rechercher une compagnie..." id="airlineSearch" oninput="filterAirlines()">
+  </div>`;
+
+  airlines.forEach(a => {
+    const activeFlights = flights.filter(f=>f.airline===a.iata).length;
+    html += `
+    <div class="airline-card" id="airline-${a.iata}">
+      <div class="airline-header">
+        <div class="airline-logo" style="background:${a.color}">
+          ${a.iata}
+        </div>
+        <div>
+          <div class="airline-name">${a.name}</div>
+          <div class="airline-iata">Code IATA: ${a.iata} &middot; ${a.alliance}</div>
+          <div class="airline-country">${a.country}</div>
+        </div>
+      </div>
+      <div class="airline-stats">
+        <div class="airline-stat">
+          <div class="airline-stat-val">${activeFlights}</div>
+          <div class="airline-stat-label">Vols actifs</div>
+        </div>
+        <div class="airline-stat">
+          <div class="airline-stat-val">${a.caribRoutes.length}</div>
+          <div class="airline-stat-label">Routes Caraïbes</div>
+        </div>
+        <div class="airline-stat">
+          <div class="airline-stat-val">${a.paxYear}</div>
+          <div class="airline-stat-label">Pax/an</div>
+        </div>
+      </div>
+
+      <div class="airline-detail-section">
+        <div class="airline-detail-title">Informations</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;margin-bottom:12px">
+          <div><span style="color:#6b7394">Fondée:</span> <span style="color:#c8d0e8">${a.founded}</span></div>
+          <div><span style="color:#6b7394">Siège:</span> <span style="color:#c8d0e8">${a.headquarters}</span></div>
+          <div><span style="color:#6b7394">Employés:</span> <span style="color:#c8d0e8">${a.employees?.toLocaleString()||'N/A'}</span></div>
+          <div><span style="color:#6b7394">Site:</span> <span style="color:#00c2ff">${a.website}</span></div>
+        </div>
+      </div>
+
+      <div class="airline-detail-section">
+        <div class="airline-detail-title">Flotte</div>
+        <div class="airline-fleet">
+          ${a.fleet.map(f=>`<span class="fleet-tag">${f}</span>`).join('')}
+        </div>
+      </div>
+
+      <div class="airline-detail-section">
+        <div class="airline-detail-title">Hubs</div>
+        <div class="airline-fleet">
+          ${a.hubs.map(h=>`<span class="fleet-tag" style="background:rgba(255,170,0,.1);color:#ffaa00">${h}</span>`).join('')}
+        </div>
+      </div>
+
+      <div class="airline-detail-section">
+        <div class="airline-detail-title">Routes Caraïbes</div>
+        <div class="airline-routes">
+          ${a.caribRoutes.map(r=>`<span class="airline-route-tag">${r}</span>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+function renderAirports(el) {
+  let html = `<div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input type="text" placeholder="Rechercher un aéroport..." id="airportSearch" oninput="filterAirports()">
+  </div>`;
+
+  const sorted = [...airports].sort((a,b) => {
+    const order = {hub:0,intl:1,regional:2};
+    return (order[a.type]||3) - (order[b.type]||3);
+  });
+
+  sorted.forEach(apt => {
+    const badgeClass = apt.type==='hub'?'badge-hub':apt.type==='intl'?'badge-intl':'badge-regional';
+    const badgeLabel = apt.type==='hub'?'HUB':apt.type==='intl'?'INTERNATIONAL':'RÉGIONAL';
+    const arrivals = flights.filter(f=>f.to===apt.iata).length;
+    const departures = flights.filter(f=>f.from===apt.iata).length;
+    const airlineObjs = airlines.filter(a=>apt.airlines.includes(a.iata));
+
+    html += `
+    <div class="airport-card" onclick="map.flyTo([${apt.lat},${apt.lng}],10)">
+      <div class="airport-header">
+        <div>
+          <div class="airport-iata-big">${apt.iata}</div>
+          <div class="airport-name">${apt.name}</div>
+          <div class="airport-location">${apt.city}, ${apt.country}</div>
+        </div>
+        <span class="airport-badge ${badgeClass}">${badgeLabel}</span>
+      </div>
+
+      <div class="airport-stats">
+        <div class="airport-stat">
+          <div class="airport-stat-val">${arrivals}</div>
+          <div class="airport-stat-label">Arrivées</div>
+        </div>
+        <div class="airport-stat">
+          <div class="airport-stat-val">${departures}</div>
+          <div class="airport-stat-label">Départs</div>
+        </div>
+        <div class="airport-stat">
+          <div class="airport-stat-val">${apt.paxYear}</div>
+          <div class="airport-stat-label">Passagers/an</div>
+        </div>
+        <div class="airport-stat">
+          <div class="airport-stat-val">${apt.movements.toLocaleString()}</div>
+          <div class="airport-stat-label">Mouvements/an</div>
+        </div>
+      </div>
+
+      <div class="airport-info-grid">
+        <div class="airport-info-item">
+          <div class="airport-info-label">ICAO</div>
+          <div class="airport-info-value">${apt.icao}</div>
+        </div>
+        <div class="airport-info-item">
+          <div class="airport-info-label">Élévation</div>
+          <div class="airport-info-value">${apt.elevation}</div>
+        </div>
+        <div class="airport-info-item">
+          <div class="airport-info-label">Fuseau</div>
+          <div class="airport-info-value">${apt.timezone}</div>
+        </div>
+        <div class="airport-info-item">
+          <div class="airport-info-label">Piste(s)</div>
+          <div class="airport-info-value">${apt.runways.map(r=>r.id+' ('+r.length+')').join(', ')}</div>
+        </div>
+      </div>
+
+      <div class="airline-detail-section">
+        <div class="airline-detail-title">Compagnies desservant</div>
+        <div class="airport-airlines">
+          ${airlineObjs.map(a=>`<span class="airport-airline-tag" style="background:${a.color}20;color:${a.color}">${a.name}</span>`).join('')}
+          ${apt.airlines.filter(code=>!airlines.find(a=>a.iata===code)).map(code=>`<span class="airport-airline-tag" style="background:rgba(255,255,255,.05);color:#6b7394">${code}</span>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FLIGHT DETAIL PANEL
+// ═══════════════════════════════════════════════════════════════
+function showFlightDetail(f) {
+  if(!f) return;
+  selectedFlight = f;
+  const panel = document.getElementById('flightDetail');
+
+  // Fly to
+  map.flyTo([f.lat, f.lng], 8, {duration:1});
+
+  panel.innerHTML = `
+    <button class="close-detail" onclick="closeDetail()">✕</button>
+    <div class="detail-flight-num">${f.flightNumber}</div>
+    <div class="detail-airline" style="color:${f.airlineColor}">${f.airlineName}</div>
+    <span class="flight-status status-${statusClasses[f.status]||'enroute'}" style="font-size:12px;padding:4px 12px">${f.status}</span>
+
+    <div class="detail-route-visual">
+      <div class="detail-apt">
+        <div class="detail-apt-iata">${f.from}</div>
+        <div class="detail-apt-name">${f.fromName}</div>
+        <div class="detail-apt-time">${f.depTime}</div>
+      </div>
+      <div class="detail-route-line">
+        <div class="detail-plane-icon">✈</div>
+        <div class="detail-duration">${f.duration}</div>
+      </div>
+      <div class="detail-apt">
+        <div class="detail-apt-iata">${f.to}</div>
+        <div class="detail-apt-name">${f.toName}</div>
+        <div class="detail-apt-time">${f.arrTime}</div>
+      </div>
+    </div>
+
+    <div style="margin:12px 0">
+      <div style="font-size:10px;color:#6b7394;margin-bottom:6px">PROGRESSION DU VOL: ${Math.round(f.progress*100)}%</div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${f.progress*100}%"></div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-item">
+        <div class="detail-item-label">Appareil</div>
+        <div class="detail-item-value">${f.aircraft}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-item-label">Altitude</div>
+        <div class="detail-item-value">${f.altitude.toLocaleString()} ft</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-item-label">Vitesse</div>
+        <div class="detail-item-value">${f.speed} km/h</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-item-label">Cap</div>
+        <div class="detail-item-value">${Math.round(((f.heading%360)+360)%360)}°</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-item-label">Passagers est.</div>
+        <div class="detail-item-value">${f.passengers}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-item-label">Durée totale</div>
+        <div class="detail-item-value">${f.duration}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-item-label">Départ</div>
+        <div class="detail-item-value">${f.fromCity}</div>
+      </div>
+      <div class="detail-item">
+        <div class="detail-item-label">Arrivée</div>
+        <div class="detail-item-value">${f.toCity}</div>
+      </div>
+    </div>
+
+    <div class="airline-detail-section">
+      <div class="airline-detail-title">Position actuelle</div>
+      <div style="font-size:12px;color:#c8d0e8">
+        Lat: ${f.lat.toFixed(4)}° &nbsp; Lng: ${f.lng.toFixed(4)}°
+      </div>
+    </div>
+  `;
+
+  panel.classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('flightDetail').classList.remove('open');
+  selectedFlight = null;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEARCH FILTERS
+// ═══════════════════════════════════════════════════════════════
+function filterFlights() {
+  const q = document.getElementById('flightSearch')?.value.toLowerCase() || '';
+  document.querySelectorAll('.flight-card').forEach(card => {
+    card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+function filterAirlines() {
+  const q = document.getElementById('airlineSearch')?.value.toLowerCase() || '';
+  document.querySelectorAll('.airline-card').forEach(card => {
+    card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+function filterAirports() {
+  const q = document.getElementById('airportSearch')?.value.toLowerCase() || '';
+  document.querySelectorAll('.airport-card').forEach(card => {
+    card.style.display = card.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+function toggleSidebar() {
+  sidebarVisible = !sidebarVisible;
+  document.getElementById('sidebar').classList.toggle('hidden');
+  document.getElementById('toggleBtn').classList.toggle('shifted');
+  document.getElementById('toggleBtn').textContent = sidebarVisible ? '▶' : '◀';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// LIVE SIMULATION
+// ═══════════════════════════════════════════════════════════════
+function updateStats() {
+  document.getElementById('totalFlights').textContent = flights.length;
+  document.getElementById('totalAirports').textContent = airports.length;
+  document.getElementById('totalAirlines').textContent = airlines.length;
+  const totalPax = flights.reduce((s,f)=>s+f.passengers, 0);
+  document.getElementById('totalPax').textContent = totalPax.toLocaleString();
+}
+
+function simulateMovement() {
+  flights.forEach(f => {
+    if(f.status === "Embarquement") return;
+
+    const depApt = getAirportByIata(f.from);
+    const arrApt = getAirportByIata(f.to);
+    if(!depApt || !arrApt) return;
+
+    // Advance progress
+    f.progress += (0.001 + Math.random()*0.002);
+    if(f.progress >= 1) {
+      f.progress = Math.random()*0.3;
+      // Reset with possibly new status
+      f.status = randomFrom(statuses);
+    }
+
+    // Update position
+    f.lat = depApt.lat + (arrApt.lat - depApt.lat) * f.progress;
+    f.lng = depApt.lng + (arrApt.lng - depApt.lng) * f.progress;
+
+    // Update altitude based on progress
+    if(f.progress < 0.1) {
+      f.altitude = Math.floor(f.progress * 350000);
+      f.speed = Math.floor(300 + f.progress * 5000);
+    } else if(f.progress > 0.85) {
+      f.altitude = Math.floor((1 - f.progress) * 230000);
+      f.speed = Math.floor(200 + (1-f.progress)*3500);
+    } else {
+      f.altitude = Math.floor(30000 + Math.sin(f.progress*10)*5000);
+      f.speed = Math.floor(800 + Math.sin(f.progress*7)*50);
+    }
+
+    if(f.progress > 0.85) f.status = "Approche";
+    else if(f.progress < 0.1) f.status = "Décollé";
+    else if(Math.random() < 0.001) f.status = "Retardé";
+    else f.status = "En route";
+  });
+
+  renderPlanes();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+renderPlanes();
+renderSidebar();
+updateStats();
+
+// Live update every 3 seconds
+setInterval(() => {
+  simulateMovement();
+  updateStats();
+  // Refresh sidebar if on flights tab
+  if(currentTab === 'flights') {
+    const search = document.getElementById('flightSearch')?.value || '';
+    renderFlights(document.getElementById('sidebarContent'));
+    if(search) {
+      const input = document.getElementById('flightSearch');
+      if(input) { input.value = search; filterFlights(); }
+    }
+  }
+}, 3000);
+
+</script>
+</body>
+</html>

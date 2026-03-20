@@ -1,0 +1,48 @@
+{
+  "parcelle": {
+    "reference": "971 AN 0307",
+    "code_parcelle": "97121000AN0307",
+    "commune": "Pointe-Noire",
+    "code_postal": "97116",
+    "code_insee": "97121",
+    "section": "AN",
+    "numero": "0307",
+    "surface_m2": 20746,
+    "centroid": [
+      16.239033,
+      -61.794525
+    ],
+    "zone_plu": "UAb"
+  },
+  "dvf": {
+    "mutations": [],
+    "status": "API indisponible (502/403) — 20/03/2026",
+    "nb_mutations_depuis_2014": 0
+  },
+  "proprietaire": {
+    "type": "inconnu — probablement particulier",
+    "nom": null,
+    "siren": null,
+    "sci_candidates_secteur": [
+      "SCI PERVENCHE-MOREAU (SIREN 433688421) — LD Gommier (proche)",
+      "AUGWEDOMA (SIREN 821872710) — Gommier",
+      "SCI EDOUARDO (SIREN 439294877) — LD Morphy Beaugendre (proche section AN)"
+    ]
+  },
+  "spf": {
+    "cerfa_genere": true,
+    "fichier_cerfa": "CERFA_3233_Pointe-Noire_AN0307.pdf",
+    "spf_competent": "SPF de Basse-Terre"
+  },
+  "meta": {
+    "date_recherche": "2026-03-20",
+    "sources": [
+      "Cadastre IGN",
+      "DVF (indisponible)",
+      "Pappers Immobilier",
+      "API Recherche Entreprises"
+    ],
+    "skill_version": "1.0",
+    "nb_sci_pointe_noire": 70
+  }
+}
