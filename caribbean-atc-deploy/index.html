@@ -92,9 +92,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);overflo
 /* ═══════════════════════════════════════
    APP (hidden until auth)
    ═══════════════════════════════════════ */
-.app{display:none;height:100vh;overflow:hidden}
-.app.visible{display:block}
-.landing.hidden{display:none}
+.app{display:block;height:100vh;overflow:hidden}
+.landing{display:none}
 
 .topbar{position:fixed;top:0;left:0;right:0;z-index:1000;height:52px;
   background:linear-gradient(135deg,var(--sf),var(--sf2));
@@ -937,6 +936,9 @@ function exportCSV(){
 }
 
 function toggleSb(){document.getElementById('sb').classList.toggle('collapsed')}
+
+// Auto-launch app without login
+window.addEventListener('DOMContentLoaded', function(){ initApp(); });
 
 </script>
 </body>
