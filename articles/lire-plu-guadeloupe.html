@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Guide complet pour lire un PLU en Guadeloupe : zones U, AU, A, N, CES, COS. Utilisez ces notions pour évaluer la constructibilité d'un terrain avant investissement.">
+    <meta name="keywords" content="PLU guadeloupe, plan local urbanisme, zone constructible guadeloupe, zonage terrain, CES COS, zone U AU A N">
+    <meta name="author" content="Dereck Rauzduel, Architecte EPFL">
+    <meta name="date" content="2026-03-17">
+    <meta property="og:title" content="Lire un PLU en Guadeloupe : guide pratique pour investisseurs (zones U, AU, A, N)">
+    <meta property="og:description" content="Maîtrisez la lecture des Plans Locaux d'Urbanisme en Guadeloupe. Comprenez les zones constructibles et les pièges réglementaires pour vos investissements immobiliers.">
+    <meta property="og:type" content="article">
+    <meta property="og:image" content="https://www.kci-guadeloupe.com/images/plu-og.jpg">
+    <meta name="canonical" content="https://www.kci-guadeloupe.com/articles/lire-plu-guadeloupe.html">
+    <title>Lire un PLU en Guadeloupe : guide investisseurs | KCI</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #333;
+            line-height: 1.6;
+            background-color: #f9f8f5;
+        }
+
+        header {
+            background-color: #0b1526;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #c2a060;
+            text-decoration: none;
+        }
+
+        nav {
+            display: flex;
+            gap: 2rem;
+        }
+
+        nav a {
+            color: #fff;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: color 0.3s;
+        }
+
+        nav a:hover {
+            color: #c2a060;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .article-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .article-header h1 {
+            color: #0b1526;
+            font-size: 2.2rem;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .article-meta {
+            color: #666;
+            font-size: 0.95rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .article-meta strong {
+            color: #0b1526;
+        }
+
+        .article-content {
+            background: #fff;
+            padding: 2.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+
+        .article-content p {
+            margin-bottom: 1.5rem;
+            text-align: justify;
+        }
+
+        .article-content h2 {
+            color: #0b1526;
+            font-size: 1.6rem;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            border-bottom: 3px solid #c2a060;
+            padding-bottom: 0.5rem;
+        }
+
+        .article-content h3 {
+            color: #0b1526;
+            font-size: 1.2rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .article-content strong {
+            color: #0b1526;
+        }
+
+        .highlight-box {
+            background-color: #f0ede7;
+            border-left: 4px solid #c2a060;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+        }
+
+        .zone-card {
+            background: #f0ede7;
+            border: 2px solid #c2a060;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+        }
+
+        .zone-card h4 {
+            color: #0b1526;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .zone-label {
+            display: inline-block;
+            background-color: #0b1526;
+            color: #c2a060;
+            padding: 0.3rem 0.8rem;
+            border-radius: 3px;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            font-size: 0.9rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 0.95rem;
+        }
+
+        .data-table th {
+            background-color: #0b1526;
+            color: #c2a060;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            border-bottom: 1px solid #ddd;
+            padding: 0.75rem;
+        }
+
+        .data-table tr:nth-child(even) {
+            background-color: #f9f8f5;
+        }
+
+        .cta-box {
+            background: linear-gradient(135deg, #0b1526 0%, #1a2e45 100%);
+            color: #fff;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .cta-box h3 {
+            color: #c2a060;
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .cta-box p {
+            margin-bottom: 1.5rem;
+            font-size: 1.05rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: #c2a060;
+            color: #0b1526;
+            padding: 0.75rem 2rem;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+
+        .cta-button:hover {
+            background-color: #d4b574;
+        }
+
+        .sources {
+            background-color: #f0ede7;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 2rem;
+        }
+
+        .sources h3 {
+            color: #0b1526;
+            margin-bottom: 1rem;
+        }
+
+        .sources ul {
+            list-style-position: inside;
+            line-height: 1.8;
+        }
+
+        .sources li {
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+
+        footer {
+            background-color: #0b1526;
+            color: #fff;
+            padding: 2rem;
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.9rem;
+        }
+
+        footer a {
+            color: #c2a060;
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            nav {
+                flex-direction: column;
+                gap: 0.5rem;
+                width: 100%;
+            }
+
+            nav a {
+                font-size: 0.85rem;
+            }
+
+            .container {
+                padding: 1.5rem 1rem;
+            }
+
+            .article-header h1 {
+                font-size: 1.6rem;
+            }
+
+            .article-content {
+                padding: 1.5rem;
+            }
+
+            .article-content h2 {
+                font-size: 1.3rem;
+            }
+
+            .article-content h3 {
+                font-size: 1.05rem;
+            }
+
+            .data-table {
+                font-size: 0.85rem;
+            }
+
+            .data-table th,
+            .data-table td {
+                padding: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="/" class="logo">KCI</a>
+        <nav>
+            <a href="/">Accueil</a>
+            <a href="/#articles">Nos articles</a>
+            <a href="/#offres">Offres</a>
+            <a href="/#form-section">Analyser mon bien</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <article>
+            <div class="article-header">
+                <h1>Lire un PLU en Guadeloupe : guide pratique pour investisseurs (zones U, AU, A, N)</h1>
+                <div class="article-meta">
+                    <p><strong>Auteur :</strong> Dereck Rauzduel, Architecte EPFL</p>
+                    <p><strong>Date :</strong> Mars 2026</p>
+                </div>
+            </div>
+
+            <div class="article-content">
+                <h2>Qu'est-ce qu'un PLU et pourquoi c'est crucial pour investir</h2>
+                <p>Le Plan Local d'Urbanisme (PLU) est le document réglementaire fondamental qui régit l'utilisation des sols dans une commune. Il détermine quels terrains sont constructibles, sous quelles conditions, et avec quelles contraintes. Pour un investisseur immobilier en Guadeloupe, ignorer le PLU revient à acheter un terrain "au hasard". Une mauvaise interprétation peut vous rendre un terrain inexploitable ou générer des surcoûts importants.</p>
+
+                <p>Le PLU divise la commune en zones réglementaires (U, AU, A, N). Chaque zone autorise un type d'usage spécifique avec ses propres coefficients d'emprise et de densité. Avant d'investir, vous devez lire le PLU et identifier la zone de votre terrain.</p>
+
+                <h2>Où consulter le PLU de votre commune</h2>
+                <p>La ressource officielle est le Géoportail de l'Urbanisme, accessible à <strong>geoportail-urbanisme.gouv.fr</strong>. Vous pouvez :</p>
+                <ul style="margin-left: 2rem; margin-bottom: 1.5rem;">
+                    <li>Saisir l'adresse du terrain</li>
+                    <li>Visualiser la carte de zonage interactif</li>
+                    <li>Télécharger le PLU complet (document officiel PDF)</li>
+                    <li>Accéder au règlement écrit (normes COS, CES, hauteur, etc.)</li>
+                </ul>
+
+                <p>Vous pouvez aussi consulter directement à la mairie. Le PLU est un document public, obligation légale.</p>
+
+                <h2>Les 4 grandes zones réglementaires en Guadeloupe</h2>
+                <p>Chaque zone correspond à une stratégie d'aménagement communale. Voici comment les identifier et les interpréter :</p>
+
+                <div class="zone-card">
+                    <span class="zone-label">ZONE U — Urbaine</span>
+                    <h4>Définition</h4>
+                    <p>C'est la zone entièrement équipée en réseaux (eau, électricité, assainissement) et destinée à accueillir la majorité des constructions. Maisons, immeubles, commerces, bureaux y sont autorisés.</p>
+                    <h4>Subzones courantes</h4>
+                    <p><strong>U1, U2, U3, etc. :</strong> Chaque sous-zone impose des contraintes différentes (densité, hauteur, coefficient de construction). À Saint-François, par exemple, la zone U1 autorise max 12 m de hauteur et COS 0,6 ; la zone U4CE (commerces/équipements) impose une façade commerciale au rez-de-chaussée.</p>
+                    <h4>Perspective investisseur</h4>
+                    <p><strong>C'est la zone que cherche un investisseur classique.</strong> Constructible immédiatement, sans attendre des équipements supplémentaires. C'est ici qu'on achète pour bâtir, surélever, ou densifier.</p>
+                    <h4>Exemple de prix foncier</h4>
+                    <p>Saint-François zone U : 387 €/m² en moyenne (2024-2025).</p>
+                </div>
+
+                <div class="zone-card">
+                    <span class="zone-label">ZONE AU — À Urbaniser</span>
+                    <h4>Définition</h4>
+                    <p>Zone destinée à être urbanisée progressivement. Elle n'est pas encore équipée en réseaux (eau, assainissement) ou routes. La construction y est soumise à des conditions strictes : les travaux d'équipement doivent avoir commencé ou être engagés par voie contractuelle.</p>
+                    <h4>Perspective investisseur</h4>
+                    <p>Potentiel de plus-value fort, mais délai et risque élevés. Un terrain AU peut rester inexploitable 5-10 ans si la commune ne finance pas les équipements. Le prix y est généralement inférieur à la zone U (20-40 % moins cher).</p>
+                    <h4>Cas Saint-François (PLU révisé 05/11/2024)</h4>
+                    <p>Saint-François comporte seulement 3 parcelles en zone AU2 (urbanisation future). Le zonage révélé concentre la constructibilité sur les zones U1-U5, laissant peu de potentiel AU accessible.</p>
+                </div>
+
+                <div class="zone-card">
+                    <span class="zone-label">ZONE A — Agricole</span>
+                    <h4>Définition</h4>
+                    <p>Réservée à l'agriculture, la silviculture et les activités connexes (élevage, transformation agricole). La constructibilité y est très limitée. Seules les bâtisses à usage agricole direct sont autorisées, plus quelques constructions très spécifiques (maison fermier, hangar).</p>
+                    <h4>Exceptions rares</h4>
+                    <p>Habitation agricole liée à l'exploitation (fermier), équipements collectifs (école rurale) si l'intérêt général le justifie. Habitation secondaire, résidence touristique, magasin = refusés.</p>
+                    <h4>Perspective investisseur</h4>
+                    <p><strong>À éviter sauf si vous avez un projet agricole spécifique.</strong> Un terrain classé zone A restera inexploitable pour 99 % des projets immobiliers classiques. Le prix y est très bas (10-50 €/m² typiquement) mais il faut une dérogation PLU complexe pour construire.</p>
+                </div>
+
+                <div class="zone-card">
+                    <span class="zone-label">ZONE N — Naturelle</span>
+                    <h4>Définition</h4>
+                    <p>Zone protégée pour ses qualités environnementales, paysagères ou écologiques. Réserves forestières, zones humides, espaces littoraux. Pratiquement inconstructible.</p>
+                    <h4>Exceptions ultra-rares</h4>
+                    <p>Seules constructions légères non permanentes (cabanes, équipements de loisir temporaire) avec permis très exceptionnel.</p>
+                    <h4>Perspective investisseur</h4>
+                    <p><strong>Ne pas acheter.</strong> Terrain stérile. Si un bien vous intéresse et se trouve en zone N, c'est une transaction très spéculative (espoir d'une reclassification future) et très risquée.</p>
+                </div>
+
+                <h2>Cas pratique détaillé : Saint-François (PLU révisé 05/11/2024)</h2>
+                <p>Saint-François, pôle touristique majeur de la Guadeloupe, offre un exemple instructif. Son PLU récemment révisé montre les arbitrages d'une commune entre conservation et développement.</p>
+
+                <h3>Répartition des zones</h3>
+                <p>La commune totalise 453 zones cadastrales. Répartition réelle :</p>
+                <ul style="margin-left: 2rem; margin-bottom: 1.5rem;">
+                    <li><strong>Zone U (68 parcelles) :</strong> 15,0 % constructible</li>
+                    <li><strong>Zone AU (3 parcelles) :</strong> 0,7 % à urbaniser</li>
+                    <li><strong>Zone A (210 parcelles) :</strong> 46,4 % agricole (protégé)</li>
+                    <li><strong>Zone N (172 parcelles) :</strong> 38,0 % naturelle (forêt, côtier)</li>
+                </ul>
+
+                <p><strong>Total constructible immédiat :</strong> seulement 15,7 % de la commune. C'est très restrictif, ce qui explique les prix fonciers hauts (387 €/m²). La rareté crée la valeur.</p>
+
+                <h3>Subdivisions zones U à Saint-François</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Sous-zone</th>
+                            <th>Usage principal</th>
+                            <th>Hauteur max</th>
+                            <th>COS</th>
+                            <th>Observations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>U1</td>
+                            <td>Résidentiel</td>
+                            <td>12 m</td>
+                            <td>0,6</td>
+                            <td>Habitat collectif possible</td>
+                        </tr>
+                        <tr>
+                            <td>U2</td>
+                            <td>Mixte urbain</td>
+                            <td>10 m</td>
+                            <td>0,5</td>
+                            <td>Commerce + logement</td>
+                        </tr>
+                        <tr>
+                            <td>U3</td>
+                            <td>Touristique</td>
+                            <td>15 m</td>
+                            <td>0,8</td>
+                            <td>Hôtels, résidences touristiques</td>
+                        </tr>
+                        <tr>
+                            <td>U4CE</td>
+                            <td>Commerces/équipements</td>
+                            <td>10 m</td>
+                            <td>0,7</td>
+                            <td>Centre-bourg</td>
+                        </tr>
+                        <tr>
+                            <td>U5</td>
+                            <td>Artisanat/léger</td>
+                            <td>12 m</td>
+                            <td>0,5</td>
+                            <td>Garages, petits ateliers</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p><strong>Zone AU2 :</strong> Seulement 3 parcelles destinées à l'urbanisation future. Potentiel limité mais intéressant pour un acheteur patient ayant une vision long terme (10 ans +).</p>
+
+                <h2>Comparaison avec d'autres communes : stabilité réglementaire</h2>
+                <p>La date du PLU influence la stabilité réglementaire. Un PLU ancien peut être revu avant peu, créant une incertitude. Un PLU récent offre plus de sécurité juridique.</p>
+
+                <h3>Le Moule (PLU de 2017)</h3>
+                <p>PLU ancien, non révisé depuis 2017. Cadre moins moderne, mais également moins sujet à changements immédiat. Prix foncier terre nu moyen 217 €/m² (médian 103 €/m²).</p>
+
+                <h3>Sainte-Anne (PLU très récent, 29/12/2025)</h3>
+                <p>Révision complète à peine terminée. Cadre stabilisé pour 10-15 ans. Prix foncier nu moyen 368 €/m² (médian 207 €/m²). La révision récente renforce la confiance réglementaire et justifie le prix plus élevé.</p>
+
+                <h2>Éléments clés du règlement PLU : au-delà du simple zonage</h2>
+                <p>Le zonage (U/AU/A/N) est le point de départ. Mais le règlement précise les contraintes constructibles réelles :</p>
+
+                <h3>CES (Coefficient d'Emprise au Sol)</h3>
+                <p>Limite le pourcentage de surface au sol que la construction peut occuper. Exemple : terrain 1 000 m², CES 0,4 → bâtiment max 400 m² au sol. Le reste doit rester espace libre (parking, espaces verts).</p>
+
+                <p><strong>Impact :</strong> Un terrain petit avec CES strict devient moins rentable. CES élevé (0,8-1) = meilleure densification.</p>
+
+                <h3>COS (Coefficient d'Occupation des Sols)</h3>
+                <p>Limite la surface bâtie TOTALE par rapport à la surface du terrain. Exemple : COS 0,6 sur 1 000 m² = max 600 m² bâtis (sur plusieurs niveaux). Si vous construisez 3 étages de 150 m² chacun (450 m² total), vous êtes dans la limite.</p>
+
+                <p><strong>Impact :</strong> COS détermine le potentiel de densification. Un COS bas limite les surélévations profitables.</p>
+
+                <h3>Hauteur maximale autorisée</h3>
+                <p>Exprimée en mètres (ex: 12 m = ~4 étages). Un bien dans une zone 8 m ne peut pas être surélévé au-delà, d'où l'importance de vérifier avant d'acheter.</p>
+
+                <h3>Prospect (dégagements)</h3>
+                <p>Distance minimale obligatoire entre façade et limites séparatives du terrain (distances de mitoyenneté). Peut restreindre la surface utile finale.</p>
+
+                <h3>Stationnement obligatoire</h3>
+                <p>Nombre de places exigé selon usage (ex: 1 place/100 m² commercial). Comptabilisé dans le coût de projet.</p>
+
+                <h2>Pièges courants et vérifications essentielles</h2>
+                <h3>Piège 1 : Terrain classé U mais en zone inondable (PPRI)</h3>
+                <p>Un terrain peut être en zone U mais aussi inclus dans un Plan de Prévention des Risques d'Inondation (PPRI). Le PPRI impose des contraintes constructives additionnelles (surélévation minimale, pas de sous-sol, matériaux résistants à l'eau). À vérifier sur Géoportail des risques.</p>
+
+                <h3>Piège 2 : Servitudes et droits de passage invisibles</h3>
+                <p>Des servitudes (droit de passage pour voisin, canalisation souterraine, ligne électrique) peuvent restreindre l'utilisation. Demander la note de titre de propriété et l'état des risques.</p>
+
+                <h3>Piège 3 : Droit de préemption communal</h3>
+                <p>La commune peut acheter à votre place si elle le souhaite. Concerne les terrains en zone AU ou certains espaces stratégiques. Demander au maire avant engagement.</p>
+
+                <h3>Piège 4 : Architecte des Bâtiments de France (ABF) dans les périmètres classés</h3>
+                <p>Certaines communes (Pointe-à-Pitre, Basse-Terre) ont des monuments historiques avec périmètres de protection. Tout projet dans ce périmètre requiert un avis conforme de l'ABF, bloquant ou retardant le permis. À identifier avant investissement.</p>
+
+                <h2>Indicateurs indirects de contrainte : LOVAC et vacance locative</h2>
+                <p>Certaines communes ont forte vacance immobilière. C'est un signal d'alerte : des contraintes réglementaires ou infrastructurelles rendent les biens peu attractifs.</p>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Commune</th>
+                            <th>Taux vacance</th>
+                            <th>Interprétation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Pointe-à-Pitre</td>
+                            <td>31,6 %</td>
+                            <td>Vacance très élevée — zone en déprise</td>
+                        </tr>
+                        <tr>
+                            <td>Basse-Terre</td>
+                            <td>27,7 %</td>
+                            <td>Vacance élevée — problèmes économiques/urbains</td>
+                        </tr>
+                        <tr>
+                            <td>Le Moule</td>
+                            <td>Modérée (16-20%)</td>
+                            <td>Marché stable mais peu dynamique</td>
+                        </tr>
+                        <tr>
+                            <td>Deshaies</td>
+                            <td>16,2 % (plus bas de Basse-Terre)</td>
+                            <td>Zone dynamique — meublé tourisme attire</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <p>Forte vacance (>25 %) suggère des contraintes ou une faible demande. À investiguer avant d'investir.</p>
+
+                <h2>Lire le règlement écrit du PLU : points critiques</h2>
+                <p>Une fois téléchargé, le document PDF du PLU contient le règlement écrit. Sections clés à lire :</p>
+
+                <h3>Article 1 : Vocations générales de chaque zone</h3>
+                <p>Confirme les usages autorisés et refusés. Exemple : « Zone A : seules les constructions directement liées à l'exploitation agricole sont acceptées ».</p>
+
+                <h3>Articles spécifiques au zonage (U1, U2, AU2, etc.)</h3>
+                <p>Détail CES, COS, hauteur, prospect pour chaque sous-zone. À mémoriser pour votre terrain.</p>
+
+                <h3>Dispositions communes (tous secteurs)</h3>
+                <p>Règles de stationnement, cheminements piétons, espaces verts obligatoires, accessibilité PMR. Complexe mais non optionnel.</p>
+
+                <h3>OAP (Orientations d'Aménagement et de Programmation)</h3>
+                <p>Indications de futur développement par secteur. Peut signaler des projets d'équipement ou de restriction prévus.</p>
+
+                <h2>Exemple concret : comment lire pour un investisseur</h2>
+                <p><strong>Scénario :</strong> Vous repérez un terrain non-bâti à Sainte-Anne, 500 m², au prix de 150 000 €.</p>
+
+                <p><strong>Étape 1 :</strong> Consultez Géoportail. Terrain en zone U1, pas de servitudes signalées.</p>
+
+                <p><strong>Étape 2 :</strong> Téléchargez PLU Sainte-Anne. Zone U1 impose : CES 0,4, COS 0,6, hauteur 12 m, prospect 3 m.</p>
+
+                <p><strong>Étape 3 :</strong> Calculez potentiel : 500 m² × CES 0,4 = 200 m² d'emprise max. 500 m² × COS 0,6 = 300 m² bâtis. Avec 12 m et prospect 3 m, vous pouvez bâtir 2 étages de 150 m² = 300 m² bâtis OK. Revenu locatif estimé ensuite.</p>
+
+                <p><strong>Étape 4 :</strong> Vérifiez présence ABF, PPRI, servitudes. Résultats négatifs = feu vert.</p>
+
+                <p><strong>Étape 5 :</strong> Consultez mairie pour confirmer pas de droit de préemption.</p>
+
+                <p>Approche méthodique = investissement sécurisé.</p>
+
+                <h2>Évolution réglementaire : rester vigilant</h2>
+                <p>Les communes peuvent réviser leur PLU. Une révision peut reclasser une zone AU en zone N (perte totale de valeur) ou restreindre COS/CES. Consultez le calendrier réglementaire avant long-terme commitments importants.</p>
+
+                <div class="highlight-box">
+                    <strong>Conseil KCI :</strong> KCI croise ces données réglementaires dans chaque rapport de faisabilité. Nous analysons le PLU spécifique de votre commune et les contraintes cachées pour vous offrir un diagnostic fiable.
+                </div>
+
+                <h2>Récapitulatif zones et prix fonciers</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Zone</th>
+                            <th>Constructibilité</th>
+                            <th>Prix moyen Guadeloupe</th>
+                            <th>Profil investisseur</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>U (Urbaine)</td>
+                            <td>Immédiate</td>
+                            <td>200-387 €/m²</td>
+                            <td>Classique — investir maintenant</td>
+                        </tr>
+                        <tr>
+                            <td>AU (À urbaniser)</td>
+                            <td>Future</td>
+                            <td>50-150 €/m²</td>
+                            <td>Spéculatif — vision long-terme 10 ans</td>
+                        </tr>
+                        <tr>
+                            <td>A (Agricole)</td>
+                            <td>Très limitée</td>
+                            <td>10-50 €/m²</td>
+                            <td>Non recommandé — projet agricole uniquement</td>
+                        </tr>
+                        <tr>
+                            <td>N (Naturelle)</td>
+                            <td>Pratiquement nulle</td>
+                            <td>Gratuit à très bas</td>
+                            <td>À éviter totalement</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="cta-box">
+                    <h3>Faites analyser votre bien</h3>
+                    <p>Vous avez identifié un terrain en Guadeloupe ? Nos experts liseont le PLU, vérifieront les contraintes réglementaires et estimeront le potentiel réel d'exploitation.</p>
+                    <a href="/#form-section" class="cta-button">Demander une analyse</a>
+                </div>
+
+                <div class="sources">
+                    <h3>Sources des données</h3>
+                    <ul>
+                        <li>Géoportail de l'Urbanisme (geoportail-urbanisme.gouv.fr) — consultation PLU en ligne</li>
+                        <li>Code de l'urbanisme français — Articles L.121-1 à L.123-1 (PLU et zonage)</li>
+                        <li>INSEE Guadeloupe — données prix foncier par commune (2024-2025)</li>
+                        <li>PLU Sainte-Anne révisé 29/12/2025 — document officiel</li>
+                        <li>PLU Saint-François révisé 05/11/2024 — document officiel</li>
+                        <li>PLU Le Moule (2017) — document officiel</li>
+                        <li>Géoportail des Risques — zones inondables (PPRI)</li>
+                        <li>Ministère de la Cohésion des Territoires — LOVAC et vacance locative</li>
+                        <li>Données ABF (Architectes des Bâtiments de France) — périmètres protégés</li>
+                    </ul>
+                </div>
+
+                <p style="margin-top: 2rem; font-size: 0.9rem; color: #666;"><strong>Note :</strong> KCI croise ces données dans chaque rapport de faisabilité pour adapter les recommandations à votre terrain spécifique.</p>
+            </div>
+        </article>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 KCI - Karukera Conseil Immobilier. Tous droits réservés.</p>
+        <p><a href="/">Accueil</a> | <a href="/#articles">Articles</a> | <a href="/#contact">Contact</a></p>
+    </footer>
+</body>
+</html>
