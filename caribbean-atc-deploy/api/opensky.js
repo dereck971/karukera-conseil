@@ -9,7 +9,7 @@
 
 // In-memory cache (persists across warm invocations)
 let statesCache = { data: null, timestamp: 0 };
-const CACHE_TTL = 15_000; // 15 seconds
+const CACHE_TTL = 30_000; // 30 seconds
 
 // Caribbean bounding box (tightened to reduce response size)
 const BBOX = {
@@ -71,7 +71,7 @@ export default async function handler(req, res) {
     let data;
     let usedBbox = BBOX_SMALL;
     const url = bboxUrl(BBOX_SMALL);
-    data = await fetchOpenSky(url, 8000);
+    data = await fetchOpenSky(url, 20000);
 
     const formatted = formatStates(data, usedBbox);
     statesCache = { data: formatted, timestamp: now };
