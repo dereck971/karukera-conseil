@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caribbean ATC Pro — Hurricane Mode 🌀</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#080c16;--sf:#0d1321;--sf2:#141a2e;--sf3:#1a2140;
+  --bd:rgba(255,100,50,.12);--bd2:rgba(255,255,255,.05);
+  --ac:#ff6832;--ac2:#ff3b5c;--ac3:#ffaa00;--blue:#00c2ff;--green:#00d68f;
+  --tx:#e0e6f0;--tx2:#a0aacc;--tx3:#6b7394;--tx4:#3d4563;
+  --r:12px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tx);overflow:hidden;height:100vh}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* TOP BAR */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:1000;height:52px;
+  background:linear-gradient(135deg,#1a0800,#2d1008);
+  border-bottom:1px solid rgba(255,100,50,.2);display:flex;align-items:center;padding:0 16px;gap:12px}
+.logo{font-size:18px;font-weight:900;white-space:nowrap}
+.logo-main{background:linear-gradient(135deg,var(--ac),var(--ac2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.logo-sub{font-size:9px;color:var(--tx3);font-weight:500;margin-left:6px;letter-spacing:1px}
+.hurricane-badge{background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-size:9px;
+  font-weight:700;padding:3px 10px;border-radius:20px;animation:hpulse 1.5s infinite;letter-spacing:1px;display:flex;align-items:center;gap:4px}
+@keyframes hpulse{0%,100%{opacity:1;box-shadow:0 0 12px rgba(255,59,92,.4)}50%{opacity:.7;box-shadow:0 0 24px rgba(255,59,92,.6)}}
+.topstats{display:flex;gap:18px;margin-left:auto}
+.ts{text-align:center}
+.ts-v{font-size:15px;font-weight:700;color:var(--ac)}
+.ts-l{font-size:7px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px}
+.ts-v.danger{color:var(--ac2)}
+.ts-v.warn{color:var(--ac3)}
+.ts-v.blue{color:var(--blue)}
+
+/* ALERT BAR */
+.alert-bar{position:fixed;top:52px;left:0;right:0;z-index:999;
+  background:linear-gradient(90deg,rgba(255,59,92,.12),rgba(255,104,50,.08));
+  border-bottom:1px solid rgba(255,59,92,.2);padding:8px 16px;display:flex;align-items:center;gap:12px}
+.alert-icon{font-size:20px;animation:spin 3s linear infinite}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.alert-text{font-size:11px;font-weight:600;color:var(--ac2)}
+.alert-sub{font-size:10px;color:var(--tx2);margin-left:8px}
+.alert-cat{padding:3px 10px;border-radius:6px;font-size:9px;font-weight:700;margin-left:auto;letter-spacing:1px}
+.cat5{background:rgba(255,59,92,.2);color:#ff3b5c}
+.cat4{background:rgba(255,104,50,.2);color:#ff6832}
+.cat3{background:rgba(255,170,0,.2);color:#ffaa00}
+.cat2{background:rgba(0,194,255,.2);color:#00c2ff}
+.cat1{background:rgba(0,214,143,.2);color:#00d68f}
+.ts-storm{background:rgba(123,97,255,.2);color:#7b61ff}
+
+/* MAIN */
+.main{position:fixed;top:88px;left:0;right:0;bottom:0;display:flex}
+#map{flex:1;z-index:1}
+
+/* SIDEBAR */
+.sidebar{width:400px;background:var(--sf);border-left:1px solid rgba(255,100,50,.08);
+  display:flex;flex-direction:column;z-index:10;overflow:hidden}
+.stabs{display:flex;border-bottom:1px solid var(--bd2)}
+.stab{flex:1;padding:10px 4px;text-align:center;font-size:9px;font-weight:600;
+  color:var(--tx3);cursor:pointer;border-bottom:2px solid transparent;
+  transition:all .2s;text-transform:uppercase;letter-spacing:.5px}
+.stab:hover{color:var(--tx2)}
+.stab.active{color:var(--ac);border-bottom-color:var(--ac)}
+.scontent{flex:1;overflow-y:auto;padding:12px}
+
+/* CARDS */
+.card{background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);
+  padding:12px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.card:hover{border-color:rgba(255,100,50,.25);transform:translateY(-1px)}
+.card.danger{border-color:rgba(255,59,92,.2);background:linear-gradient(135deg,rgba(255,59,92,.04),var(--sf2))}
+.card.warn{border-color:rgba(255,170,0,.15);background:linear-gradient(135deg,rgba(255,170,0,.03),var(--sf2))}
+
+.tag{padding:2px 7px;border-radius:5px;font-size:8px;font-weight:600;white-space:nowrap}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px}
+.sb{background:rgba(0,0,0,.25);padding:8px;border-radius:8px;text-align:center}
+.sb .v{font-size:15px;font-weight:700}
+.sb .l{font-size:7px;color:var(--tx3);text-transform:uppercase;letter-spacing:.5px}
+.sect{margin-top:10px;padding-top:10px;border-top:1px solid var(--bd2)}
+.sect-t{font-size:8px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-weight:600}
+.ml{font-size:7px;color:var(--tx4);text-transform:uppercase;letter-spacing:.5px}
+.mv{font-size:10px;color:var(--tx2);font-weight:500}
+.pbar{height:5px;background:rgba(255,255,255,.04);border-radius:3px;overflow:hidden;margin:6px 0}
+.pfill{height:100%;border-radius:3px}
+
+/* HURRICANE DETAIL */
+.storm-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.storm-icon{font-size:40px;animation:spin 4s linear infinite}
+.storm-name{font-size:22px;font-weight:900;color:#fff}
+.storm-cat{font-size:12px;font-weight:700;margin-top:2px}
+.wind-gauge{position:relative;width:100%;height:30px;background:linear-gradient(90deg,
+  #00d68f 0%,#00d68f 20%,#00c2ff 20%,#00c2ff 35%,#ffaa00 35%,#ffaa00 50%,
+  #ff6832 50%,#ff6832 70%,#ff3b5c 70%,#ff3b5c 100%);border-radius:6px;overflow:hidden;margin:10px 0}
+.wind-marker{position:absolute;top:-2px;bottom:-2px;width:3px;background:#fff;
+  border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.8);transition:left .5s}
+.wind-labels{display:flex;justify-content:space-between;font-size:7px;color:var(--tx3);padding:0 2px}
+
+/* IMPACT LIST */
+.impact-item{display:flex;align-items:center;gap:8px;padding:6px 8px;
+  background:rgba(0,0,0,.15);border-radius:6px;margin-bottom:4px;font-size:10px}
+.impact-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.impact-apt{font-weight:700;color:#fff;width:40px}
+.impact-status{flex:1;color:var(--tx2)}
+.impact-dist{color:var(--tx3);font-size:9px;white-space:nowrap}
+
+/* TIMELINE */
+.timeline{position:relative;padding-left:20px}
+.timeline::before{content:'';position:absolute;left:6px;top:0;bottom:0;width:2px;
+  background:linear-gradient(180deg,var(--ac),var(--ac2),transparent)}
+.tl-item{position:relative;margin-bottom:12px;padding-left:10px}
+.tl-item::before{content:'';position:absolute;left:-18px;top:4px;width:10px;height:10px;
+  border-radius:50%;border:2px solid var(--ac);background:var(--sf)}
+.tl-time{font-size:9px;color:var(--ac);font-weight:600}
+.tl-text{font-size:10px;color:var(--tx2);margin-top:2px}
+
+/* CHARTS */
+.chart-box{background:var(--sf2);border:1px solid var(--bd2);border-radius:var(--r);
+  padding:14px;margin-bottom:12px}
+.chart-box h3{font-size:10px;font-weight:600;color:var(--tx2);margin-bottom:8px;
+  text-transform:uppercase;letter-spacing:.5px}
+canvas{max-height:200px}
+
+/* CONE */
+.cone-legend{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap}
+.cone-item{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--tx3)}
+.cone-dot{width:10px;height:10px;border-radius:50%}
+
+/* MAP STYLES */
+.leaflet-popup-content-wrapper{background:rgba(13,19,33,.95)!important;color:var(--tx)!important;
+  border:1px solid rgba(255,100,50,.2)!important;border-radius:12px!important;
+  box-shadow:0 12px 40px rgba(0,0,0,.5)!important}
+.leaflet-popup-tip{background:rgba(13,19,33,.95)!important}
+.leaflet-popup-content{margin:10px 14px!important;font-family:'Inter',sans-serif!important}
+.adot{border-radius:50%;box-shadow:0 0 10px currentColor}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,100,50,.15);border-radius:3px}
+
+/* BOTTOM KPI */
+.kstrip{position:fixed;bottom:0;left:0;right:0;z-index:500;height:44px;
+  background:linear-gradient(180deg,transparent,var(--sf));pointer-events:none}
+.kstrip-inner{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+  display:flex;gap:14px;pointer-events:all;background:rgba(26,8,0,.9);
+  border:1px solid rgba(255,100,50,.15);border-radius:10px;padding:5px 18px}
+.kpi{text-align:center}
+.kpi-v{font-size:13px;font-weight:700}
+.kpi-l{font-size:6px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px}
+
+@media(max-width:900px){.sidebar{width:100%;position:fixed;bottom:0;height:45vh;top:auto;border-left:none;border-top:1px solid var(--bd)}}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo"><span class="logo-main">Caribbean ATC</span><span class="logo-sub">PRO</span></div>
+  <div class="hurricane-badge"><span>🌀</span> HURRICANE MODE</div>
+  <div class="topstats">
+    <div class="ts"><div class="ts-v danger" id="sStorms">0</div><div class="ts-l">Cyclones actifs</div></div>
+    <div class="ts"><div class="ts-v warn" id="sAptImpact">0</div><div class="ts-l">Aéroports impactés</div></div>
+    <div class="ts"><div class="ts-v blue" id="sFlights">0</div><div class="ts-l">Vols actifs</div></div>
+    <div class="ts"><div class="ts-v" style="color:var(--ac)" id="sDiverted">0</div><div class="ts-l">Déroutés</div></div>
+    <div class="ts"><div class="ts-v" style="color:var(--ac2)" id="sCancelled">0</div><div class="ts-l">Annulés</div></div>
+    <div class="ts"><div class="ts-v mono blue" id="sClk">--:--</div><div class="ts-l">UTC-4</div></div>
+  </div>
+</div>
+
+<!-- ALERT BAR -->
+<div class="alert-bar" id="alertBar">
+  <span class="alert-icon">🌀</span>
+  <span class="alert-text" id="alertMainText">Chargement...</span>
+  <span class="alert-sub" id="alertSubText"></span>
+  <span class="alert-cat" id="alertCat"></span>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div id="map"></div>
+  <div class="sidebar">
+    <div class="stabs">
+      <div class="stab active" onclick="setTab('storms')">🌀 Cyclones</div>
+      <div class="stab" onclick="setTab('impact')">⚠️ Impact</div>
+      <div class="stab" onclick="setTab('flights')">✈ Vols</div>
+      <div class="stab" onclick="setTab('forecast')">📊 Prévisions</div>
+    </div>
+    <div class="scontent" id="sbody"></div>
+  </div>
+</div>
+
+<!-- KPI STRIP -->
+<div class="kstrip"><div class="kstrip-inner" id="kstrip"></div></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// HURRICANE DATA ENGINE
+// ═══════════════════════════════════════════════════════════════
+
+const SAFFIR_SIMPSON = [
+  {cat:'Dépression tropicale',short:'TD',wind:38,color:'#7b61ff',bg:'ts-storm'},
+  {cat:'Tempête tropicale',short:'TS',wind:63,color:'#00d68f',bg:'cat1'},
+  {cat:'Catégorie 1',short:'CAT1',wind:118,color:'#00c2ff',bg:'cat1'},
+  {cat:'Catégorie 2',short:'CAT2',wind:153,color:'#ffaa00',bg:'cat2'},
+  {cat:'Catégorie 3',short:'CAT3',wind:178,color:'#ff6832',bg:'cat3'},
+  {cat:'Catégorie 4',short:'CAT4',wind:209,color:'#ff3b5c',bg:'cat4'},
+  {cat:'Catégorie 5',short:'CAT5',wind:999,color:'#cc0033',bg:'cat5'},
+];
+
+function getCat(windKmh){
+  for(let i=SAFFIR_SIMPSON.length-1;i>=0;i--){
+    if(i===0) return SAFFIR_SIMPSON[0];
+    if(windKmh >= SAFFIR_SIMPSON[i-1].wind) return SAFFIR_SIMPSON[i];
+  }
+  return SAFFIR_SIMPSON[0];
+}
+
+// Simulated active storms
+const STORMS = [
+  {
+    id:'IRMA2',name:'Hurricane MELISSA',
+    cat:getCat(250),windKmh:250,windKt:135,pressureHpa:920,
+    moveDir:'WNW',moveSpd:22,
+    eye:{lat:17.8,lng:-62.5},eyeRadius:35,
+    maxWindRadius:50,galeRadius:280,
+    track:[
+      {lat:13.2,lng:-52.0,t:'-72h',wind:90,cat:'TS'},
+      {lat:14.1,lng:-54.5,t:'-60h',wind:120,cat:'CAT1'},
+      {lat:14.8,lng:-56.8,t:'-48h',wind:155,cat:'CAT2'},
+      {lat:15.5,lng:-58.5,t:'-36h',wind:185,cat:'CAT3'},
+      {lat:16.2,lng:-59.8,t:'-24h',wind:220,cat:'CAT4'},
+      {lat:16.8,lng:-61.0,t:'-12h',wind:245,cat:'CAT4'},
+      {lat:17.8,lng:-62.5,t:'NOW',wind:250,cat:'CAT5'},
+    ],
+    forecast:[
+      {lat:18.4,lng:-63.8,t:'+12h',wind:240,cat:'CAT4'},
+      {lat:19.2,lng:-65.5,t:'+24h',wind:230,cat:'CAT4'},
+      {lat:20.1,lng:-67.5,t:'+36h',wind:210,cat:'CAT4'},
+      {lat:21.0,lng:-69.2,t:'+48h',wind:195,cat:'CAT3'},
+      {lat:22.2,lng:-71.0,t:'+72h',wind:170,cat:'CAT3'},
+      {lat:23.8,lng:-73.0,t:'+96h',wind:145,cat:'CAT2'},
+      {lat:25.5,lng:-74.5,t:'+120h',wind:120,cat:'CAT1'},
+    ],
+    advisoryNum:18,
+    advisory:'Ouragan MELISSA de catégorie 5 avec vents soutenus de 250 km/h. Menace directe sur les Petites Antilles. Alerte violette en Guadeloupe et Martinique. Évacuations en cours à Saint-Martin et Saint-Barthélemy.',
+    surge:'6-9 mètres de submersion marine prévus sur la côte nord de la Guadeloupe.',
+    rain:'300-500mm de pluie attendus en 24h.',
+  },
+  {
+    id:'JOSE2',name:'Tropical Storm NATHAN',
+    cat:getCat(95),windKmh:95,windKt:51,pressureHpa:998,
+    moveDir:'NW',moveSpd:15,
+    eye:{lat:12.5,lng:-55.0},eyeRadius:0,
+    maxWindRadius:80,galeRadius:150,
+    track:[
+      {lat:10.5,lng:-48.0,t:'-48h',wind:55,cat:'TD'},
+      {lat:11.0,lng:-50.0,t:'-36h',wind:68,cat:'TS'},
+      {lat:11.5,lng:-52.0,t:'-24h',wind:80,cat:'TS'},
+      {lat:12.0,lng:-53.5,t:'-12h',wind:90,cat:'TS'},
+      {lat:12.5,lng:-55.0,t:'NOW',wind:95,cat:'TS'},
+    ],
+    forecast:[
+      {lat:13.2,lng:-56.5,t:'+12h',wind:105,cat:'TS'},
+      {lat:14.0,lng:-58.0,t:'+24h',wind:120,cat:'CAT1'},
+      {lat:14.8,lng:-59.5,t:'+36h',wind:140,cat:'CAT1'},
+      {lat:15.5,lng:-61.0,t:'+48h',wind:155,cat:'CAT2'},
+      {lat:16.5,lng:-62.5,t:'+72h',wind:140,cat:'CAT1'},
+    ],
+    advisoryNum:12,
+    advisory:'Tempête tropicale NATHAN en renforcement. Pourrait atteindre catégorie 2 avant d\'impacter les Petites Antilles dans 48h. Vigilance jaune en Martinique et Guadeloupe.',
+    surge:'1-2 mètres de houle cyclonique.',
+    rain:'100-200mm attendus.',
+  },
+];
+
+// Airports
+const APT=[
+  {i:"PTP",n:"Pôle Caraïbes",c:"Pointe-à-Pitre",co:"Guadeloupe",la:16.265,lo:-61.532,t:"hub",ic:"TFFR"},
+  {i:"FDF",n:"Aimé Césaire",c:"Fort-de-France",co:"Martinique",la:14.591,lo:-61.003,t:"hub",ic:"TFFF"},
+  {i:"SXM",n:"Princess Juliana",c:"Sint Maarten",co:"Sint Maarten",la:18.041,lo:-63.109,t:"hub",ic:"TNCM"},
+  {i:"SDQ",n:"Las Américas",c:"Saint-Domingue",co:"Rép. Dominicaine",la:18.43,lo:-69.669,t:"hub",ic:"MDSD"},
+  {i:"PUJ",n:"Punta Cana",c:"Punta Cana",co:"Rép. Dominicaine",la:18.567,lo:-68.363,t:"hub",ic:"MDPC"},
+  {i:"SJU",n:"Luis Muñoz Marín",c:"San Juan",co:"Porto Rico",la:18.439,lo:-66.002,t:"hub",ic:"TJSJ"},
+  {i:"HAV",n:"José Martí",c:"La Havane",co:"Cuba",la:22.989,lo:-82.409,t:"hub",ic:"MUHA"},
+  {i:"MBJ",n:"Sangster",c:"Montego Bay",co:"Jamaïque",la:18.504,lo:-77.913,t:"hub",ic:"MKJS"},
+  {i:"NAS",n:"Lynden Pindling",c:"Nassau",co:"Bahamas",la:25.039,lo:-77.466,t:"hub",ic:"MYNN"},
+  {i:"BGI",n:"Grantley Adams",c:"Bridgetown",co:"Barbade",la:13.075,lo:-59.493,t:"intl",ic:"TBPB"},
+  {i:"POS",n:"Piarco",c:"Port of Spain",co:"Trinidad",la:10.595,lo:-61.337,t:"intl",ic:"TTPP"},
+  {i:"AUA",n:"Queen Beatrix",c:"Oranjestad",co:"Aruba",la:12.501,lo:-70.015,t:"intl",ic:"TNCA"},
+  {i:"CUR",n:"Hato",c:"Willemstad",co:"Curaçao",la:12.189,lo:-68.96,t:"intl",ic:"TNCC"},
+  {i:"KIN",n:"Norman Manley",c:"Kingston",co:"Jamaïque",la:17.936,lo:-76.788,t:"intl",ic:"MKJP"},
+  {i:"PAP",n:"Toussaint Louverture",c:"Port-au-Prince",co:"Haïti",la:18.58,lo:-72.293,t:"intl",ic:"MTPP"},
+  {i:"ANU",n:"V.C. Bird",c:"Antigua",co:"Antigua",la:17.137,lo:-61.793,t:"intl",ic:"TAPA"},
+  {i:"UVF",n:"Hewanorra",c:"Sainte-Lucie",co:"Ste-Lucie",la:13.733,lo:-60.953,t:"intl",ic:"TLPL"},
+  {i:"GND",n:"Maurice Bishop",c:"Grenade",co:"Grenade",la:12.004,lo:-61.786,t:"regional",ic:"TGPY"},
+  {i:"DOM",n:"Douglas-Charles",c:"Dominique",co:"Dominique",la:15.547,lo:-61.3,t:"regional",ic:"TDPD"},
+  {i:"SKB",n:"Bradshaw",c:"St-Kitts",co:"St-Kitts",la:17.311,lo:-62.719,t:"regional",ic:"TKPK"},
+  {i:"SBH",n:"Gustaf III",c:"St-Barth",co:"St-Barthélemy",la:17.904,lo:-62.844,t:"regional",ic:"TFFJ"},
+  {i:"STT",n:"Cyril E. King",c:"St-Thomas",co:"USVI",la:18.337,lo:-64.973,t:"intl",ic:"TIST"},
+  {i:"EIS",n:"Lettsome",c:"Tortola",co:"BVI",la:18.445,lo:-64.543,t:"regional",ic:"TUPJ"},
+  {i:"SVD",n:"Argyle",c:"St-Vincent",co:"St-Vincent",la:13.157,lo:-61.15,t:"regional",ic:"TVSA"},
+  {i:"TAB",n:"Crown Point",c:"Tobago",co:"Tobago",la:11.15,lo:-60.832,t:"regional",ic:"TTCP"},
+  {i:"BON",n:"Flamingo",c:"Bonaire",co:"Bonaire",la:12.131,lo:-68.269,t:"regional",ic:"TNCB"},
+  {i:"GBJ",n:"Les Bases",c:"Marie-Galante",co:"Guadeloupe",la:15.869,lo:-61.27,t:"regional",ic:"TFFM"},
+];
+
+// Airlines
+const ALS=[
+  {i:"AF",n:"Air France",cl:"#002157"},{i:"TX",n:"Air Caraïbes",cl:"#e6007e"},
+  {i:"SS",n:"Corsair",cl:"#e30613"},{i:"3S",n:"Air Antilles",cl:"#00a19a"},
+  {i:"WM",n:"Winair",cl:"#003087"},{i:"AA",n:"American Airlines",cl:"#0078d2"},
+  {i:"JB",n:"JetBlue",cl:"#003876"},{i:"DL",n:"Delta",cl:"#003366"},
+  {i:"BW",n:"Caribbean Airlines",cl:"#c8102e"},{i:"LI",n:"LIAT",cl:"#6f2c91"},
+  {i:"BA",n:"British Airways",cl:"#1b3d6d"},{i:"KL",n:"KLM",cl:"#00a1de"},
+];
+
+const ROUTES=[
+  ["PTP","FDF"],["PTP","SXM"],["PTP","SDQ"],["FDF","SXM"],["FDF","BGI"],
+  ["SXM","SBH"],["SXM","ANU"],["SXM","STT"],["SJU","SDQ"],["SJU","SXM"],
+  ["SJU","STT"],["MBJ","NAS"],["HAV","SDQ"],["POS","BGI"],["POS","GND"],
+  ["ANU","BGI"],["ANU","DOM"],["SDQ","PUJ"],["PAP","SJU"],["KIN","MBJ"],
+  ["PTP","ANU"],["FDF","DOM"],["FDF","UVF"],["SXM","SKB"],["SXM","EIS"],
+  ["BGI","UVF"],["BGI","SVD"],["POS","TAB"],["AUA","CUR"],["CUR","BON"],
+];
+
+const pk=a=>a[Math.floor(Math.random()*a.length)];
+const am=Object.fromEntries(APT.map(a=>[a.i,a]));
+
+// Distance helper
+function dist(la1,lo1,la2,lo2){
+  const R=6371,dLa=(la2-la1)*Math.PI/180,dLo=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLo/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// Compute airport impacts
+function computeImpacts(){
+  const impacts=[];
+  APT.forEach(apt=>{
+    let worstDist=Infinity, worstStorm=null, inGale=false, inWind=false, inEye=false;
+    STORMS.forEach(storm=>{
+      const d=dist(apt.la,apt.lo,storm.eye.lat,storm.eye.lng);
+      if(d<worstDist){worstDist=d;worstStorm=storm}
+      if(d<=storm.eyeRadius) inEye=true;
+      if(d<=storm.maxWindRadius) inWind=true;
+      if(d<=storm.galeRadius) inGale=true;
+
+      // Check forecast
+      storm.forecast.forEach(fc=>{
+        const df=dist(apt.la,apt.lo,fc.lat,fc.lng);
+        if(df<=storm.galeRadius && df<worstDist*.8){
+          // Will be impacted
+        }
+      });
+    });
+
+    let status,statusColor,statusTag;
+    if(inEye){status='DANS L\'OEIL';statusColor='#cc0033';statusTag='cat5'}
+    else if(inWind){status='VENTS DESTRUCTEURS';statusColor='#ff3b5c';statusTag='cat4'}
+    else if(inGale){status='ZONE DE RAFALES';statusColor='#ff6832';statusTag='cat3'}
+    else if(worstDist<400){status='VIGILANCE';statusColor='#ffaa00';statusTag='cat2'}
+    else if(worstDist<600){status='SURVEILLANCE';statusColor='#00c2ff';statusTag='cat1'}
+    else{status='OPERATIONNEL';statusColor='#00d68f';statusTag='cat1'}
+
+    let opStatus;
+    if(inEye||inWind){opStatus='FERMÉ'}
+    else if(inGale){opStatus='FERMÉ'}
+    else if(worstDist<350){opStatus='RESTREINT'}
+    else if(worstDist<500){opStatus='LIMITÉ'}
+    else{opStatus='OUVERT'}
+
+    impacts.push({...apt,dist:Math.round(worstDist),storm:worstStorm?.name,
+      status,statusColor,statusTag,opStatus,inEye,inWind,inGale});
+  });
+  return impacts.sort((a,b)=>a.dist-b.dist);
+}
+
+// Generate flights with hurricane impact
+function genFlights(){
+  const impacts=computeImpacts();
+  const impactMap=Object.fromEntries(impacts.map(i=>[i.i,i]));
+  const flights=[];
+  ROUTES.forEach(([f,t])=>{
+    const da=am[f],aa=am[t];if(!da||!aa) return;
+    const al=pk(ALS);
+    const fImpact=impactMap[f],tImpact=impactMap[t];
+    const eitherClosed=fImpact?.opStatus==='FERMÉ'||tImpact?.opStatus==='FERMÉ';
+    const eitherRestricted=fImpact?.opStatus==='RESTREINT'||tImpact?.opStatus==='RESTREINT';
+
+    let status,statusColor;
+    if(eitherClosed&&Math.random()>.3){status='ANNULÉ';statusColor='#ff3b5c'}
+    else if(eitherClosed){status='DÉROUTÉ';statusColor='#ff6832'}
+    else if(eitherRestricted&&Math.random()>.5){status='RETARDÉ';statusColor='#ffaa00'}
+    else if(eitherRestricted){status='DÉROUTÉ';statusColor='#ff6832'}
+    else{
+      const r=Math.random();
+      if(r>.9){status='RETARDÉ';statusColor='#ffaa00'}
+      else if(r>.85){status='APPROCHE';statusColor='#00c2ff'}
+      else{status='EN ROUTE';statusColor='#00d68f'}
+    }
+
+    const p=status==='ANNULÉ'?0:status==='EN ROUTE'?Math.random()*.6+.2:
+      status==='APPROCHE'?Math.random()*.1+.9:Math.random()*.5;
+    const la=da.la+(aa.la-da.la)*p,lo=da.lo+(aa.lo-da.lo)*p;
+    const alt=status==='ANNULÉ'?0:Math.floor(28000+Math.random()*10000);
+    const spd=status==='ANNULÉ'?0:Math.floor(750+Math.random()*100);
+    const hdg=Math.atan2(aa.lo-da.lo,aa.la-da.la)*180/Math.PI;
+    const fn=al.i+Math.floor(1000+Math.random()*9000);
+
+    // Divert destination
+    let divertTo='';
+    if(status==='DÉROUTÉ'){
+      const safe=impacts.filter(i=>i.opStatus==='OUVERT'&&i.i!==f&&i.i!==t);
+      if(safe.length) divertTo=pk(safe).i;
+    }
+
+    flights.push({id:fn+'-'+f+t,fn,ai:al.i,an:al.n,acl:al.cl,
+      f,t,fc:da.c,tc:aa.c,status,statusColor,p,la,lo,alt,spd,hdg,divertTo,
+      fImpact:fImpact?.status,tImpact:tImpact?.status});
+  });
+  return flights;
+}
+
+let flights=genFlights();
+let impacts=computeImpacts();
+let tab='storms';
+let mapObj,pmks=[],stormLayers=[];
+let charts={};
+
+// ═══ MAP ═══
+mapObj=L.map('map',{center:[17,-63],zoom:6,zoomControl:false,attributionControl:false});
+L.control.zoom({position:'bottomleft'}).addTo(mapObj);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(mapObj);
+
+// ═══ DRAW STORMS ═══
+function drawStorms(){
+  stormLayers.forEach(l=>mapObj.removeLayer(l));stormLayers=[];
+
+  STORMS.forEach(storm=>{
+    // Gale force radius
+    stormLayers.push(L.circle([storm.eye.lat,storm.eye.lng],{
+      radius:storm.galeRadius*1000,color:storm.cat.color,weight:1,opacity:.3,
+      fillColor:storm.cat.color,fillOpacity:.05,dashArray:'8,6'
+    }).addTo(mapObj));
+
+    // Max wind radius
+    stormLayers.push(L.circle([storm.eye.lat,storm.eye.lng],{
+      radius:storm.maxWindRadius*1000,color:storm.cat.color,weight:2,opacity:.5,
+      fillColor:storm.cat.color,fillOpacity:.1
+    }).addTo(mapObj));
+
+    // Eye
+    if(storm.eyeRadius>0){
+      stormLayers.push(L.circle([storm.eye.lat,storm.eye.lng],{
+        radius:storm.eyeRadius*1000,color:'#fff',weight:2,opacity:.6,
+        fillColor:'#fff',fillOpacity:.05
+      }).addTo(mapObj));
+    }
+
+    // Eye marker
+    const eyeIcon=L.divIcon({
+      html:`<div style="font-size:32px;animation:spin 3s linear infinite;filter:drop-shadow(0 0 12px ${storm.cat.color})">🌀</div>`,
+      className:'',iconSize:[36,36],iconAnchor:[18,18]});
+    const m=L.marker([storm.eye.lat,storm.eye.lng],{icon:eyeIcon}).addTo(mapObj);
+    m.bindPopup(`<div style="min-width:200px">
+      <div style="font-size:18px;font-weight:900;color:#fff">${storm.name}</div>
+      <div style="font-size:12px;color:${storm.cat.color};font-weight:700;margin:4px 0">${storm.cat.cat} — ${storm.windKmh} km/h</div>
+      <div style="font-size:10px;color:#a0aacc;margin-bottom:8px">${storm.advisory.substring(0,120)}...</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:9px">
+        <div><span style="color:#6b7394">Pression</span><br><b style="color:#fff">${storm.pressureHpa} hPa</b></div>
+        <div><span style="color:#6b7394">Déplacement</span><br><b style="color:#fff">${storm.moveDir} ${storm.moveSpd} km/h</b></div>
+        <div><span style="color:#6b7394">Vents max</span><br><b style="color:${storm.cat.color}">${storm.windKt} kt</b></div>
+        <div><span style="color:#6b7394">Submersion</span><br><b style="color:${storm.cat.color}">${storm.surge}</b></div>
+      </div></div>`);
+    stormLayers.push(m);
+
+    // Track (past)
+    const pastCoords=storm.track.map(p=>[p.lat,p.lng]);
+    stormLayers.push(L.polyline(pastCoords,{color:storm.cat.color,weight:3,opacity:.8}).addTo(mapObj));
+    storm.track.forEach(p=>{
+      stormLayers.push(L.circleMarker([p.lat,p.lng],{radius:4,color:storm.cat.color,
+        fillColor:storm.cat.color,fillOpacity:.8,weight:1}).addTo(mapObj));
+    });
+
+    // Forecast track
+    const fcCoords=[[storm.eye.lat,storm.eye.lng],...storm.forecast.map(p=>[p.lat,p.lng])];
+    stormLayers.push(L.polyline(fcCoords,{color:storm.cat.color,weight:2,opacity:.5,dashArray:'8,8'}).addTo(mapObj));
+    storm.forecast.forEach(p=>{
+      stormLayers.push(L.circleMarker([p.lat,p.lng],{radius:3,color:storm.cat.color,
+        fillColor:'transparent',weight:2,opacity:.5}).addTo(mapObj));
+    });
+
+    // Uncertainty cone (simplified)
+    const conePoints=[];
+    storm.forecast.forEach((p,i)=>{
+      const spread=(i+1)*0.8; // degrees of uncertainty
+      conePoints.push([p.lat+spread*.4,p.lng-spread*.3]);
+    });
+    const conePointsR=[];
+    [...storm.forecast].reverse().forEach((p,i)=>{
+      const idx=storm.forecast.length-1-i;
+      const spread=(idx+1)*0.8;
+      conePointsR.push([p.lat-spread*.4,p.lng+spread*.3]);
+    });
+    const cone=[...conePoints,...conePointsR];
+    if(cone.length>2){
+      stormLayers.push(L.polygon(cone,{color:storm.cat.color,weight:1,opacity:.2,
+        fillColor:storm.cat.color,fillOpacity:.06}).addTo(mapObj));
+    }
+  });
+}
+
+// ═══ DRAW AIRPORTS ═══
+function drawAirports(){
+  impacts.forEach(imp=>{
+    const s=imp.t==='hub'?14:imp.t==='intl'?10:7;
+    const c=imp.opStatus==='FERMÉ'?'#ff3b5c':imp.opStatus==='RESTREINT'?'#ffaa00':
+      imp.opStatus==='LIMITÉ'?'#00c2ff':'#00d68f';
+    const icon=L.divIcon({
+      html:`<div class="adot" style="width:${s}px;height:${s}px;background:${c};color:${c};
+        ${imp.opStatus==='FERMÉ'?'animation:hpulse 1s infinite;':''}"></div>`,
+      className:'',iconSize:[s,s],iconAnchor:[s/2,s/2]});
+    const m=L.marker([imp.la,imp.lo],{icon}).addTo(mapObj);
+    m.bindPopup(`<div style="min-width:170px">
+      <div style="font-size:16px;font-weight:800;color:#fff">${imp.i} <span style="font-size:11px;color:${c};font-weight:600">${imp.opStatus}</span></div>
+      <div style="font-size:10px;color:#a0aacc">${imp.n}</div>
+      <div style="font-size:9px;color:#6b7394">${imp.c}, ${imp.co}</div>
+      <div style="margin-top:6px;padding:6px;background:rgba(0,0,0,.2);border-radius:6px">
+        <div style="font-size:9px;color:${imp.statusColor};font-weight:600">${imp.status}</div>
+        <div style="font-size:9px;color:#6b7394;margin-top:2px">Distance cyclone: ${imp.dist} km</div>
+      </div></div>`);
+    if(imp.t==='hub'||imp.opStatus!=='OUVERT'){
+      m.bindTooltip(`<span style="font-size:9px;font-weight:700;color:${c};text-shadow:0 0 6px #000">${imp.i}</span>`,
+        {permanent:true,direction:'top',offset:[0,-8],className:'',opacity:.9});
+    }
+    stormLayers.push(m);
+  });
+}
+
+// ═══ DRAW FLIGHTS ═══
+function drawFlights(){
+  pmks.forEach(m=>mapObj.removeLayer(m));pmks=[];
+  flights.forEach(fl=>{
+    if(fl.status==='ANNULÉ'||fl.p===0) return;
+    const icon=L.divIcon({
+      html:`<div style="transform:rotate(${fl.hdg-90}deg);font-size:12px;color:${fl.statusColor};
+        filter:drop-shadow(0 0 3px ${fl.statusColor}80)">✈</div>`,
+      className:'',iconSize:[14,14],iconAnchor:[7,7]});
+    const m=L.marker([fl.la,fl.lo],{icon}).addTo(mapObj);
+    m.bindPopup(`<div style="min-width:150px">
+      <b style="font-size:12px;color:#fff">${fl.fn}</b><span style="font-size:9px;color:#a0aacc;margin-left:4px">${fl.an}</span>
+      <div style="font-size:11px;color:#fff;margin-top:4px">${fl.f} → ${fl.t}</div>
+      <div style="font-size:9px;color:${fl.statusColor};font-weight:600;margin-top:4px">${fl.status}${fl.divertTo?' → '+fl.divertTo:''}</div>
+      ${fl.fImpact?`<div style="font-size:8px;color:#6b7394;margin-top:4px">Départ: ${fl.fImpact}</div>`:''}
+      ${fl.tImpact?`<div style="font-size:8px;color:#6b7394">Arrivée: ${fl.tImpact}</div>`:''}
+      </div>`);
+    pmks.push(m);
+
+    // Route line
+    const da=am[fl.f],aa=am[fl.t];
+    if(da&&aa){
+      pmks.push(L.polyline([[da.la,da.lo],[aa.la,aa.lo]],{
+        color:fl.statusColor,weight:1,opacity:.08,dashArray:'4,8'}).addTo(mapObj));
+    }
+  });
+}
+
+// ═══ SIDEBAR ═══
+function setTab(t){
+  tab=t;document.querySelectorAll('.stab').forEach((e,i)=>e.classList.toggle('active',['storms','impact','flights','forecast'][i]===t));
+  renderTab();
+}
+
+function renderTab(){
+  const el=document.getElementById('sbody');
+  if(tab==='storms') renderStorms(el);
+  else if(tab==='impact') renderImpact(el);
+  else if(tab==='flights') renderFlights(el);
+  else renderForecast(el);
+}
+
+function renderStorms(el){
+  let h='';
+  STORMS.forEach(storm=>{
+    const cat=storm.cat;
+    const windPct=Math.min(storm.windKmh/280*100,100);
+    h+=`<div class="card ${storm.windKmh>200?'danger':storm.windKmh>100?'warn':''}">
+      <div class="storm-header">
+        <div class="storm-icon">🌀</div>
+        <div><div class="storm-name">${storm.name}</div>
+          <div class="storm-cat" style="color:${cat.color}">${cat.cat} — ${storm.windKmh} km/h (${storm.windKt} kt)</div></div>
+      </div>
+
+      <div class="g4">
+        <div class="sb"><div class="v" style="color:${cat.color}">${storm.windKmh}</div><div class="l">Vents km/h</div></div>
+        <div class="sb"><div class="v" style="color:var(--ac2)">${storm.pressureHpa}</div><div class="l">Pression hPa</div></div>
+        <div class="sb"><div class="v" style="color:var(--ac3)">${storm.moveDir}</div><div class="l">Direction</div></div>
+        <div class="sb"><div class="v" style="color:var(--blue)">${storm.moveSpd}</div><div class="l">Vitesse km/h</div></div>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="ml">Intensité (échelle Saffir-Simpson)</div>
+        <div class="wind-gauge"><div class="wind-marker" style="left:${windPct}%"></div></div>
+        <div class="wind-labels"><span>TD</span><span>TS</span><span>CAT1</span><span>CAT2</span><span>CAT3</span><span>CAT4</span><span>CAT5</span></div>
+      </div>
+
+      <div class="sect">
+        <div class="sect-t">Bulletin NHC #${storm.advisoryNum}</div>
+        <div style="font-size:10px;color:var(--tx2);line-height:1.5">${storm.advisory}</div>
+      </div>
+
+      <div class="sect">
+        <div class="sect-t">Risques associés</div>
+        <div class="g2">
+          <div style="font-size:9px"><span style="color:var(--tx4)">Submersion</span><br><span style="color:var(--ac2);font-weight:600">${storm.surge}</span></div>
+          <div style="font-size:9px"><span style="color:var(--tx4)">Précipitations</span><br><span style="color:var(--ac);font-weight:600">${storm.rain}</span></div>
+        </div>
+      </div>
+
+      <div class="sect">
+        <div class="sect-t">Trajectoire prévue</div>
+        <div class="timeline">
+          ${storm.forecast.slice(0,5).map(fc=>`<div class="tl-item">
+            <div class="tl-time">${fc.t} — ${getCat(fc.wind).cat}</div>
+            <div class="tl-text">Lat ${fc.lat.toFixed(1)}° Lng ${fc.lng.toFixed(1)}° — Vents ${fc.wind} km/h</div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  });
+  el.innerHTML=h;
+}
+
+function renderImpact(el){
+  const closed=impacts.filter(i=>i.opStatus==='FERMÉ');
+  const restricted=impacts.filter(i=>i.opStatus==='RESTREINT');
+  const limited=impacts.filter(i=>i.opStatus==='LIMITÉ');
+  const open=impacts.filter(i=>i.opStatus==='OUVERT');
+
+  let h=`<div class="g4" style="margin-bottom:12px">
+    <div class="sb"><div class="v" style="color:var(--ac2)">${closed.length}</div><div class="l">Fermés</div></div>
+    <div class="sb"><div class="v" style="color:var(--ac3)">${restricted.length}</div><div class="l">Restreints</div></div>
+    <div class="sb"><div class="v" style="color:var(--blue)">${limited.length}</div><div class="l">Limités</div></div>
+    <div class="sb"><div class="v" style="color:var(--green)">${open.length}</div><div class="l">Ouverts</div></div>
+  </div>`;
+
+  const groups=[
+    {title:'🔴 AÉROPORTS FERMÉS',items:closed,cls:'danger'},
+    {title:'🟠 ACCÈS RESTREINT',items:restricted,cls:'warn'},
+    {title:'🔵 ACCÈS LIMITÉ',items:limited,cls:''},
+    {title:'🟢 OPÉRATIONNELS',items:open,cls:''},
+  ];
+
+  groups.forEach(g=>{
+    if(!g.items.length) return;
+    h+=`<div style="font-size:10px;font-weight:700;color:${g.items[0]?.statusColor||'var(--green)'};
+      margin:12px 0 6px;text-transform:uppercase;letter-spacing:1px">${g.title}</div>`;
+    g.items.forEach(imp=>{
+      h+=`<div class="impact-item" onclick="mapObj.flyTo([${imp.la},${imp.lo}],9)">
+        <div class="impact-dot" style="background:${imp.statusColor}"></div>
+        <div class="impact-apt">${imp.i}</div>
+        <div class="impact-status">${imp.n} — ${imp.c}</div>
+        <div class="impact-dist">${imp.dist} km</div>
+      </div>`;
+    });
+  });
+  el.innerHTML=h;
+}
+
+function renderFlights(el){
+  const cancelled=flights.filter(f=>f.status==='ANNULÉ');
+  const diverted=flights.filter(f=>f.status==='DÉROUTÉ');
+  const delayed=flights.filter(f=>f.status==='RETARDÉ');
+  const enroute=flights.filter(f=>f.status==='EN ROUTE'||f.status==='APPROCHE');
+
+  let h=`<div class="g4" style="margin-bottom:12px">
+    <div class="sb"><div class="v" style="color:var(--ac2)">${cancelled.length}</div><div class="l">Annulés</div></div>
+    <div class="sb"><div class="v" style="color:var(--ac)">${diverted.length}</div><div class="l">Déroutés</div></div>
+    <div class="sb"><div class="v" style="color:var(--ac3)">${delayed.length}</div><div class="l">Retardés</div></div>
+    <div class="sb"><div class="v" style="color:var(--green)">${enroute.length}</div><div class="l">En route</div></div>
+  </div>`;
+
+  const groups=[
+    {title:'❌ VOLS ANNULÉS',items:cancelled},
+    {title:'↩️ VOLS DÉROUTÉS',items:diverted},
+    {title:'⏳ VOLS RETARDÉS',items:delayed},
+    {title:'✈ EN ROUTE',items:enroute},
+  ];
+
+  groups.forEach(g=>{
+    if(!g.items.length) return;
+    h+=`<div style="font-size:10px;font-weight:700;color:${g.items[0].statusColor};
+      margin:14px 0 6px;text-transform:uppercase;letter-spacing:1px">${g.title}</div>`;
+    g.items.forEach(fl=>{
+      h+=`<div class="card" style="border-left:3px solid ${fl.statusColor}">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div><span style="font-size:13px;font-weight:700;color:#fff">${fl.fn}</span>
+            <span style="font-size:9px;color:var(--tx3);margin-left:6px">${fl.an}</span></div>
+          <span class="tag" style="background:${fl.statusColor}20;color:${fl.statusColor}">${fl.status}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+          <span style="font-size:14px;font-weight:800;color:#fff">${fl.f}</span>
+          <span style="flex:1;height:1px;background:var(--tx4)"></span>
+          <span style="font-size:14px;font-weight:800;color:#fff">${fl.t}</span>
+          ${fl.divertTo?`<span style="color:var(--ac);font-weight:700;font-size:11px">→ ${fl.divertTo}</span>`:''}
+        </div>
+        <div style="font-size:9px;color:var(--tx3);margin-top:4px">${fl.fc} → ${fl.tc}${fl.divertTo?' → DÉROUTÉ vers '+fl.divertTo:''}</div>
+        ${fl.alt?`<div style="display:flex;gap:10px;margin-top:4px;font-size:9px">
+          <span style="color:var(--tx4)">Alt: <span style="color:var(--tx2)">${fl.alt.toLocaleString()} ft</span></span>
+          <span style="color:var(--tx4)">Vit: <span style="color:var(--tx2)">${fl.spd} km/h</span></span>
+        </div>`:''}
+      </div>`;
+    });
+  });
+  el.innerHTML=h;
+}
+
+function renderForecast(el){
+  let h=`<div class="chart-box"><h3>Impact par horizon temporel</h3><canvas id="cTimeline"></canvas></div>
+    <div class="chart-box"><h3>Aéroports en zone de danger</h3><canvas id="cDanger"></canvas></div>
+    <div class="chart-box"><h3>Statuts des vols</h3><canvas id="cFlightStatus"></canvas></div>`;
+
+  // Cone legend
+  h+=`<div class="card">
+    <div class="sect-t">Légende du cône d'incertitude</div>
+    <div class="cone-legend">
+      <div class="cone-item"><div class="cone-dot" style="background:#cc0033"></div>CAT 5 (≥252 km/h)</div>
+      <div class="cone-item"><div class="cone-dot" style="background:#ff3b5c"></div>CAT 4 (209-251)</div>
+      <div class="cone-item"><div class="cone-dot" style="background:#ff6832"></div>CAT 3 (178-208)</div>
+      <div class="cone-item"><div class="cone-dot" style="background:#ffaa00"></div>CAT 2 (154-177)</div>
+      <div class="cone-item"><div class="cone-dot" style="background:#00c2ff"></div>CAT 1 (119-153)</div>
+      <div class="cone-item"><div class="cone-dot" style="background:#00d68f"></div>TS (63-118)</div>
+      <div class="cone-item"><div class="cone-dot" style="background:#7b61ff"></div>TD (&lt;63)</div>
+    </div>
+  </div>`;
+
+  // Hurricane facts
+  h+=`<div class="card">
+    <div class="sect-t">Protocole Hurricane Mode</div>
+    <div style="font-size:10px;color:var(--tx2);line-height:1.6">
+      <b style="color:var(--ac2)">1.</b> Fermeture automatique des aéroports dans le rayon de rafales<br>
+      <b style="color:var(--ac)">2.</b> Déroutement automatique vers aéroports sûrs<br>
+      <b style="color:var(--ac3)">3.</b> Calcul temps réel distance oeil-aéroport<br>
+      <b style="color:var(--blue)">4.</b> Prévisions NHC intégrées (cône d'incertitude 5 jours)<br>
+      <b style="color:var(--green)">5.</b> METAR/TAF prioritaires zones impactées<br>
+      <b style="color:#7b61ff">6.</b> Alertes push compagnies et handlers
+    </div>
+  </div>`;
+
+  el.innerHTML=h;
+
+  // Charts
+  setTimeout(()=>{
+    Object.values(charts).forEach(c=>c.destroy?.());charts={};
+    const cls=['#ff3b5c','#ff6832','#ffaa00','#00c2ff','#00d68f','#7b61ff'];
+
+    // Timeline
+    const canvas1=document.getElementById('cTimeline');
+    if(canvas1){
+      const storm=STORMS[0];
+      charts.a=new Chart(canvas1,{type:'line',data:{
+        labels:[...storm.track.map(t=>t.t),...storm.forecast.map(t=>t.t)],
+        datasets:[{label:'Vents (km/h)',data:[...storm.track.map(t=>t.wind),...storm.forecast.map(t=>t.wind)],
+          borderColor:'#ff3b5c',backgroundColor:'rgba(255,59,92,.1)',fill:true,tension:.3,pointRadius:3}]},
+        options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},
+          scales:{x:{ticks:{color:'#6b7394',font:{size:8}},grid:{color:'rgba(255,255,255,.03)'}},
+            y:{ticks:{color:'#6b7394',font:{size:8}},grid:{color:'rgba(255,255,255,.03)'}}}}});
+    }
+
+    // Danger zones
+    const canvas2=document.getElementById('cDanger');
+    if(canvas2){
+      const closed=impacts.filter(i=>i.opStatus==='FERMÉ').length;
+      const rest=impacts.filter(i=>i.opStatus==='RESTREINT').length;
+      const lim=impacts.filter(i=>i.opStatus==='LIMITÉ').length;
+      const open=impacts.filter(i=>i.opStatus==='OUVERT').length;
+      charts.b=new Chart(canvas2,{type:'doughnut',data:{
+        labels:['Fermés','Restreints','Limités','Ouverts'],
+        datasets:[{data:[closed,rest,lim,open],backgroundColor:['#ff3b5c','#ffaa00','#00c2ff','#00d68f']}]},
+        options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{color:'#a0aacc',font:{size:9}}}}}});
+    }
+
+    // Flight status
+    const canvas3=document.getElementById('cFlightStatus');
+    if(canvas3){
+      const st={};flights.forEach(f=>{st[f.status]=(st[f.status]||0)+1});
+      const stCls={'ANNULÉ':'#ff3b5c','DÉROUTÉ':'#ff6832','RETARDÉ':'#ffaa00','EN ROUTE':'#00d68f','APPROCHE':'#00c2ff'};
+      charts.c=new Chart(canvas3,{type:'doughnut',data:{
+        labels:Object.keys(st),datasets:[{data:Object.values(st),backgroundColor:Object.keys(st).map(s=>stCls[s]||'#666')}]},
+        options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'bottom',labels:{color:'#a0aacc',font:{size:9}}}}}});
+    }
+  },100);
+}
+
+// ═══ STATS ═══
+function updateStats(){
+  document.getElementById('sStorms').textContent=STORMS.length;
+  document.getElementById('sAptImpact').textContent=impacts.filter(i=>i.opStatus!=='OUVERT').length;
+  document.getElementById('sFlights').textContent=flights.length;
+  document.getElementById('sDiverted').textContent=flights.filter(f=>f.status==='DÉROUTÉ').length;
+  document.getElementById('sCancelled').textContent=flights.filter(f=>f.status==='ANNULÉ').length;
+
+  // Alert bar
+  const main=STORMS[0];
+  document.getElementById('alertMainText').textContent=`${main.name} — ${main.cat.cat} — Vents ${main.windKmh} km/h`;
+  document.getElementById('alertSubText').textContent=`Direction ${main.moveDir} à ${main.moveSpd} km/h | Pression ${main.pressureHpa} hPa | Advisory #${main.advisoryNum}`;
+  document.getElementById('alertCat').textContent=main.cat.short;
+  document.getElementById('alertCat').className=`alert-cat ${main.cat.bg}`;
+
+  // KPI strip
+  const closed=impacts.filter(i=>i.opStatus==='FERMÉ');
+  const cancelled=flights.filter(f=>f.status==='ANNULÉ');
+  const diverted=flights.filter(f=>f.status==='DÉROUTÉ');
+  document.getElementById('kstrip').innerHTML=`
+    <div class="kpi"><div class="kpi-v" style="color:var(--ac2)">🌀 ${STORMS.length}</div><div class="kpi-l">Cyclones</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--ac2)">${closed.length}</div><div class="kpi-l">Apt fermés</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--ac)">${diverted.length}</div><div class="kpi-l">Déroutés</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--ac2)">${cancelled.length}</div><div class="kpi-l">Annulés</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--ac3)">${main.windKmh} km/h</div><div class="kpi-l">Vents max</div></div>
+    <div class="kpi"><div class="kpi-v" style="color:var(--blue)">${main.pressureHpa} hPa</div><div class="kpi-l">Pression</div></div>`;
+}
+
+function updateClock(){
+  const now=new Date(),u4=new Date(now.getTime()-4*36e5);
+  document.getElementById('sClk').textContent=`${String(u4.getUTCHours()).padStart(2,'0')}:${String(u4.getUTCMinutes()).padStart(2,'0')}`;
+}
+
+// ═══ SIMULATION ═══
+function simulate(){
+  // Move storms slightly
+  STORMS.forEach(storm=>{
+    storm.eye.lat+=.02+Math.random()*.01;
+    storm.eye.lng-=.03+Math.random()*.02;
+    storm.windKmh+=Math.floor(Math.random()*6-3);
+    storm.windKmh=Math.max(40,Math.min(280,storm.windKmh));
+    storm.windKt=Math.round(storm.windKmh*.54);
+    storm.pressureHpa+=Math.floor(Math.random()*4-2);
+    storm.cat=getCat(storm.windKmh);
+  });
+
+  impacts=computeImpacts();
+  flights=genFlights();
+  drawStorms();drawAirports();drawFlights();
+  updateStats();renderTab();
+}
+
+// ═══ INIT ═══
+drawStorms();drawAirports();drawFlights();
+updateStats();renderTab();updateClock();
+
+setInterval(simulate,8000);
+setInterval(updateClock,1000);
+</script>
+</body>
+</html>

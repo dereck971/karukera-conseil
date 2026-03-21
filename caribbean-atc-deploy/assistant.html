@@ -1,0 +1,2103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caribbean ATC Pro - AI Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #080c16;
+            --sf: #0d1321;
+            --sf2: #141a2e;
+            --sf3: #1a2140;
+            --bd: rgba(0, 194, 255, 0.1);
+            --bd2: rgba(255, 255, 255, 0.05);
+            --ac: #00c2ff;
+            --ac2: #7b61ff;
+            --ac3: #00d68f;
+            --warn: #ffaa00;
+            --danger: #ff3b5c;
+            --tx: #e0e6f0;
+            --tx2: #a0aacc;
+            --tx3: #6b7394;
+            --tx4: #3d4563;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--tx);
+            overflow: hidden;
+        }
+
+        #root {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-bar {
+            background: linear-gradient(135deg, rgba(0, 194, 255, 0.1), rgba(123, 97, 255, 0.1));
+            border-bottom: 1px solid var(--bd);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 600;
+            z-index: 100;
+        }
+
+        .kpi-strip {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .kpi-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .kpi-value {
+            color: var(--ac);
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .kpi-label {
+            color: var(--tx3);
+            font-size: 11px;
+        }
+
+        .clock {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--ac3);
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .mode-bar {
+            background: rgba(13, 19, 33, 0.8);
+            border-bottom: 1px solid var(--bd);
+            padding: 8px 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 99;
+        }
+
+        .mode-btn {
+            padding: 6px 14px;
+            border: 1px solid var(--bd2);
+            background: transparent;
+            color: var(--tx2);
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: var(--ac);
+            color: var(--bg);
+            border-color: var(--ac);
+        }
+
+        .mode-btn:hover {
+            border-color: var(--ac);
+            color: var(--ac);
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: var(--sf);
+            border-right: 1px solid var(--bd);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--bd);
+            display: flex;
+            gap: 8px;
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid var(--bd2);
+            background: transparent;
+            color: var(--tx2);
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar-tab.active {
+            background: var(--ac);
+            color: var(--bg);
+            border-color: var(--ac);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .card {
+            background: var(--sf2);
+            border: 1px solid var(--bd);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            background: var(--sf3);
+            border-color: var(--ac);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--ac);
+        }
+
+        .card-meta {
+            font-size: 11px;
+            color: var(--tx3);
+        }
+
+        .status-badge {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: rgba(0, 214, 143, 0.2);
+            color: var(--ac3);
+        }
+
+        .status-delayed {
+            background: rgba(255, 170, 0, 0.2);
+            color: var(--warn);
+        }
+
+        .status-cancelled {
+            background: rgba(255, 59, 92, 0.2);
+            color: var(--danger);
+        }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .leaflet-tile {
+            filter: brightness(0.8) contrast(1.2);
+        }
+
+        .leaflet-container {
+            background: var(--bg);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .detail-panel {
+            position: absolute;
+            right: 20px;
+            top: 80px;
+            width: 350px;
+            background: var(--sf);
+            border: 1px solid var(--bd);
+            border-radius: 8px;
+            z-index: 200;
+            max-height: 600px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .detail-panel.visible {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .detail-header {
+            padding: 15px;
+            border-bottom: 1px solid var(--bd);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .detail-close {
+            background: transparent;
+            border: none;
+            color: var(--tx2);
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .detail-content {
+            padding: 15px;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--bd2);
+            font-size: 12px;
+        }
+
+        .detail-label {
+            color: var(--tx3);
+        }
+
+        .detail-value {
+            color: var(--ac);
+            font-weight: 600;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+            background: rgba(0, 194, 255, 0.3);
+            border-radius: 3px;
+        }
+
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 194, 255, 0.5);
+        }
+
+        .sidebar-content {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 194, 255, 0.3) transparent;
+        }
+
+        /* CHATBOT STYLES */
+        .chat-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--ac), var(--ac2));
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            z-index: 999;
+            box-shadow: 0 4px 20px rgba(0, 194, 255, 0.3);
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 4px 20px rgba(0, 194, 255, 0.3);
+            }
+            50% {
+                box-shadow: 0 4px 30px rgba(0, 194, 255, 0.6);
+            }
+        }
+
+        .chat-button:hover {
+            transform: scale(1.1);
+        }
+
+        .chat-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .chat-label {
+            position: absolute;
+            bottom: -30px;
+            right: 0;
+            background: var(--sf2);
+            border: 1px solid var(--bd);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            color: var(--tx2);
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .chat-button:hover .chat-label {
+            opacity: 1;
+        }
+
+        .chat-panel {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 400px;
+            height: 550px;
+            background: var(--sf);
+            border: 1px solid var(--bd);
+            border-radius: 12px;
+            z-index: 1000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 194, 255, 0.2);
+            animation: chatOpen 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes chatOpen {
+            from {
+                transform: translateY(20px) scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .chat-panel.open {
+            display: flex;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, var(--ac), var(--ac2));
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: move;
+            user-select: none;
+        }
+
+        .chat-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            color: var(--bg);
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--ac3);
+            border-radius: 50%;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .chat-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-control-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: var(--bg);
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .chat-control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 8px;
+            animation: messageSlide 0.3s ease;
+        }
+
+        @keyframes messageSlide {
+            from {
+                transform: translateY(10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .chat-message.user {
+            justify-content: flex-end;
+        }
+
+        .chat-bubble {
+            max-width: 80%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            line-height: 1.4;
+            word-wrap: break-word;
+        }
+
+        .chat-message.user .chat-bubble {
+            background: var(--ac);
+            color: var(--bg);
+        }
+
+        .chat-message.bot .chat-bubble {
+            background: var(--sf2);
+            color: var(--tx);
+            border: 1px solid var(--bd);
+        }
+
+        .chat-timestamp {
+            font-size: 10px;
+            color: var(--tx3);
+            text-align: center;
+            margin: 5px 0;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 10px 12px;
+            background: var(--sf2);
+            border: 1px solid var(--bd);
+            border-radius: 8px;
+            width: fit-content;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--tx3);
+            border-radius: 50%;
+            animation: typingBounce 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-8px);
+            }
+        }
+
+        .chat-input-area {
+            border-top: 1px solid var(--bd);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .chat-chips {
+            display: flex;
+            gap: 6px;
+            overflow-x: auto;
+            padding: 0 5px;
+            scrollbar-width: none;
+        }
+
+        .chat-chips::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chat-chip {
+            padding: 5px 10px;
+            background: var(--sf2);
+            border: 1px solid var(--bd2);
+            color: var(--tx2);
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .chat-chip:hover {
+            background: var(--sf3);
+            border-color: var(--ac);
+            color: var(--ac);
+        }
+
+        .chat-input-box {
+            display: flex;
+            gap: 8px;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: var(--sf2);
+            border: 1px solid var(--bd);
+            color: var(--tx);
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--ac);
+            box-shadow: 0 0 0 2px rgba(0, 194, 255, 0.1);
+        }
+
+        .chat-send-btn {
+            background: var(--ac);
+            border: none;
+            color: var(--bg);
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        .chat-send-btn:hover {
+            background: var(--ac3);
+        }
+
+        .chat-send-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Rich Card Styles */
+        .rich-card {
+            background: var(--sf2);
+            border: 1px solid var(--bd);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+        }
+
+        .flight-card {
+            background: linear-gradient(135deg, rgba(0, 194, 255, 0.1), rgba(123, 97, 255, 0.1));
+        }
+
+        .airport-card {
+            background: linear-gradient(135deg, rgba(0, 214, 143, 0.1), rgba(0, 194, 255, 0.1));
+        }
+
+        .weather-card {
+            background: linear-gradient(135deg, rgba(255, 170, 0, 0.1), rgba(255, 59, 92, 0.1));
+        }
+
+        .stats-card {
+            background: linear-gradient(135deg, rgba(123, 97, 255, 0.1), rgba(0, 214, 143, 0.1));
+        }
+
+        .alert-card {
+            background: linear-gradient(135deg, rgba(255, 170, 0, 0.15), rgba(255, 59, 92, 0.15));
+            border-color: var(--warn);
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .card-grid-item {
+            background: var(--sf3);
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid var(--bd2);
+            font-size: 11px;
+        }
+
+        .card-grid-label {
+            color: var(--tx3);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card-grid-value {
+            color: var(--ac);
+            font-weight: 700;
+            font-size: 13px;
+            margin-top: 3px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 150px;
+            margin: 10px 0;
+        }
+
+        .route-visual {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            font-size: 12px;
+        }
+
+        .route-point {
+            flex: 0 0 auto;
+            text-align: center;
+        }
+
+        .route-point-code {
+            font-weight: 700;
+            color: var(--ac);
+            font-size: 13px;
+        }
+
+        .route-point-name {
+            color: var(--tx3);
+            font-size: 10px;
+        }
+
+        .route-arrow {
+            flex: 1;
+            text-align: center;
+            color: var(--tx3);
+        }
+
+        .route-distance {
+            color: var(--tx2);
+            font-size: 11px;
+        }
+
+        /* Analytics Tab Styles */
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 15px;
+        }
+
+        .chart-wrapper {
+            background: var(--sf2);
+            border: 1px solid var(--bd);
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .chart-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ac);
+            margin-bottom: 10px;
+        }
+
+        .chart-inner {
+            position: relative;
+            height: 220px;
+        }
+
+        /* Weather Panel */
+        .weather-panel {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            width: 300px;
+            background: var(--sf);
+            border: 1px solid var(--bd);
+            border-radius: 8px;
+            z-index: 150;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .weather-panel.visible {
+            display: block;
+        }
+
+        .weather-item {
+            background: var(--sf2);
+            border: 1px solid var(--bd);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .weather-apt {
+            font-weight: 600;
+            color: var(--ac);
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .weather-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            padding: 3px 0;
+        }
+
+        .weather-label {
+            color: var(--tx3);
+        }
+
+        .weather-value {
+            color: var(--tx);
+            font-weight: 600;
+        }
+
+        /* Tools Panel */
+        .tools-panel {
+            position: absolute;
+            right: 20px;
+            top: 80px;
+            width: 350px;
+            background: var(--sf);
+            border: 1px solid var(--bd);
+            border-radius: 8px;
+            z-index: 150;
+            padding: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .tools-panel.visible {
+            display: block;
+        }
+
+        .tool-section {
+            margin-bottom: 20px;
+        }
+
+        .tool-section-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--ac);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .tool-input {
+            width: 100%;
+            background: var(--sf2);
+            border: 1px solid var(--bd);
+            color: var(--tx);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-bottom: 8px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .tool-input:focus {
+            outline: none;
+            border-color: var(--ac);
+        }
+
+        .tool-button {
+            width: 100%;
+            background: var(--ac);
+            border: none;
+            color: var(--bg);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tool-button:hover {
+            background: var(--ac3);
+        }
+
+        .tool-result {
+            background: var(--sf2);
+            border: 1px solid var(--bd);
+            border-radius: 4px;
+            padding: 8px;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--tx2);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+
+            .chat-panel {
+                width: calc(100% - 40px);
+                height: 60vh;
+                right: 20px;
+                bottom: 80px;
+            }
+
+            .detail-panel {
+                width: calc(100% - 40px);
+                right: 20px;
+            }
+
+            .weather-panel {
+                width: calc(100% - 40px);
+                right: 20px;
+            }
+
+            .tools-panel {
+                width: calc(100% - 40px);
+                right: 20px;
+            }
+
+            .analytics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .live-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+            padding: 15px;
+        }
+
+        .live-flight-card {
+            background: var(--sf2);
+            border: 1px solid var(--bd);
+            border-radius: 8px;
+            padding: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .live-flight-card:hover {
+            background: var(--sf3);
+            border-color: var(--ac);
+        }
+
+        .live-flight-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .live-flight-call {
+            font-weight: 700;
+            color: var(--ac);
+            font-size: 13px;
+        }
+
+        .live-flight-status {
+            font-size: 10px;
+        }
+
+        .live-flight-route {
+            font-size: 11px;
+            color: var(--tx2);
+            margin-bottom: 8px;
+        }
+
+        .live-flight-data {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 10px;
+        }
+
+        .live-data-item {
+            background: var(--sf3);
+            padding: 6px;
+            border-radius: 4px;
+        }
+
+        .live-data-label {
+            color: var(--tx3);
+            font-size: 9px;
+        }
+
+        .live-data-value {
+            color: var(--ac);
+            font-weight: 600;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <div class="top-bar">
+            <div class="kpi-strip">
+                <div class="kpi-item">
+                    <span class="kpi-value" id="kpi-flights">0</span>
+                    <span class="kpi-label">FLIGHTS</span>
+                </div>
+                <div class="kpi-item">
+                    <span class="kpi-value" id="kpi-apts">28</span>
+                    <span class="kpi-label">AIRPORTS</span>
+                </div>
+                <div class="kpi-item">
+                    <span class="kpi-value" id="kpi-airlines">20</span>
+                    <span class="kpi-label">AIRLINES</span>
+                </div>
+                <div class="kpi-item">
+                    <span class="kpi-value" id="kpi-pax">0</span>
+                    <span class="kpi-label">PASSENGERS</span>
+                </div>
+            </div>
+            <div class="clock" id="clock">00:00:00</div>
+        </div>
+
+        <div class="mode-bar">
+            <button class="mode-btn active" data-mode="live">📡 Live</button>
+            <button class="mode-btn" data-mode="analytics">📊 Analytics</button>
+            <button class="mode-btn" data-mode="tools">🛠️ Tools</button>
+        </div>
+
+        <div class="main-container">
+            <div class="sidebar scrollbar-custom">
+                <div class="sidebar-header">
+                    <button class="sidebar-tab active" data-tab="flights">Flights</button>
+                    <button class="sidebar-tab" data-tab="airlines">Airlines</button>
+                    <button class="sidebar-tab" data-tab="airports">Airports</button>
+                </div>
+                <div class="sidebar-content scrollbar-custom" id="sidebar-content">
+                </div>
+            </div>
+
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+
+            <div class="detail-panel" id="detail-panel">
+                <div class="detail-header">
+                    <div class="detail-close" id="detail-close">✕</div>
+                </div>
+                <div class="detail-content" id="detail-content">
+                </div>
+            </div>
+
+            <div class="weather-panel" id="weather-panel">
+            </div>
+
+            <div class="tools-panel" id="tools-panel">
+                <div class="tool-section">
+                    <div class="tool-section-title">Distance Calculator</div>
+                    <input type="text" class="tool-input" id="calc-from" placeholder="From (IATA)">
+                    <input type="text" class="tool-input" id="calc-to" placeholder="To (IATA)">
+                    <button class="tool-button" id="calc-btn">Calculate</button>
+                    <div class="tool-result" id="calc-result" style="display:none;"></div>
+                </div>
+                <div class="tool-section">
+                    <div class="tool-section-title">Export Data</div>
+                    <button class="tool-button" id="export-csv-btn">📥 Export Flights CSV</button>
+                    <button class="tool-button" id="export-fids-btn">📥 Export FIDS</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Button -->
+    <button class="chat-button" id="chat-button">
+        ✈
+        <div class="chat-label">ATC Assistant</div>
+        <div class="chat-badge" id="chat-badge" style="display:none;">0</div>
+    </button>
+
+    <!-- Chat Panel -->
+    <div class="chat-panel" id="chat-panel">
+        <div class="chat-header" id="chat-header">
+            <div class="chat-title">
+                🛫 ATC Assistant
+                <div class="status-dot"></div>
+            </div>
+            <div class="chat-controls">
+                <button class="chat-control-btn" id="chat-minimize">−</button>
+                <button class="chat-control-btn" id="chat-close">✕</button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-area">
+            <div class="chat-chips" id="chat-chips">
+                <button class="chat-chip" data-query="active">Vols actifs</button>
+                <button class="chat-chip" data-query="weather">Météo PTP</button>
+                <button class="chat-chip" data-query="stats">Stats trafic</button>
+                <button class="chat-chip" data-query="delays">Retards</button>
+                <button class="chat-chip" data-query="top">Top routes</button>
+                <button class="chat-chip" data-query="hubs">Aéroports hub</button>
+            </div>
+            <div class="chat-input-box">
+                <input type="text" class="chat-input" id="chat-input" placeholder="Ask me anything...">
+                <button class="chat-send-btn" id="chat-send">↗</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        const state = {
+            mode: 'live',
+            sidebarTab: 'flights',
+            selectedFlight: null,
+            chatOpen: false,
+            unreadCount: 0,
+            chatHistory: [],
+            dragOffset: { x: 0, y: 0 },
+            isDragging: false,
+            minimized: false
+        };
+
+        // Airports data (28 airports)
+        const APT = [
+            { id: 'PTP', name: 'Pointe-à-Pitre', cn: 'Guadeloupe', la: 16.2656, lo: -61.5147, pax: 2800000, rwy: 2 },
+            { id: 'FDF', name: 'Fort-de-France', cn: 'Martinique', la: 14.5864, lo: -61.0922, pax: 2200000, rwy: 1 },
+            { id: 'SJU', name: 'Luis Muñoz Marín', cn: 'Puerto Rico', la: 18.4386, lo: -66.0019, pax: 9000000, rwy: 2 },
+            { id: 'STT', name: 'Cyril E. King', cn: 'US Virgin Islands', la: 18.3374, lo: -64.8964, pax: 600000, rwy: 1 },
+            { id: 'SXM', name: 'Princess Juliana', cn: 'Sint Maarten', la: 18.0213, lo: -63.1389, pax: 2000000, rwy: 1 },
+            { id: 'ANU', name: 'V.C. Bird', cn: 'Antigua and Barbuda', la: 17.1219, lo: -61.7924, pax: 1000000, rwy: 1 },
+            { id: 'DOM', name: 'Douglas Charles', cn: 'Dominica', la: 15.5500, lo: -61.2833, pax: 650000, rwy: 1 },
+            { id: 'SKB', name: 'Robert L. Bradshaw', cn: 'Saint Kitts and Nevis', la: 17.3095, lo: -62.8486, pax: 750000, rwy: 1 },
+            { id: 'LIL', name: 'George F. L. Charles', cn: 'Saint Lucia', la: 13.7333, lo: -60.9500, pax: 750000, rwy: 1 },
+            { id: 'UVF', name: 'Argyle International', cn: 'Saint Vincent', la: 12.8439, lo: -61.2044, pax: 550000, rwy: 1 },
+            { id: 'BGI', name: 'Grantley Adams', cn: 'Barbados', la: 13.1939, lo: -59.5432, pax: 2500000, rwy: 1 },
+            { id: 'CIW', name: 'Curacao', cn: 'Curacao', la: 12.1700, lo: -68.9900, pax: 2500000, rwy: 1 },
+            { id: 'AUA', name: 'Queen Beatrix', cn: 'Aruba', la: 12.1833, lo: -69.9333, pax: 2200000, rwy: 1 },
+            { id: 'BON', name: 'Flamingo', cn: 'Bonaire', la: 12.1869, lo: -68.2684, pax: 500000, rwy: 1 },
+            { id: 'CCS', name: 'Maiquetía', cn: 'Venezuela', la: 10.6017, lo: -66.9914, pax: 4000000, rwy: 2 },
+            { id: 'TTT', name: 'Piarco', cn: 'Trinidad and Tobago', la: 10.5921, lo: -61.3425, pax: 4500000, rwy: 2 },
+            { id: 'CAW', name: 'Canouan', cn: 'Saint Vincent', la: 12.6583, lo: -61.3667, pax: 100000, rwy: 1 },
+            { id: 'PSA', name: 'Pensacola', cn: 'USA', la: 30.4735, lo: -87.1900, pax: 3000000, rwy: 2 },
+            { id: 'MIA', name: 'Miami', cn: 'USA', la: 25.7959, lo: -80.2870, pax: 43000000, rwy: 3 },
+            { id: 'FLL', name: 'Fort Lauderdale', cn: 'USA', la: 26.0726, lo: -80.1527, pax: 24000000, rwy: 2 },
+            { id: 'MBJ', name: 'Sangster International', cn: 'Jamaica', la: 18.3374, lo: -77.9086, pax: 3500000, rwy: 1 },
+            { id: 'CUN', name: 'Cancún', cn: 'Mexico', la: 21.0063, lo: -87.2542, pax: 14000000, rwy: 2 },
+            { id: 'NAS', name: 'Lynden Pindling', cn: 'Bahamas', la: 25.3911, lo: -76.6664, pax: 6500000, rwy: 2 },
+            { id: 'BDA', name: 'Bermuda', cn: 'Bermuda', la: 32.3642, lo: -64.6793, pax: 700000, rwy: 1 },
+            { id: 'HDO', name: 'Hodges Bay', cn: 'Antigua and Barbuda', la: 17.1786, lo: -61.7906, pax: 50000, rwy: 1 },
+            { id: 'SVD', name: 'Arnos Vale', cn: 'Saint Vincent', la: 12.8439, lo: -61.2044, pax: 100000, rwy: 1 },
+            { id: 'SBH', name: 'Saint Barthélemy', cn: 'Saint Barthélemy', la: 17.8976, lo: -62.8372, pax: 200000, rwy: 1 }
+        ];
+
+        // Airlines data (20 airlines)
+        const ALS = [
+            { id: 'AF', name: 'Air France', cc: '#002395', icao: 'AFR', country: 'France', fleet: 340 },
+            { id: 'BA', name: 'British Airways', cc: '#003DA5', icao: 'BAW', country: 'United Kingdom', fleet: 290 },
+            { id: 'KL', name: 'KLM', cc: '#33A1EB', icao: 'KLM', country: 'Netherlands', fleet: 230 },
+            { id: 'IB', name: 'Iberia', cc: '#FFC72C', icao: 'IBE', country: 'Spain', fleet: 260 },
+            { id: 'LH', name: 'Lufthansa', cc: '#FFCC00', icao: 'DLH', country: 'Germany', fleet: 350 },
+            { id: 'AA', name: 'American Airlines', cc: '#0066B2', icao: 'AAL', country: 'USA', fleet: 900 },
+            { id: 'UA', name: 'United Airlines', cc: '#003366', icao: 'UAL', country: 'USA', fleet: 800 },
+            { id: 'DL', name: 'Delta Air Lines', cc: '#003D7A', icao: 'DAL', country: 'USA', fleet: 870 },
+            { id: 'SW', name: 'Southwest Airlines', cc: '#FFB81C', icao: 'SWA', country: 'USA', fleet: 750 },
+            { id: 'JB', name: 'JetBlue Airways', cc: '#0066B2', icao: 'JBU', country: 'USA', fleet: 280 },
+            { id: 'NK', name: 'Spirit Airlines', cc: '#FFCC00', icao: 'NKS', country: 'USA', fleet: 145 },
+            { id: 'F9', name: 'Frontier Airlines', cc: '#009B3A', icao: 'FFT', country: 'USA', fleet: 120 },
+            { id: 'B6', name: 'JetBlue Plus', cc: '#0066B2', icao: 'JBT', country: 'USA', fleet: 90 },
+            { id: 'RP', name: 'Republic Airways', cc: '#1B1464', icao: 'RPA', country: 'USA', fleet: 200 },
+            { id: 'G4', name: 'Allegiant Air', cc: '#003DA5', icao: 'AAY', country: 'USA', fleet: 120 },
+            { id: 'BW', name: 'Caribbean Airlines', cc: '#DB2E1F', icao: 'BwI', country: 'Trinidad and Tobago', fleet: 45 },
+            { id: 'WJ', name: 'Winair', cc: '#00A4EF', icao: 'SXM', country: 'Sint Maarten', fleet: 12 },
+            { id: 'TX', name: 'Air Transat', cc: '#C41C3B', icao: 'TSC', country: 'Canada', fleet: 120 },
+            { id: 'W5', name: 'Cayman Airways', cc: '#004B87', icao: 'CAY', country: 'Cayman Islands', fleet: 6 },
+            { id: 'HR', name: 'LIAT Airways', cc: '#FFB81C', icao: 'LIA', country: 'Antigua and Barbuda', fleet: 15 }
+        ];
+
+        // Generate flight data
+        function generateFlights() {
+            const flights = [];
+            const callsigns = ['AF', 'BA', 'KL', 'IB', 'LH', 'AA', 'UA', 'DL', 'SW', 'JB', 'NK', 'F9', 'BW', 'TX', 'B6'];
+            const statuses = ['En route', 'On ground', 'Boarding', 'Retardé', 'Delayed'];
+
+            for (let i = 0; i < 45; i++) {
+                const fromIdx = Math.floor(Math.random() * APT.length);
+                let toIdx = Math.floor(Math.random() * APT.length);
+                while (toIdx === fromIdx) toIdx = Math.floor(Math.random() * APT.length);
+
+                const from = APT[fromIdx];
+                const to = APT[toIdx];
+                const airline = callsigns[Math.floor(Math.random() * callsigns.length)];
+                const status = statuses[Math.floor(Math.random() * statuses.length)];
+
+                flights.push({
+                    id: airline + (10000 + i),
+                    call: airline + (1000 + i),
+                    als: airline,
+                    from: from.id,
+                    to: to.id,
+                    la: from.la + (Math.random() - 0.5) * 10,
+                    lo: from.lo + (Math.random() - 0.5) * 10,
+                    alt: Math.floor(Math.random() * 35000) + 1000,
+                    gs: Math.floor(Math.random() * 450) + 150,
+                    heading: Math.floor(Math.random() * 360),
+                    st: status,
+                    eta: new Date(Date.now() + Math.random() * 12 * 3600000).toISOString(),
+                    pax: Math.floor(Math.random() * 300) + 50
+                });
+            }
+            return flights;
+        }
+
+        let flights = generateFlights();
+
+        // Get airport by IATA
+        function getAirport(iata) {
+            return APT.find(a => a.id === iata);
+        }
+
+        // Get airline by code
+        function getAirline(code) {
+            return ALS.find(a => a.id === code);
+        }
+
+        // Calculate distance (Haversine formula)
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        // Simulate weather
+        function getWeather(apt) {
+            return {
+                temp: Math.floor(Math.random() * 15) + 20,
+                wind: Math.floor(Math.random() * 25) + 5,
+                gust: Math.floor(Math.random() * 10) + 10,
+                vis: Math.floor(Math.random() * 10) + 5,
+                qnh: Math.floor(Math.random() * 20) + 1000,
+                ceil: Math.floor(Math.random() * 3000) + 1000
+            };
+        }
+
+        // Update clock
+        function updateClock() {
+            const now = new Date();
+            const utc = new Date(now.getTime() + 4 * 3600000);
+            const h = String(utc.getHours()).padStart(2, '0');
+            const m = String(utc.getMinutes()).padStart(2, '0');
+            const s = String(utc.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').textContent = h + ':' + m + ':' + s;
+        }
+
+        // Update KPIs
+        function updateKPIs() {
+            document.getElementById('kpi-flights').textContent = flights.length;
+            document.getElementById('kpi-pax').textContent = flights.reduce((a, f) => a + f.pax, 0);
+        }
+
+        // Initialize map
+        let mapObj = L.map('map').setView([15.5, -62], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 18
+        }).addTo(mapObj);
+
+        const flightMarkers = {};
+        const airportMarkers = {};
+
+        // Add airport markers
+        function updateMapAirports() {
+            APT.forEach(apt => {
+                if (!airportMarkers[apt.id]) {
+                    const marker = L.circleMarker([apt.la, apt.lo], {
+                        radius: 8,
+                        fillColor: '#00c2ff',
+                        fillOpacity: 0.7,
+                        color: '#00c2ff',
+                        weight: 2
+                    }).addTo(mapObj);
+
+                    marker.bindPopup(`<div style="color:#e0e6f0;font-size:12px"><strong>${apt.id}</strong><br>${apt.name}<br>${apt.pax.toLocaleString()} pax</div>`);
+                    airportMarkers[apt.id] = marker;
+                }
+            });
+        }
+
+        // Update flight markers
+        function updateMapFlights() {
+            flights.forEach(flight => {
+                if (!flightMarkers[flight.id]) {
+                    const marker = L.marker([flight.la, flight.lo], {
+                        icon: L.divIcon({
+                            html: `<div style="font-size:16px;transform:rotate(${flight.heading}deg);">✈</div>`,
+                            iconSize: [20, 20],
+                            className: 'flight-marker'
+                        })
+                    }).addTo(mapObj);
+
+                    flightMarkers[flight.id] = marker;
+                } else {
+                    const marker = flightMarkers[flight.id];
+                    marker.setLatLng([flight.la, flight.lo]);
+                    marker.setIcon(L.divIcon({
+                        html: `<div style="font-size:16px;transform:rotate(${flight.heading}deg);">✈</div>`,
+                        iconSize: [20, 20],
+                        className: 'flight-marker'
+                    }));
+                }
+            });
+        }
+
+        // Render sidebar content
+        function renderSidebar() {
+            const container = document.getElementById('sidebar-content');
+            container.innerHTML = '';
+
+            if (state.sidebarTab === 'flights') {
+                flights.forEach(f => {
+                    const from = getAirport(f.from);
+                    const to = getAirport(f.to);
+                    const div = document.createElement('div');
+                    div.className = 'card';
+                    div.innerHTML = `
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">${f.call}</div>
+                                <div class="card-meta">${from.id} → ${to.id}</div>
+                            </div>
+                            <div class="status-badge status-${f.st === 'Retardé' || f.st === 'Delayed' ? 'delayed' : f.st === 'On ground' ? 'cancelled' : 'active'}">${f.st}</div>
+                        </div>
+                        <div style="font-size:11px;color:var(--tx2);">Alt: ${f.alt}ft | GS: ${f.gs}kt</div>
+                    `;
+                    div.addEventListener('click', () => showFlightDetail(f.id));
+                    container.appendChild(div);
+                });
+            } else if (state.sidebarTab === 'airlines') {
+                ALS.forEach(al => {
+                    const div = document.createElement('div');
+                    div.className = 'card';
+                    div.innerHTML = `
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">${al.id}</div>
+                                <div class="card-meta">${al.name}</div>
+                            </div>
+                            <div style="width:20px;height:20px;background:${al.cc};border-radius:4px;"></div>
+                        </div>
+                        <div style="font-size:11px;color:var(--tx2);">Fleet: ${al.fleet} | ${al.country}</div>
+                    `;
+                    container.appendChild(div);
+                });
+            } else if (state.sidebarTab === 'airports') {
+                APT.forEach(apt => {
+                    const div = document.createElement('div');
+                    div.className = 'card';
+                    div.innerHTML = `
+                        <div class="card-header">
+                            <div>
+                                <div class="card-title">${apt.id}</div>
+                                <div class="card-meta">${apt.name}</div>
+                            </div>
+                        </div>
+                        <div style="font-size:11px;color:var(--tx2);">${apt.pax.toLocaleString()} pax | ${apt.rwy} runway(s)</div>
+                    `;
+                    div.addEventListener('click', () => showAirportDetail(apt.id));
+                    container.appendChild(div);
+                });
+            }
+        }
+
+        // Show flight detail
+        function showFlightDetail(flightId) {
+            const flight = flights.find(f => f.id === flightId);
+            if (!flight) return;
+
+            const from = getAirport(flight.from);
+            const to = getAirport(flight.to);
+            const airline = getAirline(flight.als);
+            const distance = calculateDistance(from.la, from.lo, to.la, to.lo);
+
+            const content = document.getElementById('detail-content');
+            content.innerHTML = `
+                <div style="font-weight:700;font-size:14px;color:var(--ac);margin-bottom:10px;">${flight.call}</div>
+                <div class="detail-row"><span class="detail-label">Callsign</span><span class="detail-value">${flight.call}</span></div>
+                <div class="detail-row"><span class="detail-label">Aircraft</span><span class="detail-value">${airline.name}</span></div>
+                <div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">${flight.st}</span></div>
+                <div class="detail-row"><span class="detail-label">From</span><span class="detail-value">${from.id} (${from.name})</span></div>
+                <div class="detail-row"><span class="detail-label">To</span><span class="detail-value">${to.id} (${to.name})</span></div>
+                <div class="detail-row"><span class="detail-label">Distance</span><span class="detail-value">${distance.toFixed(0)} km</span></div>
+                <div class="detail-row"><span class="detail-label">Altitude</span><span class="detail-value">${flight.alt} ft</span></div>
+                <div class="detail-row"><span class="detail-label">Ground Speed</span><span class="detail-value">${flight.gs} kt</span></div>
+                <div class="detail-row"><span class="detail-label">Heading</span><span class="detail-value">${flight.heading}°</span></div>
+                <div class="detail-row"><span class="detail-label">Passengers</span><span class="detail-value">${flight.pax}</span></div>
+                <div class="detail-row"><span class="detail-label">ETA</span><span class="detail-value">${new Date(flight.eta).toLocaleTimeString()}</span></div>
+            `;
+
+            document.getElementById('detail-panel').classList.add('visible');
+            state.selectedFlight = flightId;
+        }
+
+        // Show airport detail
+        function showAirportDetail(aptId) {
+            const apt = getAirport(aptId);
+            if (!apt) return;
+
+            const content = document.getElementById('detail-content');
+            content.innerHTML = `
+                <div style="font-weight:700;font-size:14px;color:var(--ac);margin-bottom:10px;">${apt.id}</div>
+                <div class="detail-row"><span class="detail-label">Name</span><span class="detail-value">${apt.name}</span></div>
+                <div class="detail-row"><span class="detail-label">Country</span><span class="detail-value">${apt.cn}</span></div>
+                <div class="detail-row"><span class="detail-label">IATA</span><span class="detail-value">${apt.id}</span></div>
+                <div class="detail-row"><span class="detail-label">Passengers</span><span class="detail-value">${apt.pax.toLocaleString()}</span></div>
+                <div class="detail-row"><span class="detail-label">Runways</span><span class="detail-value">${apt.rwy}</span></div>
+                <div class="detail-row"><span class="detail-label">Latitude</span><span class="detail-value">${apt.la.toFixed(4)}</span></div>
+                <div class="detail-row"><span class="detail-label">Longitude</span><span class="detail-value">${apt.lo.toFixed(4)}</span></div>
+            `;
+
+            document.getElementById('detail-panel').classList.add('visible');
+        }
+
+        // Update weather panel
+        function updateWeatherPanel() {
+            const panel = document.getElementById('weather-panel');
+            let html = '<div style="font-weight:600;font-size:12px;margin-bottom:10px;color:var(--ac);">WEATHER</div>';
+
+            APT.slice(0, 5).forEach(apt => {
+                const weather = getWeather(apt);
+                html += `
+                    <div class="weather-item">
+                        <div class="weather-apt">${apt.id}</div>
+                        <div class="weather-row">
+                            <span class="weather-label">Temp</span>
+                            <span class="weather-value">${weather.temp}°C</span>
+                        </div>
+                        <div class="weather-row">
+                            <span class="weather-label">Wind</span>
+                            <span class="weather-value">${weather.wind}/${weather.gust} kt</span>
+                        </div>
+                        <div class="weather-row">
+                            <span class="weather-label">Visibility</span>
+                            <span class="weather-value">${weather.vis} km</span>
+                        </div>
+                        <div class="weather-row">
+                            <span class="weather-label">QNH</span>
+                            <span class="weather-value">${weather.qnh} hPa</span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            panel.innerHTML = html;
+        }
+
+        // Render analytics
+        function renderAnalytics() {
+            const container = document.getElementById('sidebar-content').parentElement;
+            container.innerHTML = `
+                <div class="analytics-grid" style="display:flex;flex-direction:column;padding:15px;">
+                    <div class="chart-wrapper">
+                        <div class="chart-title">Flights by Airline</div>
+                        <div class="chart-inner">
+                            <canvas id="chart-airline"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div class="chart-title">Flights by Status</div>
+                        <div class="chart-inner">
+                            <canvas id="chart-status"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div class="chart-title">Top Airports</div>
+                        <div class="chart-inner">
+                            <canvas id="chart-airports"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                const airlineData = {};
+                flights.forEach(f => {
+                    airlineData[f.als] = (airlineData[f.als] || 0) + 1;
+                });
+
+                new Chart(document.getElementById('chart-airline'), {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(airlineData).slice(0, 8),
+                        datasets: [{
+                            label: 'Flights',
+                            data: Object.values(airlineData).slice(0, 8),
+                            backgroundColor: 'rgba(0, 194, 255, 0.6)',
+                            borderColor: 'rgba(0, 194, 255, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: 'var(--tx3)', font: { size: 10 } },
+                                grid: { color: 'var(--bd)' }
+                            },
+                            x: {
+                                ticks: { color: 'var(--tx3)', font: { size: 10 } },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+
+                const statusCounts = {
+                    'En route': flights.filter(f => f.st === 'En route').length,
+                    'On ground': flights.filter(f => f.st === 'On ground').length,
+                    'Delayed': flights.filter(f => f.st === 'Retardé' || f.st === 'Delayed').length
+                };
+
+                new Chart(document.getElementById('chart-status'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(statusCounts),
+                        datasets: [{
+                            data: Object.values(statusCounts),
+                            backgroundColor: ['rgba(0, 194, 255, 0.6)', 'rgba(123, 97, 255, 0.6)', 'rgba(255, 170, 0, 0.6)'],
+                            borderColor: ['#00c2ff', '#7b61ff', '#ffaa00'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: 'var(--tx)', font: { size: 10 } }
+                            }
+                        }
+                    }
+                });
+
+                const aptCounts = {};
+                flights.forEach(f => {
+                    aptCounts[f.from] = (aptCounts[f.from] || 0) + 1;
+                });
+                const sortedApts = Object.entries(aptCounts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+                new Chart(document.getElementById('chart-airports'), {
+                    type: 'bar',
+                    data: {
+                        labels: sortedApts.map(a => a[0]),
+                        datasets: [{
+                            label: 'Departures',
+                            data: sortedApts.map(a => a[1]),
+                            backgroundColor: 'rgba(0, 214, 143, 0.6)',
+                            borderColor: 'rgba(0, 214, 143, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { color: 'var(--tx3)', font: { size: 10 } },
+                                grid: { color: 'var(--bd)' }
+                            },
+                            x: {
+                                ticks: { color: 'var(--tx3)', font: { size: 10 } },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }, 100);
+        }
+
+        // Render live grid
+        function renderLiveGrid() {
+            const container = document.getElementById('sidebar-content').parentElement;
+            let html = '<div class="live-grid">';
+
+            flights.forEach(f => {
+                const from = getAirport(f.from);
+                const to = getAirport(f.to);
+                html += `
+                    <div class="live-flight-card">
+                        <div class="live-flight-header">
+                            <div class="live-flight-call">${f.call}</div>
+                            <div class="live-flight-status status-badge status-${f.st === 'Retardé' || f.st === 'Delayed' ? 'delayed' : 'active'}">${f.st}</div>
+                        </div>
+                        <div class="live-flight-route">${from.id} → ${to.id}</div>
+                        <div class="live-flight-data">
+                            <div class="live-data-item">
+                                <div class="live-data-label">ALT</div>
+                                <div class="live-data-value">${f.alt} ft</div>
+                            </div>
+                            <div class="live-data-item">
+                                <div class="live-data-label">GS</div>
+                                <div class="live-data-value">${f.gs} kt</div>
+                            </div>
+                            <div class="live-data-item">
+                                <div class="live-data-label">HDG</div>
+                                <div class="live-data-value">${f.heading}°</div>
+                            </div>
+                            <div class="live-data-item">
+                                <div class="live-data-label">PAX</div>
+                                <div class="live-data-value">${f.pax}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+        }
+
+        // Mode switching
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                state.mode = e.target.dataset.mode;
+
+                if (state.mode === 'analytics') {
+                    renderAnalytics();
+                } else if (state.mode === 'live') {
+                    renderLiveGrid();
+                } else if (state.mode === 'tools') {
+                    document.getElementById('tools-panel').classList.add('visible');
+                }
+            });
+        });
+
+        // Sidebar tab switching
+        document.querySelectorAll('.sidebar-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+                e.target.classList.add('active');
+                state.sidebarTab = e.target.dataset.tab;
+                renderSidebar();
+            });
+        });
+
+        // Detail panel close
+        document.getElementById('detail-close').addEventListener('click', () => {
+            document.getElementById('detail-panel').classList.remove('visible');
+        });
+
+        // CHATBOT CODE
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const chatSend = document.getElementById('chat-send');
+        const chatButton = document.getElementById('chat-button');
+        const chatPanel = document.getElementById('chat-panel');
+        const chatClose = document.getElementById('chat-close');
+        const chatMinimize = document.getElementById('chat-minimize');
+        const chatBadge = document.getElementById('chat-badge');
+        const chatHeader = document.getElementById('chat-header');
+
+        let proactiveMessageCount = 0;
+
+        // Chat helper functions
+        function addChatMessage(text, isUser = false, richContent = null) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-message ' + (isUser ? 'user' : 'bot');
+
+            if (isUser) {
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-bubble';
+                bubble.textContent = text;
+                msgDiv.appendChild(bubble);
+            } else {
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-bubble';
+                bubble.innerHTML = text;
+                msgDiv.appendChild(bubble);
+
+                if (richContent) {
+                    const rich = document.createElement('div');
+                    rich.innerHTML = richContent;
+                    msgDiv.appendChild(rich);
+                }
+            }
+
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            state.chatHistory.push({ text, isUser, richContent });
+        }
+
+        function showTypingIndicator() {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'chat-message bot';
+            msgDiv.innerHTML = `
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            msgDiv.id = 'typing-indicator';
+            chatMessages.appendChild(msgDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const typing = document.getElementById('typing-indicator');
+            if (typing) typing.remove();
+        }
+
+        // Chatbot intent detection and response
+        function chatbotRespond(userInput) {
+            const input = userInput.toLowerCase().trim();
+            let response = '';
+            let richHtml = '';
+
+            // Flight search
+            if (input.includes('vol ') || input.includes('flight ') || input.includes('où est') || input.includes('where is')) {
+                const match = input.match(/([A-Z]{2}\d{3,4})/i);
+                if (match) {
+                    const flight = flights.find(f => f.call.toUpperCase() === match[0].toUpperCase());
+                    if (flight) {
+                        response = `Found flight ${flight.call}:`;
+                        const from = getAirport(flight.from);
+                        const to = getAirport(flight.to);
+                        richHtml = `
+                            <div class="rich-card flight-card" onclick="chatFlightClick('${flight.id}')">
+                                <div style="font-weight:600;color:var(--ac);margin-bottom:8px;">${flight.call}</div>
+                                <div style="font-size:11px;color:var(--tx2);margin-bottom:8px;">${from.id} → ${to.id}</div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px;">
+                                    <div class="card-grid-item">
+                                        <div class="card-grid-label">Altitude</div>
+                                        <div class="card-grid-value">${flight.alt} ft</div>
+                                    </div>
+                                    <div class="card-grid-item">
+                                        <div class="card-grid-label">Speed</div>
+                                        <div class="card-grid-value">${flight.gs} kt</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+            }
+
+            // Airport info
+            if (input.includes('aéroport ') || input.includes('airport ') || input.includes('info ')) {
+                const codes = APT.map(a => a.id);
+                for (let code of codes) {
+                    if (input.includes(code.toLowerCase())) {
+                        const apt = getAirport(code);
+                        response = `Information for ${apt.name}:`;
+                        richHtml = `
+                            <div class="rich-card airport-card" onclick="chatAirportClick('${apt.id}')">
+                                <div style="font-weight:600;color:var(--ac);margin-bottom:8px;">${apt.id}</div>
+                                <div style="font-size:11px;color:var(--tx2);margin-bottom:8px;">${apt.name}, ${apt.cn}</div>
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px;">
+                                    <div class="card-grid-item">
+                                        <div class="card-grid-label">Passengers</div>
+                                        <div class="card-grid-value">${(apt.pax / 1000000).toFixed(1)}M</div>
+                                    </div>
+                                    <div class="card-grid-item">
+                                        <div class="card-grid-label">Runways</div>
+                                        <div class="card-grid-value">${apt.rwy}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                    }
+                }
+            }
+
+            // Weather
+            if (input.includes('météo') || input.includes('weather') || input.includes('metar')) {
+                response = 'Current weather conditions:';
+                richHtml = '<div class="rich-card weather-card">';
+                APT.slice(0, 3).forEach(apt => {
+                    const w = getWeather(apt);
+                    richHtml += `
+                        <div style="padding:8px;border-bottom:1px solid var(--bd2);">
+                            <div style="font-weight:600;color:var(--ac);font-size:11px;margin-bottom:4px;">${apt.id}</div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:10px;">
+                                <div>Temp: <span style="color:var(--ac);">${w.temp}°C</span></div>
+                                <div>Wind: <span style="color:var(--ac);">${w.wind}/${w.gust}kt</span></div>
+                                <div>Vis: <span style="color:var(--ac);">${w.vis}km</span></div>
+                                <div>QNH: <span style="color:var(--ac);">${w.qnh}hPa</span></div>
+                            </div>
+                        </div>
+                    `;
+                });
+                richHtml += '</div>';
+            }
+
+            // Stats
+            if (input.includes('stats') || input.includes('statistiques') || input.includes('combien')) {
+                const activeFlights = flights.filter(f => f.st === 'En route').length;
+                const onGround = flights.filter(f => f.st === 'On ground').length;
+                const delayed = flights.filter(f => f.st === 'Retardé' || f.st === 'Delayed').length;
+                const totalPax = flights.reduce((a, f) => a + f.pax, 0);
+
+                response = 'Traffic statistics:';
+                richHtml = `
+                    <div class="rich-card stats-card">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:11px;">
+                            <div class="card-grid-item">
+                                <div class="card-grid-label">Active</div>
+                                <div class="card-grid-value">${activeFlights}</div>
+                            </div>
+                            <div class="card-grid-item">
+                                <div class="card-grid-label">On Ground</div>
+                                <div class="card-grid-value">${onGround}</div>
+                            </div>
+                            <div class="card-grid-item">
+                                <div class="card-grid-label">Delayed</div>
+                                <div class="card-grid-value">${delayed}</div>
+                            </div>
+                            <div class="card-grid-item">
+                                <div class="card-grid-label">Total PAX</div>
+                                <div class="card-grid-value">${totalPax.toLocaleString()}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Delays
+            if (input.includes('retard') || input.includes('delayed')) {
+                const delayedFlights = flights.filter(f => f.st === 'Retardé' || f.st === 'Delayed');
+                if (delayedFlights.length > 0) {
+                    response = `There are ${delayedFlights.length} delayed flights:`;
+                    richHtml = '<div class="rich-card alert-card">';
+                    delayedFlights.slice(0, 3).forEach(f => {
+                        const apt = getAirport(f.to);
+                        richHtml += `
+                            <div style="padding:6px;border-bottom:1px solid var(--bd2);font-size:11px;">
+                                <div style="color:var(--ac);font-weight:600;">${f.call}</div>
+                                <div style="color:var(--tx2);">${f.from} → ${apt.id}</div>
+                            </div>
+                        `;
+                    });
+                    richHtml += '</div>';
+                } else {
+                    response = 'No delays currently reported!';
+                }
+            }
+
+            // Greetings
+            if (input.includes('bonjour') || input.includes('hello') || input.includes('salut') || input.includes('hi')) {
+                const activeFlights = flights.filter(f => f.st === 'En route').length;
+                response = `Hello! Currently tracking ${flights.length} flights with ${activeFlights} airborne. How can I assist you?`;
+            }
+
+            // Help
+            if (input.includes('help') || input.includes('aide') || input.includes('what can')) {
+                response = 'I can help you with:\n• Flight tracking (e.g., "vol AF1234")\n• Airport information\n• Weather reports\n• Traffic statistics\n• Delay information\n• Route information';
+            }
+
+            // Default response
+            if (!response) {
+                response = 'I understand you\'re asking about aviation operations. Try asking about specific flights, airports, or traffic statistics!';
+            }
+
+            return { response, richHtml };
+        }
+
+        // Chat button and panel
+        chatButton.addEventListener('click', () => {
+            state.chatOpen = !state.chatOpen;
+            if (state.chatOpen) {
+                chatPanel.classList.add('open');
+                proactiveMessageCount = 0;
+                chatBadge.style.display = 'none';
+            } else {
+                chatPanel.classList.remove('open');
+            }
+        });
+
+        chatClose.addEventListener('click', () => {
+            state.chatOpen = false;
+            chatPanel.classList.remove('open');
+        });
+
+        chatMinimize.addEventListener('click', () => {
+            state.minimized = !state.minimized;
+            chatPanel.style.height = state.minimized ? '40px' : '550px';
+            chatMessages.parentElement.style.display = state.minimized ? 'none' : 'flex';
+            document.querySelector('.chat-input-area').style.display = state.minimized ? 'none' : 'flex';
+        });
+
+        // Make chat panel draggable
+        let dragStart = { x: 0, y: 0 };
+        chatHeader.addEventListener('mousedown', (e) => {
+            state.isDragging = true;
+            dragStart = { x: e.clientX - chatPanel.offsetLeft, y: e.clientY - chatPanel.offsetTop };
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (state.isDragging) {
+                chatPanel.style.right = 'auto';
+                chatPanel.style.bottom = 'auto';
+                chatPanel.style.left = (e.clientX - dragStart.x) + 'px';
+                chatPanel.style.top = (e.clientY - dragStart.y) + 'px';
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            state.isDragging = false;
+        });
+
+        // Send chat message
+        function sendChatMessage() {
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            addChatMessage(text, true);
+            chatInput.value = '';
+
+            showTypingIndicator();
+            setTimeout(() => {
+                removeTypingIndicator();
+                const { response, richHtml } = chatbotRespond(text);
+                addChatMessage(response, false, richHtml);
+            }, 500);
+        }
+
+        chatSend.addEventListener('click', sendChatMessage);
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendChatMessage();
+        });
+
+        // Chat chips
+        document.querySelectorAll('.chat-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const query = chip.dataset.query;
+                let text = '';
+                if (query === 'active') text = 'Combien de vols actifs?';
+                else if (query === 'weather') text = 'Météo à Pointe-à-Pitre';
+                else if (query === 'stats') text = 'Statistiques trafic';
+                else if (query === 'delays') text = 'Vols retardés';
+                else if (query === 'top') text = 'Top routes';
+                else if (query === 'hubs') text = 'Aéroports hub';
+
+                chatInput.value = text;
+                sendChatMessage();
+            });
+        });
+
+        // Welcome message on load
+        setTimeout(() => {
+            if (!state.chatOpen) {
+                state.chatOpen = true;
+                chatPanel.classList.add('open');
+            }
+            const activeFlights = flights.filter(f => f.st === 'En route').length;
+            addChatMessage(`Welcome to ATC Assistant! 👋 I see ${flights.length} flights in the system with ${activeFlights} currently airborne. What would you like to know?`);
+        }, 3000);
+
+        // Global chat helper functions
+        window.chatFlightClick = function(flightId) {
+            showFlightDetail(flightId);
+            const flight = flights.find(f => f.id === flightId);
+            mapObj.flyTo([flight.la, flight.lo], 10);
+        };
+
+        window.chatAirportClick = function(aptId) {
+            showAirportDetail(aptId);
+            const apt = getAirport(aptId);
+            mapObj.flyTo([apt.la, apt.lo], 9);
+        };
+
+        // Tools panel
+        document.getElementById('calc-btn').addEventListener('click', () => {
+            const from = document.getElementById('calc-from').value.toUpperCase();
+            const to = document.getElementById('calc-to').value.toUpperCase();
+            const fromApt = getAirport(from);
+            const toApt = getAirport(to);
+
+            if (fromApt && toApt) {
+                const dist = calculateDistance(fromApt.la, fromApt.lo, toApt.la, toApt.lo);
+                const result = document.getElementById('calc-result');
+                result.textContent = `Distance: ${dist.toFixed(1)} km`;
+                result.style.display = 'block';
+            }
+        });
+
+        document.getElementById('export-csv-btn').addEventListener('click', () => {
+            let csv = 'Callsign,From,To,Altitude,Speed,Status,Passengers\n';
+            flights.forEach(f => {
+                csv += `${f.call},${f.from},${f.to},${f.alt},${f.gs},${f.st},${f.pax}\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'caribbean-atc-flights.csv';
+            a.click();
+        });
+
+        document.getElementById('export-fids-btn').addEventListener('click', () => {
+            let fids = 'FIDS DATA - Caribbean ATC Pro\n';
+            fids += '================================\n\n';
+            APT.slice(0, 5).forEach(apt => {
+                fids += `${apt.id} - ${apt.name}\n`;
+                const depts = flights.filter(f => f.from === apt.id).slice(0, 5);
+                depts.forEach(f => {
+                    fids += `  ${f.call} → ${f.to} ${f.st}\n`;
+                });
+                fids += '\n';
+            });
+            const blob = new Blob([fids], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'caribbean-atc-fids.txt';
+            a.click();
+        });
+
+        // Proactive messages
+        setInterval(() => {
+            if (state.chatOpen) {
+                proactiveMessageCount++;
+                chatBadge.textContent = proactiveMessageCount;
+                chatBadge.style.display = 'flex';
+
+                const messages = [
+                    '💡 ' + getAirport(Object.entries(flights.reduce((a, f) => { a[f.from] = (a[f.from] || 0) + 1; return a; }, {}))[0][0]).name + ' is the busiest airport right now!',
+                    '✈️ Currently ' + flights.filter(f => f.st === 'En route').length + ' flights airborne',
+                    '⏰ Peak traffic expected in the next 30 minutes',
+                    '🎯 All systems nominal - no delays reported'
+                ];
+                const msg = messages[Math.floor(Math.random() * messages.length)];
+                addChatMessage(msg);
+            }
+        }, 120000);
+
+        // Simulation loop
+        setInterval(() => {
+            flights.forEach(f => {
+                f.alt += Math.floor((Math.random() - 0.5) * 400);
+                f.gs += Math.floor((Math.random() - 0.5) * 40);
+                f.la += (Math.random() - 0.5) * 0.1;
+                f.lo += (Math.random() - 0.5) * 0.1;
+                f.heading += Math.floor((Math.random() - 0.5) * 10);
+                if (f.heading < 0) f.heading += 360;
+                if (f.heading > 360) f.heading -= 360;
+            });
+            updateMapFlights();
+        }, 3000);
+
+        // Initialize
+        updateClock();
+        updateKPIs();
+        updateMapAirports();
+        updateMapFlights();
+        renderSidebar();
+        updateWeatherPanel();
+
+        setInterval(updateClock, 1000);
+        setInterval(updateKPIs, 5000);
+        setInterval(renderSidebar, 30000);
+    </script>
+</body>
+</html>
