@@ -67,18 +67,11 @@ export default async function handler(req, res) {
       });
     }
 
-    // Try full bbox first, fallback to smaller bbox
+    // Use small bbox (Antilles) as primary — full Caribbean bbox too slow
     let data;
-    let usedBbox = BBOX;
-    try {
-      const url = bboxUrl(BBOX);
-      data = await fetchOpenSky(url, 7000);
-    } catch (e) {
-      console.warn('Full bbox timeout, trying smaller bbox:', e.message);
-      usedBbox = BBOX_SMALL;
-      const url = bboxUrl(BBOX_SMALL);
-      data = await fetchOpenSky(url, 8000);
-    }
+    let usedBbox = BBOX_SMALL;
+    const url = bboxUrl(BBOX_SMALL);
+    data = await fetchOpenSky(url, 8000);
 
     const formatted = formatStates(data, usedBbox);
     statesCache = { data: formatted, timestamp: now };
