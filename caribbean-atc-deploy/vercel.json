@@ -1,7 +1,13 @@
 {
   "buildCommand": "",
   "outputDirectory": ".",
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 10
+    }
+  },
   "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
