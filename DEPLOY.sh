@@ -35,11 +35,12 @@ cp "$SCRIPT_DIR/api/create-checkout.js" api/
 cp "$SCRIPT_DIR/api/verify-session.js" api/
 cp "$SCRIPT_DIR/api/webhook.js" api/
 cp "$SCRIPT_DIR/api/validate.js" api/
+cp "$SCRIPT_DIR/api/opensky.js" api/
 
 # 4. Commit et push
 echo "📤 Push vers GitHub..."
 git add -A
-git commit -m "v6: refonte complète landing page KCI — conversion, mobile-first, SEO"
+git commit -m "feat: live ADS-B via OpenSky Network + fallback simulation"
 git push origin main
 
 echo ""

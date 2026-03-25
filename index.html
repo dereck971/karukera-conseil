@@ -335,7 +335,7 @@ canvas{max-height:240px}
   <!-- Top bar -->
   <div class="topbar">
     <div><span class="logo-app">Caribbean ATC<span class="logo-sub">PRO</span></span></div>
-    <span class="live-dot">● LIVE</span>
+    <span id="liveBadge" class="live-dot" style="font-size:10px;padding:4px 12px;border-radius:20px;background:rgba(255,170,0,.15);color:#ffaa00;font-weight:700;letter-spacing:.5px">CHARGEMENT...</span>
     <div class="topstats">
       <div class="ts"><div class="ts-v" id="sF">0</div><div class="ts-l">Vols</div></div>
       <div class="ts"><div class="ts-v" id="sA">0</div><div class="ts-l">Aéroports</div></div>
@@ -519,6 +519,100 @@ const STG={"En route":"er","Approche":"ap","Embarquement":"bo","Décollé":"dp",
 const pk=a=>a[Math.floor(Math.random()*a.length)];
 const am=Object.fromEntries(APT.map(a=>[a.i,a]));
 
+// ═══ LIVE OPENSKY INTEGRATION ═══
+let liveMode=true, lastFetchOk=false, fetchCount=0;
+
+function nearestAirport(la,lo){
+  let best=null,bd=Infinity;
+  APT.forEach(a=>{const d=Math.sqrt((a.la-la)**2+(a.lo-lo)**2);if(d<bd){bd=d;best=a}});
+  return best;
+}
+
+function guessAirline(callsign){
+  if(!callsign) return null;
+  const prefix=callsign.substring(0,2).toUpperCase();
+  const icaoPrefix=callsign.substring(0,3).toUpperCase();
+  // ICAO 3-letter to our airline codes
+  const icaoMap={AFR:"AF",FWI:"TX",CRL:"SS",FBU:"OR",GUY:"3S",WIA:"WM",LIA:"LI",BWA:"BW",
+    AAL:"AA",JBU:"JB",DAL:"DL",UAL:"UA",CMP:"CM",CUB:"CU",NKS:"NK",KLM:"KL",BAW:"BA",AVA:"AV",SWA:"WN"};
+  const code=icaoMap[icaoPrefix];
+  if(code){const al=ALS.find(a=>a.i===code);if(al)return al}
+  // IATA 2-letter fallback
+  const al2=ALS.find(a=>a.i===prefix);
+  if(al2) return al2;
+  return null;
+}
+
+function flightStatus(alt,vr,spd,onGround){
+  if(onGround) return "Embarquement";
+  if(alt<5000 && vr>200) return "Décollé";
+  if(alt<8000 && vr<-200) return "Approche";
+  return "En route";
+}
+
+async function fetchLiveFlights(){
+  try{
+    const res=await fetch('/api/opensky');
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    if(!data.flights||!data.flights.length){
+      console.warn('OpenSky: 0 flights returned');
+      if(!lastFetchOk) return null;
+      return null;
+    }
+    lastFetchOk=true;fetchCount++;
+    const mapped=data.flights.map((f,i)=>{
+      const cs=(f.callsign||'').trim();
+      const al=guessAirline(cs);
+      const la=f.latitude,lo=f.longitude;
+      const nearDep=nearestAirport(la,lo);
+      // Guess destination as a different nearby airport
+      const otherApts=[...APT].sort((a,b)=>{
+        const da=Math.sqrt((a.la-la)**2+(a.lo-lo)**2);
+        const db=Math.sqrt((b.la-la)**2+(b.lo-lo)**2);
+        return da-db;
+      });
+      const dest=otherApts.find(a=>a.i!==nearDep?.i)||otherApts[0];
+      const alt=f.altitude||0;
+      const spd=f.speed?Math.round(f.speed*1.852):0; // knots to km/h
+      const hdg=f.heading||0;
+      const vr=f.vertical_rate||0;
+      const st=flightStatus(alt,vr,spd,f.on_ground);
+      const p=st==="Embarquement"?0:st==="Décollé"?.05:st==="Approche"?.92:.5;
+      return{
+        id:f.icao24||('live-'+i),
+        fn:cs||f.icao24?.toUpperCase()||'N/A',
+        ai:al?.i||'??',an:al?.n||f.origin_country||'Unknown',ac:al?.cl||'#00c2ff',
+        f:nearDep?.i||'???',t:dest?.i||'???',
+        fn2:nearDep?.n||'',tn:dest?.n||'',
+        fc:nearDep?.c||'',tc:dest?.c||'',
+        dp:'—',ar:'—',du:'—',
+        st,p,la,lo,alt,spd,
+        tp:categorizeAircraft(f.category),
+        px:Math.floor(Math.random()*180+20),
+        hdg,
+        icao24:f.icao24,
+        squawk:f.squawk,
+        vr,
+        geo_alt:f.geo_altitude,
+        country:f.origin_country,
+        live:true
+      };
+    });
+    return mapped;
+  }catch(e){
+    console.error('OpenSky fetch error:',e);
+    return null;
+  }
+}
+
+function categorizeAircraft(cat){
+  const cats={0:'Inconnu',1:'Light',2:'Small',3:'Large',4:'High Vortex',5:'Heavy',
+    6:'Highly Maneuv.',7:'Rotorcraft',10:'Space',14:'UAV',15:'Space'};
+  return cats[cat]||'Aircraft';
+}
+
+// Fallback: generate simulated flights if API fails
 function gf(){
   const fl=[];
   ALS.forEach(al=>{al.rt.forEach(r=>{
@@ -541,7 +635,7 @@ function gf(){
         dp:`${String(dh).padStart(2,'0')}:${String(dm).padStart(2,'0')}`,
         ar:`${String((dh+Math.floor(dur/60))%24).padStart(2,'0')}:${String((dm+dur%60)%60).padStart(2,'0')}`,
         du:`${Math.floor(dur/60)}h${String(dur%60).padStart(2,'0')}`,
-        st,p,la,lo,alt,spd,tp:pk(AC),px:30+Math.floor(Math.random()*200),hdg});
+        st,p,la,lo,alt,spd,tp:pk(AC),px:30+Math.floor(Math.random()*200),hdg,live:false});
     }
   })});return fl;
 }
@@ -565,10 +659,13 @@ function genWx(){
   });
 }
 
-function initApp(){
+async function initApp(){
   if(appInit) return;appInit=true;
+
+  // Start with simulated data while we fetch live
   flights=gf();
-  mapObj=L.map('map',{center:[18,-68],zoom:6,zoomControl:false,attributionControl:false});
+
+  mapObj=L.map('map',{center:[17,-64],zoom:6,zoomControl:false,attributionControl:false});
   L.control.zoom({position:'bottomleft'}).addTo(mapObj);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(mapObj);
 
@@ -591,10 +688,48 @@ function initApp(){
   });
 
   rp();rt();us();
-  setInterval(()=>{sim();us()},3000);
+
+  // Try to load live data immediately
+  const live=await fetchLiveFlights();
+  if(live&&live.length>0){
+    flights=live;liveMode=true;
+    updateLiveIndicator(true,live.length);
+    rp();rt();us();
+  } else {
+    liveMode=false;
+    updateLiveIndicator(false,flights.length);
+  }
+
+  // Refresh live data every 15s
+  setInterval(async()=>{
+    const fresh=await fetchLiveFlights();
+    if(fresh&&fresh.length>0){
+      flights=fresh;liveMode=true;
+      updateLiveIndicator(true,fresh.length);
+      rp();if(showH)rh();us();
+      if(tab2==='flights')rt();
+    } else if(!liveMode){
+      // Fallback simulation
+      sim();
+    }
+    us();
+  },15000);
+
+  // Light sim for fallback mode only
+  setInterval(()=>{if(!liveMode){sim();us()}},3000);
   setInterval(()=>{if(showAB)genAlert()},5000);
   setInterval(()=>{if(tab2==='flights')rt()},6000);
   setInterval(uc,1000);uc();
+}
+
+function updateLiveIndicator(isLive,count){
+  const dot=document.querySelector('.hero-chip-dot')||document.querySelector('.live-dot');
+  const badge=document.getElementById('liveBadge');
+  if(badge){
+    badge.textContent=isLive?`LIVE ADS-B · ${count} vols`:`SIMULATION · ${count} vols`;
+    badge.style.background=isLive?'rgba(0,214,143,.15)':'rgba(255,170,0,.15)';
+    badge.style.color=isLive?'#00d68f':'#ffaa00';
+  }
 }
 
 function uc(){
@@ -610,11 +745,13 @@ function rp(){
       className:'',iconSize:[16,16],iconAnchor:[8,8]});
     const m=L.marker([fl.la,fl.lo],{icon}).addTo(mapObj);
     m.bindPopup(`<div style="min-width:150px"><b style="font-size:13px;color:#fff">${fl.fn}</b><span style="font-size:9px;color:#a0aacc;margin-left:5px">${fl.an}</span>
+      ${fl.live?'<span style="font-size:7px;background:#00d68f22;color:#00d68f;padding:1px 5px;border-radius:8px;margin-left:4px">LIVE</span>':''}
       <div style="font-size:11px;color:#fff;margin-top:4px;font-weight:600">${fl.f}→${fl.t}</div>
       <div style="font-size:9px;color:#6b7394">${fl.fc}→${fl.tc}</div>
       <div style="margin-top:5px;display:grid;grid-template-columns:1fr 1fr;gap:2px;font-size:9px">
       <div><span style="color:#6b7394">Alt:</span> <span style="color:#00c2ff">${fl.alt.toLocaleString()}ft</span></div>
-      <div><span style="color:#6b7394">Vit:</span> <span style="color:#00c2ff">${fl.spd}km/h</span></div></div></div>`);
+      <div><span style="color:#6b7394">Vit:</span> <span style="color:#00c2ff">${fl.spd}km/h</span></div>
+      ${fl.icao24?`<div><span style="color:#6b7394">ICAO:</span> <span style="color:#ffaa00">${fl.icao24}</span></div>`:''}</div></div>`);
     m.on('click',()=>openDet(fl));
     pmks.push(m);
     const d=am[fl.f],a=am[fl.t];
@@ -668,7 +805,7 @@ function rfTab(el){
   let h=`<div class="swrap"><span class="si">🔍</span><input placeholder="Vol, route..." id="sf1" oninput="fc('f')"></div>`;
   s.slice(0,70).forEach(f=>{
     h+=`<div class="card fi" onclick="openDet(flights.find(x=>x.id==='${f.id}'))">
-      <div class="card-row"><span class="iata-sm">${f.fn}</span><span class="chip-al" style="background:${f.ac}20;color:${f.ac}">${f.an}</span></div>
+      <div class="card-row"><span class="iata-sm">${f.fn}</span>${f.live?'<span style="font-size:7px;background:#00d68f22;color:#00d68f;padding:1px 5px;border-radius:8px">ADS-B</span>':''}<span class="chip-al" style="background:${f.ac}20;color:${f.ac}">${f.an}</span></div>
       <div class="card-route"><div><div class="iata">${f.f}</div><div class="city">${f.fc}</div><div class="city">${f.dp}</div></div>
       <div class="rline"></div><div style="text-align:right"><div class="iata">${f.t}</div><div class="city">${f.tc}</div><div class="city">${f.ar}</div></div></div>
       <div class="mrow"><div class="meta"><span class="ml">Avion</span><span class="mv">${f.tp}</span></div>
@@ -761,7 +898,13 @@ function openDet(f){
       <div><div class="ml">Durée</div><div style="font-size:13px;color:#fff;font-weight:600">${f.du}</div></div>
     </div>
     <div class="sect"><div class="sect-t">Position GPS</div>
-    <div class="mono" style="font-size:11px;color:var(--tx2)">Lat: ${f.la.toFixed(4)}° · Lng: ${f.lo.toFixed(4)}°</div></div>`;
+    <div class="mono" style="font-size:11px;color:var(--tx2)">Lat: ${f.la.toFixed(4)}° · Lng: ${f.lo.toFixed(4)}°</div></div>
+    ${f.live?`<div class="sect"><div class="sect-t">Données ADS-B</div>
+    <div class="g2" style="font-size:9px">
+    <div><span style="color:var(--tx4)">ICAO24</span><br><b style="color:var(--ac)" class="mono">${f.icao24||'—'}</b></div>
+    <div><span style="color:var(--tx4)">Squawk</span><br><b class="mono">${f.squawk||'—'}</b></div>
+    <div><span style="color:var(--tx4)">V/S</span><br><b class="mono" style="color:${(f.vr||0)>0?'var(--ac3)':(f.vr||0)<0?'var(--warn)':'var(--tx2)'}">${f.vr||0>0?'+':''}${f.vr||0}ft/m</b></div>
+    <div><span style="color:var(--tx4)">Pays</span><br>${f.country||'—'}</div></div></div>`:''}`;
   o.classList.add('open');
 }
 

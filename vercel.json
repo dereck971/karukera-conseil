@@ -1,7 +1,13 @@
 {
   "buildCommand": "",
   "outputDirectory": ".",
+  "functions": {
+    "api/opensky.js": {
+      "maxDuration": 25
+    }
+  },
   "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
