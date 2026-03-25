@@ -6,11 +6,15 @@ const crypto = require('crypto');
 const Stripe = require('stripe');
 
 // ─── STOCKAGE PERSISTANT ──────────────────────────────────────────
-let kvStore;
+// @vercel/kv exporte { kv } — le client pre-configure
+// Nécessite KV_REST_API_URL + KV_REST_API_TOKEN en env vars
+let kvClient = null;
 try {
-  kvStore = require('@vercel/kv');
+  if (process.env.KV_REST_API_URL) {
+    kvClient = require('@vercel/kv').kv;
+  }
 } catch (e) {
-  kvStore = null;
+  kvClient = null;
 }
 
 const memoryFallback = global._kciPending || (global._kciPending = new Map());
@@ -18,27 +22,33 @@ const formFallback = global._kciFormData || (global._kciFormData = new Map());
 
 const reportStore = {
   async get(key) {
-    if (kvStore) {
-      const raw = await kvStore.get(`report:${key}`);
-      return raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null;
-    }
+    try {
+      if (kvClient) {
+        const raw = await kvClient.get(`report:${key}`);
+        return raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null;
+      }
+    } catch (e) { /* KV unavailable, fallback */ }
     return memoryFallback.get(key) || null;
   },
-  async set(key, value, options = {}) {
-    if (kvStore) {
-      await kvStore.set(`report:${key}`, JSON.stringify(value), { ex: options.ttl || 7 * 24 * 3600 });
-    } else {
-      memoryFallback.set(key, value);
-    }
+  async set(key, value) {
+    try {
+      if (kvClient) {
+        await kvClient.set(`report:${key}`, JSON.stringify(value), { ex: 7 * 24 * 3600 });
+        return;
+      }
+    } catch (e) { /* KV unavailable, fallback */ }
+    memoryFallback.set(key, value);
   }
 };
 
 const formStore = {
   async get(key) {
-    if (kvStore) {
-      const raw = await kvStore.get(`form:${key}`);
-      return raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null;
-    }
+    try {
+      if (kvClient) {
+        const raw = await kvClient.get(`form:${key}`);
+        return raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null;
+      }
+    } catch (e) { /* KV unavailable, fallback */ }
     return formFallback.get(key) || null;
   }
 };

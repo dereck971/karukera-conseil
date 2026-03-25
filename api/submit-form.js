@@ -6,19 +6,26 @@ const crypto = require('crypto');
 const Stripe = require('stripe');
 
 // ─── STOCKAGE PERSISTANT ──────────────────────────────────────────
-let kvStore;
+let kvClient = null;
 try {
-  kvStore = require('@vercel/kv');
+  if (process.env.KV_REST_API_URL) {
+    kvClient = require('@vercel/kv').kv;
+  }
 } catch (e) {
-  kvStore = null;
+  kvClient = null;
 }
 
 const memoryFallback = global._kciFormData || (global._kciFormData = new Map());
 
 const store = {
   async set(key, value, options = {}) {
-    if (kvStore) {
-      await kvStore.set(`form:${key}`, JSON.stringify(value), { ex: options.ttl || 24 * 3600 });
+    if (kvClient) {
+      try {
+        await kvClient.set(`form:${key}`, JSON.stringify(value), { ex: options.ttl || 24 * 3600 });
+      } catch (e) {
+        console.error('[store] KV set error:', e.message);
+        memoryFallback.set(key, value);
+      }
     } else {
       memoryFallback.set(key, value);
     }

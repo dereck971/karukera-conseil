@@ -5,26 +5,38 @@ const crypto = require('crypto');
 
 // ─── STOCKAGE PERSISTANT ──────────────────────────────────────────
 // Utilise Vercel KV si disponible, sinon fallback RAM (dev local)
-let kvStore;
+let kvClient = null;
 try {
-  kvStore = require('@vercel/kv');
+  if (process.env.KV_REST_API_URL) {
+    kvClient = require('@vercel/kv').kv;
+  }
 } catch (e) {
-  kvStore = null;
+  kvClient = null;
 }
 
 const memoryFallback = global._kciPending || (global._kciPending = new Map());
 
 const store = {
   async get(key) {
-    if (kvStore) {
-      return await kvStore.get(`report:${key}`);
+    if (kvClient) {
+      try {
+        return await kvClient.get(`report:${key}`);
+      } catch (e) {
+        console.error('[store] KV get error:', e.message);
+        return memoryFallback.get(key) || null;
+      }
     }
     return memoryFallback.get(key) || null;
   },
   async set(key, value, options = {}) {
-    if (kvStore) {
-      // TTL de 7 jours par défaut
-      await kvStore.set(`report:${key}`, JSON.stringify(value), { ex: options.ttl || 7 * 24 * 3600 });
+    if (kvClient) {
+      try {
+        // TTL de 7 jours par défaut
+        await kvClient.set(`report:${key}`, JSON.stringify(value), { ex: options.ttl || 7 * 24 * 3600 });
+      } catch (e) {
+        console.error('[store] KV set error:', e.message);
+        memoryFallback.set(key, value);
+      }
     } else {
       memoryFallback.set(key, value);
     }
