@@ -13,7 +13,7 @@ function generateToken(payload) {
 }
 
 module.exports = async (req, res) => {
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://analyse-immo.vercel.app';
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://www.karukera-conseil.com';
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');

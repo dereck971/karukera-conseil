@@ -45,7 +45,7 @@ git push origin main
 echo ""
 echo "✅ Déploiement terminé !"
 echo "🌐 Vercel va déployer automatiquement dans ~30 secondes."
-echo "👉 Vérifie sur : https://analyse-immo.vercel.app"
+echo "👉 Vérifie sur : https://www.karukera-conseil.com"
 echo ""
 
 # Nettoyage

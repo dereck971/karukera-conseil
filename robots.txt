@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://analyse-immo.vercel.app/sitemap.xml
+Sitemap: https://www.karukera-conseil.com/sitemap.xml
