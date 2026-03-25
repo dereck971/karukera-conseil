@@ -60,12 +60,25 @@ function escapeHtml(str) {
 }
 
 // ─── RAW BODY READER ─────────────────────────────────────────────
+// Vercel Node 24.x peut pre-lire le body. On gère les 3 cas :
+// 1. req.body est un Buffer (bodyParser: false sur Vercel récent)
+// 2. req.body est un string
+// 3. body pas encore lu → lire le stream
 async function getRawBody(req) {
+  // Cas 1 & 2 : Vercel a déjà lu le body
+  if (req.body) {
+    if (Buffer.isBuffer(req.body)) return req.body;
+    if (typeof req.body === 'string') return Buffer.from(req.body);
+    // req.body est un objet parsé — on le re-stringify (pas idéal mais fonctionne)
+    return Buffer.from(JSON.stringify(req.body));
+  }
+  // Cas 3 : stream classique
   return new Promise((resolve, reject) => {
     const chunks = [];
+    const timeout = setTimeout(() => reject(new Error('Body read timeout')), 5000);
     req.on('data', (chunk) => chunks.push(chunk));
-    req.on('end', () => resolve(Buffer.concat(chunks)));
-    req.on('error', reject);
+    req.on('end', () => { clearTimeout(timeout); resolve(Buffer.concat(chunks)); });
+    req.on('error', (err) => { clearTimeout(timeout); reject(err); });
   });
 }
 
