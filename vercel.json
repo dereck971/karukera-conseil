@@ -1,14 +1,55 @@
 {
-  "buildCommand": "",
-  "outputDirectory": ".",
-  "functions": {
-    "api/opensky.js": {
-      "maxDuration": 25
-    }
-  },
+  "version": 2,
+  "builds": [
+    { "src": "api/**/*.js", "use": "@vercel/node" },
+    { "src": "index.html", "use": "@vercel/static" },
+    { "src": "success.html", "use": "@vercel/static" },
+    { "src": "articles/*.html", "use": "@vercel/static" },
+    { "src": "favicon.png", "use": "@vercel/static" },
+    { "src": "apple-touch-icon.png", "use": "@vercel/static" },
+    { "src": "logo-kci.png", "use": "@vercel/static" },
+    { "src": "logo-kci-sm.png", "use": "@vercel/static" },
+    { "src": "og-image.png", "use": "@vercel/static" },
+    { "src": "photo-fondateur.jpg", "use": "@vercel/static" },
+    { "src": "exemple-rapport-kci.pdf", "use": "@vercel/static" },
+    { "src": "preview-*.png", "use": "@vercel/static" },
+    { "src": "rapport-exemple-*.pdf", "use": "@vercel/static" },
+    { "src": "robots.txt", "use": "@vercel/static" },
+    { "src": "sitemap.xml", "use": "@vercel/static" },
+    { "src": "favicon.svg", "use": "@vercel/static" }
+  ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "handle": "filesystem" },
+    { "src": "/robots.txt", "dest": "/robots.txt" },
+    { "src": "/sitemap.xml", "dest": "/sitemap.xml" },
+    { "src": "/favicon.png", "dest": "/favicon.png" },
+    { "src": "/favicon.svg", "dest": "/favicon.svg" },
+    { "src": "/apple-touch-icon.png", "dest": "/apple-touch-icon.png" },
+    { "src": "/logo-kci.png", "dest": "/logo-kci.png" },
+    { "src": "/logo-kci-sm.png", "dest": "/logo-kci-sm.png" },
+    { "src": "/og-image.png", "dest": "/og-image.png" },
+    { "src": "/photo-fondateur.jpg", "dest": "/photo-fondateur.jpg" },
+    { "src": "/exemple-rapport-kci.pdf", "dest": "/exemple-rapport-kci.pdf" },
+    { "src": "/preview-(.*).png", "dest": "/preview-$1.png" },
+    { "src": "/rapport-exemple-(.*).pdf", "dest": "/rapport-exemple-$1.pdf" },
+    { "src": "/success.html", "dest": "/success.html" },
+    { "src": "/articles/(.*).html", "dest": "/articles/$1.html" },
     { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    },
+    {
+      "source": "/(.*).(png|jpg|svg|pdf|ico)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
   ]
 }

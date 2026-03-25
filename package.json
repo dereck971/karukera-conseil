@@ -1,9 +1,21 @@
 {
-  "name": "caribbean-atc-pro",
-  "version": "0.9.0",
+  "name": "kci-analyse-immo",
+  "version": "7.0.0",
+  "description": "Karukera Conseil Immobilier — Pré-étude de faisabilité immobilière en Guadeloupe",
   "private": true,
   "scripts": {
-    "start": "npx serve .",
-    "build": "echo 'Static site - no build needed'"
+    "dev": "vercel dev",
+    "deploy": "vercel --prod",
+    "lint": "eslint api/",
+    "test": "node test/basic.test.js"
+  },
+  "dependencies": {
+    "stripe": "^14.0.0",
+    "@anthropic-ai/sdk": "^0.24.0",
+    "resend": "^3.2.0",
+    "@vercel/kv": "^2.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0"
   }
 }
