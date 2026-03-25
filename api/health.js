@@ -1,41 +1,34 @@
-// api/health.js — Diagnostic des env vars (sans exposer les valeurs)
+// api/health.js — Diagnostic (static requires for proper bundling)
+const Stripe = require('stripe');
+const { Resend } = require('resend');
+
+let kvStore;
+try { kvStore = require('@vercel/kv'); } catch (e) { kvStore = null; }
+
+let pdfLib;
+try { pdfLib = require('pdf-lib'); } catch (e) { pdfLib = null; }
+
 module.exports = (req, res) => {
   const vars = [
-    'STRIPE_SECRET_KEY',
-    'STRIPE_WEBHOOK_SECRET',
-    'ANTHROPIC_API_KEY',
-    'RESEND_API_KEY',
-    'ADMIN_EMAIL',
-    'ADMIN_SECRET',
-    'FROM_EMAIL',
-    'BASE_URL'
+    'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'ANTHROPIC_API_KEY',
+    'RESEND_API_KEY', 'ADMIN_EMAIL', 'ADMIN_SECRET', 'FROM_EMAIL', 'BASE_URL'
   ];
 
   const status = {};
   for (const v of vars) {
     const val = process.env[v];
-    if (!val) {
-      status[v] = 'MISSING';
-    } else {
-      status[v] = `OK (${val.length} chars, starts: ${val.slice(0, 4)}...)`;
-    }
-  }
-
-  // Test require des modules
-  const modules = {};
-  for (const m of ['stripe', 'resend', '@vercel/kv', 'pdf-lib']) {
-    try {
-      require(m);
-      modules[m] = 'OK';
-    } catch (e) {
-      modules[m] = `FAIL: ${e.message.slice(0, 60)}`;
-    }
+    status[v] = val ? `OK (${val.length}c)` : 'MISSING';
   }
 
   return res.status(200).json({
-    timestamp: new Date().toISOString(),
+    ts: new Date().toISOString(),
     node: process.version,
-    envVars: status,
-    modules
+    env: status,
+    modules: {
+      stripe: typeof Stripe === 'function' ? 'OK' : 'FAIL',
+      resend: typeof Resend === 'function' ? 'OK' : 'FAIL',
+      '@vercel/kv': kvStore ? 'OK' : 'FAIL (optional)',
+      'pdf-lib': pdfLib ? 'OK' : 'FAIL (optional)'
+    }
   });
 };
