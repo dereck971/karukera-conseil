@@ -1,0 +1,15 @@
+{
+  "name": "kci-analyse-immo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npx serve .",
+    "build": "echo 'Static site - no build needed'"
+  },
+  "dependencies": {
+    "stripe": "^14.0.0",
+    "resend": "^3.0.0",
+    "@vercel/kv": "^2.0.0",
+    "pdf-lib": "^1.17.1"
+  }
+}
