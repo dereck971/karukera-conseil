@@ -2,7 +2,34 @@
 // Endpoint de validation admin : approve → envoie email client / reject → demande révision
 
 const crypto = require('crypto');
-const pendingReports = global._kciPending || (global._kciPending = new Map());
+
+// ─── STOCKAGE PERSISTANT ──────────────────────────────────────────
+// Utilise Vercel KV si disponible, sinon fallback RAM (dev local)
+let kvStore;
+try {
+  kvStore = require('@vercel/kv');
+} catch (e) {
+  kvStore = null;
+}
+
+const memoryFallback = global._kciPending || (global._kciPending = new Map());
+
+const store = {
+  async get(key) {
+    if (kvStore) {
+      const raw = await kvStore.get(`report:${key}`);
+      return raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null;
+    }
+    return memoryFallback.get(key) || null;
+  },
+  async set(key, value, options = {}) {
+    if (kvStore) {
+      await kvStore.set(`report:${key}`, JSON.stringify(value), { ex: options.ttl || 7 * 24 * 3600 });
+    } else {
+      memoryFallback.set(key, value);
+    }
+  }
+};
 
 // Génère un token HMAC signé à usage unique
 function generateAdminToken(reportId, action) {
@@ -16,7 +43,10 @@ function generateAdminToken(reportId, action) {
 // Vérifie le token HMAC
 function verifyAdminToken(reportId, action, token) {
   const expected = generateAdminToken(reportId, action);
-  return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(expected));
+  const tokenBuf = Buffer.from(String(token));
+  const expectedBuf = Buffer.from(expected);
+  if (tokenBuf.length !== expectedBuf.length) return false;
+  return crypto.timingSafeEqual(tokenBuf, expectedBuf);
 }
 
 module.exports = async (req, res) => {
@@ -34,7 +64,7 @@ module.exports = async (req, res) => {
     return res.status(403).send(html('Accès refusé', 'Lien invalide ou expiré.', '#C43B2E'));
   }
 
-  const report = pendingReports.get(id);
+  const report = await store.get(id);
   if (!report) {
     return res.status(404).send(html(
       'Rapport introuvable',
@@ -54,25 +84,25 @@ module.exports = async (req, res) => {
   // ─── APPROUVER ──────────────────────────────────────────────────
   if (action === 'approve') {
     report.status = 'approved';
-    pendingReports.set(id, report);
+    await store.set(id, report);
 
     try {
       await sendReportToClient(report);
       report.emailSent = true;
-      pendingReports.set(id, report);
-      console.log('[validate] Rapport approuvé + email client envoyé:', id);
+      await store.set(id, report);
+      // Rapport approuvé + email client envoyé
     } catch (e) {
       console.error('[validate] Erreur envoi email client:', e.message);
       return res.status(500).send(html(
         'Erreur envoi',
-        `Rapport approuvé mais l'email client a échoué : ${e.message}`,
+        `Rapport approuvé mais l'email client a échoué : ${escapeHtml(e.message)}`,
         '#C43B2E'
       ));
     }
 
     return res.status(200).send(html(
       'Rapport envoyé au client',
-      `Le rapport a été approuvé et envoyé à <strong>${report.clientEmail}</strong>.`,
+      `Le rapport a été approuvé et envoyé à <strong>${escapeHtml(report.clientEmail)}</strong>.`,
       '#2A9D6C'
     ));
   }
@@ -80,18 +110,18 @@ module.exports = async (req, res) => {
   // ─── REFUSER ────────────────────────────────────────────────────
   if (action === 'reject') {
     report.status = 'rejected';
-    pendingReports.set(id, report);
+    await store.set(id, report);
 
     try {
       await sendRevisionRequestToClient(report);
-      console.log('[validate] Demande de révision envoyée au client:', id);
+      // Demande de révision envoyée au client
     } catch (e) {
       console.error('[validate] Erreur envoi demande révision:', e.message);
     }
 
     return res.status(200).send(html(
       'Demande de révision envoyée',
-      `Un email a été envoyé à <strong>${report.clientEmail}</strong> pour vérifier ses informations.`,
+      `Un email a été envoyé à <strong>${escapeHtml(report.clientEmail)}</strong> pour vérifier ses informations.`,
       '#D48A1A'
     ));
   }
@@ -101,6 +131,9 @@ module.exports = async (req, res) => {
 
 // ─── ENVOI RAPPORT CLIENT ──────────────────────────────────────────
 async function sendReportToClient(report) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY not configured');
+  }
   const { Resend } = require('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -113,7 +146,7 @@ async function sendReportToClient(report) {
     const barColor = val >= 7 ? '#2A9D6C' : val >= 5 ? '#D48A1A' : '#C43B2E';
     return `
       <tr>
-        <td style="padding:8px 0;font-size:13px;color:#6B6B65;border-bottom:1px solid #F0F0EC;">${ss.label}</td>
+        <td style="padding:8px 0;font-size:13px;color:#6B6B65;border-bottom:1px solid #F0F0EC;">${escapeHtml(ss.label)}</td>
         <td style="padding:8px 0;border-bottom:1px solid #F0F0EC;width:120px;">
           <div style="background:#E8E8E4;border-radius:4px;height:6px;overflow:hidden;">
             <div style="background:${barColor};width:${pct}%;height:100%;border-radius:4px;"></div>
@@ -124,7 +157,7 @@ async function sendReportToClient(report) {
   }).join('');
 
   const checklistHtml = (j.checklist || []).map(item =>
-    `<li style="padding:6px 0;font-size:13px;color:#6B6B65;border-bottom:1px dashed #E8E8E4;">${item}</li>`
+    `<li style="padding:6px 0;font-size:13px;color:#6B6B65;border-bottom:1px dashed #E8E8E4;">${escapeHtml(item)}</li>`
   ).join('');
 
   const tableauHtml = (j.tableau_financier || []).map(row => {
@@ -132,9 +165,9 @@ async function sendReportToClient(report) {
     const bg = row.type === 'total' ? '#F5EFE0' : row.type === 'highlight' ? '#D1FAE5' : 'transparent';
     return `
       <tr style="background:${bg};">
-        <td style="padding:9px 12px;font-size:13px;color:#1A1A1A;border-bottom:1px solid #E8E8E4;${isBold ? 'font-weight:700;' : ''}">${row.poste}</td>
-        <td style="padding:9px 12px;font-size:12px;color:#9C9C94;border-bottom:1px solid #E8E8E4;">${row.detail || ''}</td>
-        <td style="padding:9px 12px;font-size:13px;font-weight:600;text-align:right;border-bottom:1px solid #E8E8E4;color:#1A1A1A;">${row.montant}</td>
+        <td style="padding:9px 12px;font-size:13px;color:#1A1A1A;border-bottom:1px solid #E8E8E4;${isBold ? 'font-weight:700;' : ''}">${escapeHtml(row.poste)}</td>
+        <td style="padding:9px 12px;font-size:12px;color:#9C9C94;border-bottom:1px solid #E8E8E4;">${escapeHtml(row.detail || '')}</td>
+        <td style="padding:9px 12px;font-size:13px;font-weight:600;text-align:right;border-bottom:1px solid #E8E8E4;color:#1A1A1A;">${escapeHtml(row.montant)}</td>
       </tr>`;
   }).join('');
 
@@ -151,7 +184,7 @@ async function sendReportToClient(report) {
     <div style="font-size:11px;color:rgba(255,255,255,0.4);letter-spacing:3px;text-transform:uppercase;">Karukera Conseil Immobilier</div>
     <div style="width:40px;height:1px;background:rgba(194,160,96,0.3);margin:16px auto;"></div>
     <p style="color:rgba(255,255,255,0.7);font-size:14px;margin:0;">
-      Bonjour ${report.clientName || 'Madame, Monsieur'},<br>
+      Bonjour ${escapeHtml(report.clientName || 'Madame, Monsieur')},<br>
       votre rapport de pré-étude de faisabilité est disponible.
     </p>
   </div>
@@ -160,7 +193,7 @@ async function sendReportToClient(report) {
       <div style="font-size:32px;font-weight:700;color:${scoreColor};line-height:1;display:inline;">${j.score}</div>
       <span style="font-size:12px;color:#9C9C94;">/10</span>
       <div style="font-size:16px;font-weight:600;color:#1A1A1A;margin-top:8px;">${j.verdict_texte || j.verdict}</div>
-      <div style="font-size:13px;color:#6B6B65;">${report.bienData?.type_bien || ''} · ${report.bienData?.commune || ''}</div>
+      <div style="font-size:13px;color:#6B6B65;">${escapeHtml(report.bienData?.type_bien || '')} · ${escapeHtml(report.bienData?.commune || '')}</div>
     </div>
     <h3 style="font-size:14px;font-weight:600;color:#0B1526;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #C2A060;">Sous-scores détaillés</h3>
     <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">${subScoresHtml}</table>
@@ -177,7 +210,7 @@ async function sendReportToClient(report) {
     <ul style="list-style:none;padding:0;margin:0 0 24px;">${checklistHtml}</ul>
     <div style="background:#0B1526;border-radius:10px;padding:24px 28px;margin-bottom:28px;">
       <div style="font-size:11px;color:#C2A060;letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-bottom:12px;">Conclusion d'expert</div>
-      <p style="font-size:14px;color:rgba(255,255,255,0.85);line-height:1.7;margin:0 0 20px;">${j.conclusion || ''}</p>
+      <p style="font-size:14px;color:rgba(255,255,255,0.85);line-height:1.7;margin:0 0 20px;">${escapeHtml(j.conclusion || '')}</p>
       <div style="border-top:1px solid rgba(255,255,255,0.1);padding-top:16px;">
         <div style="font-size:14px;font-weight:600;color:#fff;">Dereck Rauzduel</div>
         <div style="font-size:11px;color:#C2A060;margin-top:2px;">Architecte EPFL — Fondateur KCI</div>
@@ -185,7 +218,7 @@ async function sendReportToClient(report) {
     </div>
     <div style="background:#F7F7F5;border-radius:10px;padding:20px 24px;margin-bottom:28px;border:1px solid #E8E8E4;">
       <h3 style="font-size:13px;font-weight:600;color:#1A1A1A;margin:0 0 8px;">Une question ?</h3>
-      <a href="mailto:dereck.rauzduel@gmail.com" style="color:#C2A060;font-size:13px;font-weight:600;text-decoration:none;">dereck.rauzduel@gmail.com</a>
+      <a href="mailto:${process.env.CONTACT_EMAIL || 'contact@karukera-conseil.com'}" style="color:#C2A060;font-size:13px;font-weight:600;text-decoration:none;">${process.env.CONTACT_EMAIL || 'contact@karukera-conseil.com'}</a>
     </div>
   </div>
   <div style="background:#0B1526;padding:20px 32px;text-align:center;">
@@ -202,6 +235,9 @@ async function sendReportToClient(report) {
 
 // ─── ENVOI DEMANDE RÉVISION AU CLIENT ─────────────────────────────
 async function sendRevisionRequestToClient(report) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error('RESEND_API_KEY not configured');
+  }
   const { Resend } = require('resend');
   const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -222,14 +258,14 @@ async function sendRevisionRequestToClient(report) {
       <strong style="color:#92400E;font-size:14px;">Action requise de votre part</strong>
     </div>
     <p style="font-size:14px;color:#1A1A1A;line-height:1.7;margin:0 0 16px;">
-      Bonjour ${report.clientName || 'Madame, Monsieur'},
+      Bonjour ${escapeHtml(report.clientName || 'Madame, Monsieur')},
     </p>
     <p style="font-size:14px;color:#6B6B65;line-height:1.7;margin:0 0 24px;">
       Après examen, des informations nécessitent une vérification. Merci de corriger et soumettre à nouveau votre demande.
     </p>
     <div style="background:#F7F7F5;border-radius:10px;padding:18px 22px;border:1px solid #E8E8E4;">
       <p style="font-size:13px;color:#6B6B65;margin:0 0 6px;">Contact :</p>
-      <a href="mailto:dereck.rauzduel@gmail.com" style="color:#C2A060;font-size:14px;font-weight:600;text-decoration:none;">dereck.rauzduel@gmail.com</a>
+      <a href="mailto:contact@karukera-conseil.com" style="color:#C2A060;font-size:14px;font-weight:600;text-decoration:none;">contact@karukera-conseil.com</a>
       <p style="font-size:12px;color:#9C9C94;margin:6px 0 0;">Dereck Rauzduel — Architecte EPFL — Fondateur KCI</p>
     </div>
   </div>

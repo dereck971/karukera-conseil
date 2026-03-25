@@ -1,2 +1,22 @@
+# Vercel
 .vercel/
+
+# Environment variables (NEVER commit secrets)
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# PDFs (generated reports)
 *.pdf
+
+# Logs
+*.log
+npm-debug.log*
