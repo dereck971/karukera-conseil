@@ -178,6 +178,7 @@ async function handleCheckoutCompleted(session) {
     id: reportId,
     stripeSessionId: session.id,
     createdAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + 48 * 3600 * 1000).toISOString(),
     status: 'pending',
     plan,
     clientEmail,
