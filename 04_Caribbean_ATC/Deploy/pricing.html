@@ -1,0 +1,1684 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9K1DM6VZE8"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-9K1DM6VZE8');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caribbean ATC Pro — Tarifs et Abonnements</title>
+<meta name="description" content="Choisissez votre plan Caribbean ATC Pro : Free, Spotter, Pro ou Business. Suivi aérien en temps réel pour la Caraïbe.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' fill='%2300c2ff'>✈</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #080c16;
+            --bg-secondary: #0d1321;
+            --bg-tertiary: #141a2e;
+            --accent-cyan: #00c2ff;
+            --accent-purple: #7b61ff;
+            --accent-green: #00d68f;
+            --warn-yellow: #ffaa00;
+            --danger-red: #ff3b5c;
+            --text-primary: #e0e8ff;
+            --text-secondary: #a0aff0;
+            --border-color: #1e2847;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        code, pre {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            height: 64px;
+        }
+
+        .header-left {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .tier-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .tier-badge.free {
+            background: rgba(160, 175, 240, 0.1);
+            color: var(--text-secondary);
+            border-color: rgba(160, 175, 240, 0.2);
+        }
+
+        .tier-badge.spotter {
+            background: rgba(0, 194, 255, 0.1);
+            color: var(--accent-cyan);
+            border-color: rgba(0, 194, 255, 0.3);
+        }
+
+        .tier-badge.pro {
+            background: rgba(123, 97, 255, 0.1);
+            color: var(--accent-purple);
+            border-color: rgba(123, 97, 255, 0.3);
+        }
+
+        .tier-badge.business {
+            background: rgba(0, 214, 143, 0.1);
+            color: var(--accent-green);
+            border-color: rgba(0, 214, 143, 0.3);
+        }
+
+        .tier-badge:hover {
+            transform: translateY(-2px);
+        }
+
+        .header-right {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .menu-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .menu-icon:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-cyan);
+        }
+
+        /* Main Layout */
+        .container {
+            display: flex;
+            height: calc(100vh - 64px);
+        }
+
+        .sidebar {
+            width: 350px;
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sidebar-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .sidebar-tab {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-tab.active {
+            color: var(--accent-cyan);
+            border-bottom-color: var(--accent-cyan);
+            background: var(--bg-secondary);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .flight-item {
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .flight-item:hover {
+            background: var(--bg-primary);
+            border-color: var(--accent-cyan);
+        }
+
+        .flight-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .flight-callsign {
+            font-weight: 600;
+            color: var(--accent-cyan);
+        }
+
+        .flight-status {
+            font-size: 0.8rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            background: rgba(0, 214, 143, 0.1);
+            color: var(--accent-green);
+        }
+
+        .flight-route {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin: 0.5rem 0;
+        }
+
+        .flight-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .detail-item {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* Map Container */
+        .map-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #map {
+            flex: 1;
+            background: var(--bg-tertiary);
+        }
+
+        .map-watermark {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(0, 0, 0, 0.6);
+            color: var(--accent-red);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            font-size: 0.9rem;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .map-overlay {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            max-width: 250px;
+            z-index: 110;
+        }
+
+        .overlay-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--accent-green);
+        }
+
+        .overlay-message {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .overlay-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--accent-purple);
+            color: white;
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .overlay-btn:hover {
+            background: var(--accent-cyan);
+        }
+
+        /* Pricing Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            max-width: 1100px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 2rem;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .modal-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .modal-subtitle {
+            color: var(--text-secondary);
+        }
+
+        .billing-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .toggle-btn {
+            padding: 0.5rem 1.5rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent-purple);
+            color: white;
+            border-color: var(--accent-purple);
+        }
+
+        .tier-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1200px) {
+            .tier-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .tier-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tier-card:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-4px);
+        }
+
+        .tier-card.featured {
+            border-color: var(--accent-purple);
+            background: linear-gradient(135deg, rgba(123, 97, 255, 0.1), rgba(0, 194, 255, 0.05));
+        }
+
+        .tier-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .tier-price {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .tier-price-period {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .tier-features {
+            flex: 1;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .feature.included {
+            color: #ffffff;
+        }
+
+        .feature-icon {
+            color: var(--accent-green);
+            font-weight: 700;
+        }
+
+        .tier-name {
+            color: #ffffff;
+        }
+
+        .tier-price {
+            color: #ffffff;
+        }
+
+        .tier-button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .tier-button.primary {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+
+        .tier-button.primary:hover {
+            background: #00e5ff;
+            transform: translateY(-2px);
+        }
+
+        .tier-button.secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .tier-button.secondary:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+
+        /* Paywall Modal */
+        .paywall-modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            max-width: 500px;
+            padding: 2rem;
+            animation: slideUp 0.3s ease;
+        }
+
+        .paywall-header {
+            margin-bottom: 1.5rem;
+        }
+
+        .paywall-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .paywall-description {
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .paywall-tiers {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .paywall-tier-option {
+            padding: 1rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .paywall-tier-option:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        .paywall-tier-check {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-radius: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .paywall-tier-option.selected .paywall-tier-check {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+
+        .paywall-tier-info {
+            flex: 1;
+        }
+
+        .paywall-tier-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .paywall-tier-benefit {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .paywall-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .paywall-actions button {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .paywall-actions .btn-primary {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+        }
+
+        .paywall-actions .btn-primary:hover {
+            background: #00e5ff;
+        }
+
+        .paywall-actions .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .paywall-actions .btn-secondary:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        /* Notification Banner */
+        .notification-banner {
+            position: fixed;
+            bottom: 2rem;
+            left: 2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem 1.5rem;
+            max-width: 350px;
+            z-index: 500;
+            animation: slideInUp 0.3s ease;
+            display: none;
+        }
+
+        .notification-banner.active {
+            display: block;
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .notification-message {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .notification-btn {
+            padding: 0.5rem 1rem;
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+
+        .notification-btn:hover {
+            background: #00e5ff;
+        }
+
+        /* Tools Panel */
+        .tools-panel {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            z-index: 200;
+            max-width: 300px;
+        }
+
+        .tools-title {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--accent-cyan);
+        }
+
+        .tool-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .tool-btn:hover {
+            border-color: var(--accent-cyan);
+            background: var(--bg-secondary);
+        }
+
+        .tool-btn.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .lock-icon {
+            color: var(--warn-yellow);
+        }
+
+        /* Search Box */
+        .search-box {
+            position: absolute;
+            bottom: 1rem;
+            left: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 200;
+        }
+
+        .search-input {
+            padding: 0.75rem 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            color: var(--text-primary);
+            width: 250px;
+            font-size: 0.9rem;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .search-btn {
+            padding: 0.75rem 1rem;
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border: none;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .search-btn:hover {
+            background: #00e5ff;
+        }
+
+        .search-remaining {
+            position: absolute;
+            bottom: 4rem;
+            left: 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* Analytics */
+        .analytics-container {
+            padding: 1rem;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .analytics-card {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+        }
+
+        .analytics-title {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--accent-cyan);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 200px;
+        }
+
+        .blurred-chart {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 50;
+        }
+
+        .blur-message {
+            text-align: center;
+        }
+
+        .blur-message p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .blur-cta {
+            padding: 0.5rem 1rem;
+            background: var(--accent-purple);
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        /* Feature Demo Badge */
+        .demo-badge {
+            position: fixed;
+            top: 80px;
+            right: 2rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            max-width: 200px;
+            z-index: 300;
+            font-size: 0.85rem;
+            color: var(--accent-green);
+        }
+
+        .demo-time {
+            font-weight: 600;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-cyan);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <div class="logo">🛫 Caribbean ATC Pro</div>
+            <span class="tier-badge" id="tierBadge" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+                <span id="tierLabel">FREE</span>
+                <span style="font-size: 0.75rem;">▼</span>
+            </span>
+        </div>
+        <div class="header-right">
+            <div class="menu-icon" onclick="showPricingModal()">⚙️</div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-tabs">
+                <div class="sidebar-tab active" onclick="switchTab('flights')">✈️ Flights</div>
+                <div class="sidebar-tab" onclick="switchTab('airlines')">🏢 Airlines</div>
+                <div class="sidebar-tab" onclick="switchTab('analytics')">📊 Analytics</div>
+            </div>
+            <div class="sidebar-content" id="sidebarContent">
+                <!-- Content populated by JS -->
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+
+            <!-- Map Watermark (FREE tier only) -->
+            <div class="map-watermark" id="mapWatermark" style="display: none;">FREE</div>
+
+            <!-- Tools Panel -->
+            <div class="tools-panel">
+                <div class="tools-title">Tools & Export</div>
+                <button class="tool-btn" onclick="handleExportCSV()">
+                    <span>📥 Export CSV</span>
+                    <span id="exportLock" class="lock-icon" style="display: none;">🔒</span>
+                </button>
+                <button class="tool-btn" onclick="handleWeatherAccess()">
+                    <span>🌤️ METAR Weather</span>
+                    <span id="weatherLock" class="lock-icon" style="display: none;">🔒</span>
+                </button>
+                <button class="tool-btn" onclick="handleFlightCalculator()">
+                    <span>📐 Flight Calculator</span>
+                    <span id="calcLock" class="lock-icon" style="display: none;">🔒</span>
+                </button>
+                <button class="tool-btn" onclick="handleAlerts()">
+                    <span>🔔 Alert System</span>
+                    <span id="alertLock" class="lock-icon" style="display: none;">🔒</span>
+                </button>
+            </div>
+
+            <!-- Search Box -->
+            <div class="search-box">
+                <input type="text" class="search-input" id="flightSearch" placeholder="Search flight by callsign...">
+                <button class="search-btn" onclick="handleFlightSearch()">🔍</button>
+            </div>
+            <div class="search-remaining" id="searchRemaining"></div>
+
+            <!-- Map Overlay for Limited Flights (FREE tier) -->
+            <div class="map-overlay" id="mapOverlay" style="display: none;">
+                <div class="overlay-title">Upgrade to See More</div>
+                <div class="overlay-message" id="overlayMessage">Upgrade pour voir X vols de plus</div>
+                <button class="overlay-btn" onclick="showPricingModal()">View Plans</button>
+            </div>
+
+            <!-- Demo Badge -->
+            <div class="demo-badge" id="demoBadge" style="display: none;">
+                <div class="demo-time" id="demoTime">Pro Demo: 55 min left</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pricing Modal -->
+    <div class="modal-overlay" id="pricingModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h1 class="modal-title">Choose Your Plan</h1>
+                <p class="modal-subtitle">Unlock advanced tracking and analytics for Caribbean airspace</p>
+            </div>
+
+            <div class="billing-toggle">
+                <button class="toggle-btn active" onclick="setBillingPeriod('monthly')">Monthly</button>
+                <button class="toggle-btn" onclick="setBillingPeriod('annual')">Annual (Save 2 months!)</button>
+            </div>
+
+            <div class="tier-cards">
+                <div class="tier-card">
+                    <div class="tier-name">Free</div>
+                    <div class="tier-price">$0</div>
+                    <div class="tier-price-period">/month</div>
+                    <div class="tier-features">
+                        <div class="feature included">✓ Live flight map (15s updates)</div>
+                        <div class="feature included">✓ Up to 10 visible flights</div>
+                        <div class="feature included">✓ 3 searches/session</div>
+                        <div class="feature included">✓ 1h analytics history</div>
+                        <div class="feature">✗ No export CSV</div>
+                        <div class="feature">✗ No METAR weather</div>
+                        <div class="feature">✗ No FIDS board</div>
+                    </div>
+                    <button class="tier-button secondary" onclick="setTier('FREE')">Current Plan</button>
+                </div>
+
+                <div class="tier-card">
+                    <div class="tier-name">Spotter</div>
+                    <div class="tier-price">$4.99</div>
+                    <div class="tier-price-period">/month</div>
+                    <div class="tier-features">
+                        <div class="feature included">✓ All flights visible</div>
+                        <div class="feature included">✓ Real-time 3s updates</div>
+                        <div class="feature included">✓ Unlimited searches</div>
+                        <div class="feature included">✓ 24h analytics history</div>
+                        <div class="feature included">✓ CSV export (50 rows)</div>
+                        <div class="feature included">✓ METAR (top 10 airports)</div>
+                        <div class="feature included">✓ FIDS board</div>
+                    </div>
+                    <button class="tier-button primary" onclick="setTier('SPOTTER')">🚀 Essai gratuit — Commencer maintenant</button>
+                </div>
+
+                <div class="tier-card featured">
+                    <div class="tier-name">Pro</div>
+                    <div class="tier-price">$14.99</div>
+                    <div class="tier-price-period">/month</div>
+                    <div class="tier-features">
+                        <div class="feature included">✓ Everything in Spotter</div>
+                        <div class="feature included">✓ Full METAR all airports</div>
+                        <div class="feature included">✓ Unlimited analytics</div>
+                        <div class="feature included">✓ Full CSV export</div>
+                        <div class="feature included">✓ Flight calculator</div>
+                        <div class="feature included">✓ Alert system</div>
+                        <div class="feature included">✓ API access badge</div>
+                    </div>
+                    <button class="tier-button primary" onclick="setTier('PRO')">⚡ Passer Pro — Débloquer tout</button>
+                </div>
+
+                <div class="tier-card">
+                    <div class="tier-name">Business</div>
+                    <div class="tier-price">$49.99</div>
+                    <div class="tier-price-period">/month</div>
+                    <div class="tier-features">
+                        <div class="feature included">✓ Everything in Pro</div>
+                        <div class="feature included">✓ Custom branding</div>
+                        <div class="feature included">✓ Multi-user accounts</div>
+                        <div class="feature included">✓ White-label option</div>
+                        <div class="feature included">✓ SLA 99.9% uptime</div>
+                        <div class="feature included">✓ Dedicated support</div>
+                    </div>
+                    <button class="tier-button primary" onclick="setTier('BUSINESS')">🏢 Business — Contacter l'équipe</button>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 2rem;">
+                <button onclick="closePricingModal()" style="padding: 0.75rem 2rem; background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); border-radius: 0.5rem; cursor: pointer; font-weight: 600;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paywall Modal -->
+    <div class="modal-overlay" id="paywallModal">
+        <div class="paywall-modal">
+            <div class="paywall-header">
+                <h2 class="paywall-title" id="paywallTitle">Feature Locked</h2>
+                <p class="paywall-description" id="paywallDescription">Upgrade your plan to unlock this feature</p>
+            </div>
+
+            <div class="paywall-tiers" id="paywallTiers">
+                <!-- Populated dynamically -->
+            </div>
+
+            <div class="paywall-actions">
+                <button class="btn-secondary" onclick="closePaywall()">Cancel</button>
+                <button class="btn-primary" onclick="proceedWithPaywall()">🔓 Débloquer cette fonctionnalité</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Banner -->
+    <div class="notification-banner" id="notificationBanner">
+        <div class="notification-title" id="notificationTitle">Love Caribbean ATC?</div>
+        <div class="notification-message" id="notificationMessage">Unlock unlimited searches and advanced analytics for just $4.99/month</div>
+        <button class="notification-btn" onclick="showPricingModal()">See Plans</button>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.min.js"></script>
+
+    <script>
+        // ============ STATE MANAGEMENT ============
+        let appState = {
+            currentTier: 'FREE',
+            billingPeriod: 'monthly',
+            searchCount: 0,
+            usageTime: 0,
+            selectedPaywallTier: null,
+            demoEndTime: null,
+            flightSearches: [],
+            flights: [],
+            airlines: [],
+            airports: [],
+            currentTab: 'flights'
+        };
+
+        // ============ AIRPORTS & AIRLINES DATA ============
+        const CARIBBEAN_AIRPORTS = [
+            { code: 'SJU', name: 'San Juan', country: 'Puerto Rico', lat: 18.4386, lng: -66.1018 },
+            { code: 'VVI', name: 'Virgin Gorda', country: 'BVI', lat: 18.4667, lng: -64.4333 },
+            { code: 'ANU', name: 'V.C. Bird Intl', country: 'Antigua', lat: 17.1219, lng: -61.7929 },
+            { code: 'SKB', name: 'Robert L. Bradshaw', country: 'St. Kitts', lat: 17.2089, lng: -62.6483 },
+            { code: 'DOM', name: 'Douglas-Charles', country: 'Dominica', lat: 15.5432, lng: -61.3158 },
+            { code: 'BAR', name: 'Grantley Adams', country: 'Barbados', lat: 13.1939, lng: -59.5432 },
+            { code: 'BGI', name: 'Maurice Bishop', country: 'Grenada', lat: 12.0084, lng: -61.7879 },
+            { code: 'POS', name: 'Piarco Intl', country: 'Trinidad', lat: 10.5921, lng: -61.3372 },
+            { code: 'CMW', name: 'Crown Point', country: 'Tobago', lat: 11.1456, lng: -60.8267 },
+            { code: 'UVF', name: 'Argyle', country: 'St. Vincent', lat: 12.5844, lng: -61.2144 },
+            { code: 'SLU', name: 'Hewanorra', country: 'St. Lucia', lat: 13.7331, lng: -60.9516 },
+            { code: 'CIW', name: 'Canefield', country: 'Dominica', lat: 15.3006, lng: -61.3993 },
+            { code: 'BBQ', name: 'Barbuda', country: 'Barbuda', lat: 17.6292, lng: -61.7950 },
+            { code: 'PIU', name: 'Providenciales', country: 'Turks&Caicos', lat: 21.7597, lng: -71.9547 },
+            { code: 'CUS', name: 'Mustique', country: 'SVG', lat: 12.8833, lng: -61.1833 },
+            { code: 'BQU', name: 'Bonaire', country: 'Bonaire', lat: 12.1383, lng: -68.2685 },
+            { code: 'CUR', name: 'Curaçao', country: 'Curaçao', lat: 12.1894, lng: -68.9591 },
+            { code: 'AUA', name: 'Aruba', country: 'Aruba', lat: 12.1833, lng: -69.9333 },
+            { code: 'SDQ', name: 'Las Américas', country: 'Dominican Republic', lat: 18.3649, lng: -69.6729 },
+            { code: 'PUJ', name: 'Punta Cana', country: 'Dominican Republic', lat: 18.7345, lng: -68.3937 },
+            { code: 'STI', name: 'Santiago', country: 'Dominican Republic', lat: 19.4042, lng: -70.6140 },
+            { code: 'BIS', name: 'Exuma', country: 'Bahamas', lat: 24.1937, lng: -76.1668 },
+            { code: 'NAS', name: 'Nassau', country: 'Bahamas', lat: 25.0587, lng: -77.0467 },
+            { code: 'CCS', name: 'Caracas', country: 'Venezuela', lat: 10.4444, lng: -66.8936 },
+            { code: 'CAY', name: 'Cayman Islands', country: 'Cayman Is.', lat: 19.7429, lng: -79.9289 },
+            { code: 'MOB', name: 'Mobay', country: 'Jamaica', lat: 18.5024, lng: -77.9135 },
+            { code: 'KIN', name: 'Norman Manley', country: 'Jamaica', lat: 17.9565, lng: -76.8011 },
+            { code: 'HAT', name: 'Toussaint Louverture', country: 'Haiti', lat: 18.5833, lng: -72.2833 }
+        ];
+
+        const AIRLINES = [
+            { code: 'AA', name: 'American Airlines', country: 'USA' },
+            { code: 'DL', name: 'Delta Air Lines', country: 'USA' },
+            { code: 'UA', name: 'United Airlines', country: 'USA' },
+            { code: 'SW', name: 'Southwest Airlines', country: 'USA' },
+            { code: 'BA', name: 'British Airways', country: 'UK' },
+            { code: 'AF', name: 'Air France', country: 'France' },
+            { code: 'KL', name: 'KLM', country: 'Netherlands' },
+            { code: 'LH', name: 'Lufthansa', country: 'Germany' },
+            { code: 'IB', name: 'Iberia', country: 'Spain' },
+            { code: 'VB', name: 'Virgin Atlantic', country: 'UK' },
+            { code: 'AR', name: 'Air Canada', country: 'Canada' },
+            { code: 'AC', name: 'Air Canada', country: 'Canada' },
+            { code: 'WS', name: 'WestJet', country: 'Canada' },
+            { code: 'LY', name: 'El Al', country: 'Israel' },
+            { code: 'QF', name: 'Qantas', country: 'Australia' },
+            { code: 'SQ', name: 'Singapore Airlines', country: 'Singapore' },
+            { code: 'EK', name: 'Emirates', country: 'UAE' },
+            { code: 'FX', name: 'FedEx', country: 'USA' },
+            { code: 'UPS', name: 'UPS Airlines', country: 'USA' },
+            { code: 'KL', name: 'KLM Cargo', country: 'Netherlands' }
+        ];
+
+        // ============ FLIGHT GENERATION ============
+        function generateFlights() {
+            const flights = [];
+            const flightCount = Math.floor(Math.random() * 15) + 8;
+
+            for (let i = 0; i < flightCount; i++) {
+                const airline = AIRLINES[Math.floor(Math.random() * AIRLINES.length)];
+                const origin = CARIBBEAN_AIRPORTS[Math.floor(Math.random() * CARIBBEAN_AIRPORTS.length)];
+                const destination = CARIBBEAN_AIRPORTS[Math.floor(Math.random() * CARIBBEAN_AIRPORTS.length)];
+
+                if (origin.code !== destination.code) {
+                    flights.push({
+                        id: Math.random().toString(36).substr(2, 9),
+                        callsign: airline.code + Math.floor(Math.random() * 9000) + 1000,
+                        airline: airline.name,
+                        aircraftType: ['B737', 'A320', 'B787', 'A350', 'CRJ9', 'E190'][Math.floor(Math.random() * 6)],
+                        origin: origin.code,
+                        destination: destination.code,
+                        lat: origin.lat + (Math.random() - 0.5) * 2,
+                        lng: origin.lng + (Math.random() - 0.5) * 2,
+                        altitude: Math.floor(Math.random() * 35000) + 1000,
+                        speed: Math.floor(Math.random() * 450) + 150,
+                        heading: Math.floor(Math.random() * 360),
+                        status: ['In Flight', 'Climbing', 'Cruising', 'Descending'][Math.floor(Math.random() * 4)],
+                        departure: new Date(Date.now() - Math.random() * 3600000),
+                        eta: new Date(Date.now() + Math.random() * 7200000)
+                    });
+                }
+            }
+            return flights;
+        }
+
+        // ============ INITIALIZATION ============
+        let map;
+        let markers = {};
+        let updateInterval;
+
+        function initializeApp() {
+            // Initialize Leaflet map
+            map = L.map('map').setView([15.2, -65], 5);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap',
+                maxZoom: 12,
+                className: 'leaflet-tile-dark'
+            }).addTo(map);
+
+            // Generate initial data
+            appState.flights = generateFlights();
+            appState.airlines = AIRLINES;
+            appState.airports = CARIBBEAN_AIRPORTS;
+
+            // Update UI
+            updateTierDisplay();
+            updateSearchDisplay();
+            updateFlightDisplay();
+            startFlightUpdates();
+
+            // Check if first visit
+            if (!appState.firstVisit) {
+                setTimeout(() => showPricingModal(), 500);
+                appState.firstVisit = true;
+            }
+
+            // Show notification after 10 min
+            setTimeout(() => {
+                if (appState.currentTier === 'FREE') {
+                    showNotificationBanner();
+                }
+            }, 600000);
+        }
+
+        // ============ TIER MANAGEMENT ============
+        function setTier(tier) {
+            appState.currentTier = tier;
+
+            if (tier === 'PRO') {
+                appState.demoEndTime = Date.now() + 3600000; // 1 hour demo
+                updateDemoBadge();
+            } else {
+                appState.demoEndTime = null;
+            }
+
+            updateTierDisplay();
+            updateFlightDisplay();
+            closePricingModal();
+            closePaywall();
+        }
+
+        function updateTierDisplay() {
+            const badge = document.getElementById('tierBadge');
+            const label = document.getElementById('tierLabel');
+            label.textContent = appState.currentTier;
+            badge.className = `tier-badge ${appState.currentTier.toLowerCase()}`;
+
+            // Update watermark
+            const watermark = document.getElementById('mapWatermark');
+            watermark.style.display = appState.currentTier === 'FREE' ? 'block' : 'none';
+
+            // Update tool locks
+            updateToolLocks();
+        }
+
+        function updateToolLocks() {
+            const tier = appState.currentTier;
+            const locks = {
+                exportLock: ['FREE', 'SPOTTER'].includes(tier) ? false : tier !== 'PRO' && tier !== 'BUSINESS',
+                weatherLock: tier === 'FREE' ? false : false,
+                calcLock: ['FREE', 'SPOTTER'].includes(tier),
+                alertLock: ['FREE', 'SPOTTER'].includes(tier)
+            };
+
+            Object.entries(locks).forEach(([id, show]) => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.style.display = show ? 'inline' : 'none';
+                }
+            });
+        }
+
+        // ============ FLIGHT DISPLAY ============
+        function updateFlightDisplay() {
+            const content = document.getElementById('sidebarContent');
+            let flightsToShow = appState.flights;
+
+            if (appState.currentTier === 'FREE') {
+                flightsToShow = appState.flights.slice(0, 10);
+            }
+
+            if (appState.currentTab === 'flights') {
+                content.innerHTML = flightsToShow.map(f => `
+                    <div class="flight-item" onclick="selectFlight('${f.id}')">
+                        <div class="flight-header">
+                            <span class="flight-callsign">${f.callsign}</span>
+                            <span class="flight-status">${f.status}</span>
+                        </div>
+                        <div class="flight-route">${f.origin} → ${f.destination}</div>
+                        <div class="flight-details">
+                            <div class="detail-item">
+                                <span>Alt:</span>
+                                <span>${f.altitude.toLocaleString()} ft</span>
+                            </div>
+                            <div class="detail-item">
+                                <span>Speed:</span>
+                                <span>${f.speed} knots</span>
+                            </div>
+                            <div class="detail-item">
+                                <span>Aircraft:</span>
+                                <span>${f.aircraftType}</span>
+                            </div>
+                            <div class="detail-item">
+                                <span>Airline:</span>
+                                <span>${f.airline}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Show overlay if flights hidden
+                if (appState.currentTier === 'FREE' && appState.flights.length > 10) {
+                    const overlay = document.getElementById('mapOverlay');
+                    overlay.style.display = 'block';
+                    document.getElementById('overlayMessage').textContent = `Upgrade pour voir ${appState.flights.length - 10} vols de plus`;
+                }
+            } else if (appState.currentTab === 'airlines') {
+                content.innerHTML = appState.airlines.map(a => `
+                    <div class="flight-item" style="cursor: default;">
+                        <div class="flight-header">
+                            <span class="flight-callsign">${a.code}</span>
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">${a.country}</span>
+                        </div>
+                        <div class="flight-route">${a.name}</div>
+                        <div class="flight-details">
+                            <div class="detail-item">
+                                <span>Active:</span>
+                                <span>${Math.floor(Math.random() * 8) + 1}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } else if (appState.currentTab === 'analytics') {
+                renderAnalytics();
+            }
+        }
+
+        // ============ MAP UPDATE ============
+        function updateMapMarkers() {
+            // Clear old markers
+            Object.values(markers).forEach(marker => map.removeLayer(marker));
+            markers = {};
+
+            let flightsToShow = appState.flights;
+            if (appState.currentTier === 'FREE') {
+                flightsToShow = appState.flights.slice(0, 10);
+            }
+
+            flightsToShow.forEach(flight => {
+                const marker = L.circleMarker([flight.lat, flight.lng], {
+                    radius: 8,
+                    fillColor: '#00c2ff',
+                    color: '#7b61ff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.7
+                }).addTo(map);
+
+                marker.bindPopup(`
+                    <strong>${flight.callsign}</strong><br>
+                    ${flight.airline}<br>
+                    ${flight.origin} → ${flight.destination}<br>
+                    Alt: ${flight.altitude} ft | Speed: ${flight.speed} knots
+                `);
+
+                markers[flight.id] = marker;
+            });
+        }
+
+        function startFlightUpdates() {
+            updateMapMarkers();
+
+            const updateRate = appState.currentTier === 'FREE' ? 15000 : 3000;
+
+            if (updateInterval) clearInterval(updateInterval);
+            updateInterval = setInterval(() => {
+                appState.flights.forEach(f => {
+                    f.lat += (Math.random() - 0.5) * 0.1;
+                    f.lng += (Math.random() - 0.5) * 0.1;
+                    f.altitude += Math.floor(Math.random() * 1000) - 500;
+                    f.speed += Math.floor(Math.random() * 100) - 50;
+                });
+                updateMapMarkers();
+            }, updateRate);
+        }
+
+        // ============ FEATURE HANDLERS ============
+        function handleExportCSV() {
+            if (appState.currentTier === 'FREE') {
+                showPaywall('Export Data', 'Export flights to CSV file', ['SPOTTER', 'PRO', 'BUSINESS']);
+            } else {
+                let csv = 'Callsign,Origin,Destination,Altitude,Speed,Airline\n';
+                const limit = appState.currentTier === 'SPOTTER' ? 50 : appState.flights.length;
+                appState.flights.slice(0, limit).forEach(f => {
+                    csv += `${f.callsign},${f.origin},${f.destination},${f.altitude},${f.speed},${f.airline}\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'flights.csv';
+                a.click();
+            }
+        }
+
+        // ─── Info Modal (replaces ugly alert() dialogs) ───
+        function showInfoModal(title, content, icon='📊') {
+            let overlay = document.getElementById('infoModalOverlay');
+            if(!overlay){
+                overlay = document.createElement('div');
+                overlay.id = 'infoModalOverlay';
+                overlay.className = 'modal-overlay';
+                overlay.onclick = e => { if(e.target===overlay) overlay.classList.remove('active') };
+                overlay.innerHTML = `<div class="modal" style="max-width:500px;padding:24px">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+                        <span id="infoIcon" style="font-size:28px"></span>
+                        <h3 id="infoTitle" style="font-size:18px;font-weight:700;color:#fff;margin:0"></h3>
+                        <button onclick="document.getElementById('infoModalOverlay').classList.remove('active')"
+                            style="margin-left:auto;background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer">&times;</button>
+                    </div>
+                    <div id="infoContent" style="font-size:13px;color:var(--text-secondary);line-height:1.7;white-space:pre-line"></div>
+                    <button onclick="document.getElementById('infoModalOverlay').classList.remove('active')"
+                        style="margin-top:16px;width:100%;padding:10px;border-radius:8px;border:none;
+                        background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));
+                        color:#fff;font-weight:600;cursor:pointer;font-size:13px">OK</button>
+                </div>`;
+                document.body.appendChild(overlay);
+            }
+            document.getElementById('infoIcon').textContent = icon;
+            document.getElementById('infoTitle').textContent = title;
+            document.getElementById('infoContent').textContent = content;
+            overlay.classList.add('active');
+        }
+
+        function handleWeatherAccess() {
+            if (appState.currentTier === 'FREE') {
+                showPaywall('METAR Weather', 'Access real-time weather data for Caribbean airports', ['SPOTTER', 'PRO', 'BUSINESS']);
+            } else {
+                const data = appState.airports.slice(0, appState.currentTier === 'SPOTTER' ? 10 : 28).map(a => {
+                    const temp = Math.floor(Math.random() * 30) + 15;
+                    const wind = Math.floor(Math.random() * 25) + 5;
+                    return `${a.code}: ${temp}°C, Wind ${wind}kt`;
+                }).join('\n');
+                showInfoModal('METAR Data', data, '🌤️');
+            }
+        }
+
+        function handleFlightCalculator() {
+            if (['FREE', 'SPOTTER'].includes(appState.currentTier)) {
+                showPaywall('Flight Calculator', 'Calculate distances, headings, and ETA', ['PRO', 'BUSINESS']);
+            } else {
+                showInfoModal('Flight Calculator', 'Select two airports on the map to calculate distance and flight time.', '📐');
+            }
+        }
+
+        function handleAlerts() {
+            if (['FREE', 'SPOTTER'].includes(appState.currentTier)) {
+                showPaywall('Alert System', 'Set up notifications for specific flights and routes', ['PRO', 'BUSINESS']);
+            } else {
+                showInfoModal('Alert System', 'Alert System configured. You will receive notifications for tracked flights.', '🔔');
+            }
+        }
+
+        function handleFlightSearch() {
+            const query = document.getElementById('flightSearch').value.trim();
+            if (!query) return;
+
+            appState.searchCount++;
+
+            if (appState.currentTier === 'FREE' && appState.searchCount > 3) {
+                showPaywall('Unlimited Search', 'Perform unlimited flight searches', ['SPOTTER', 'PRO', 'BUSINESS']);
+                appState.searchCount--;
+                return;
+            }
+
+            const flight = appState.flights.find(f => f.callsign.includes(query.toUpperCase()));
+            if (flight) {
+                showInfoModal('Vol trouvé', `${flight.callsign}\n${flight.origin} → ${flight.destination}\nAltitude: ${flight.altitude} ft`, '✈️');
+            } else {
+                showInfoModal('Recherche', 'Flight not found. Try another callsign.', '🔍');
+            }
+
+            updateSearchDisplay();
+        }
+
+        function updateSearchDisplay() {
+            const remaining = document.getElementById('searchRemaining');
+            if (appState.currentTier === 'FREE') {
+                const left = 3 - appState.searchCount;
+                remaining.textContent = `Searches: ${left}/3`;
+                remaining.style.display = 'block';
+            } else {
+                remaining.style.display = 'none';
+            }
+        }
+
+        // ============ ANALYTICS ============
+        let analyticsCharts = {};
+
+        function renderAnalytics() {
+            const content = document.getElementById('sidebarContent');
+            const isLimited = appState.currentTier === 'FREE';
+
+            content.innerHTML = `
+                <div class="analytics-container">
+                    <div class="analytics-card">
+                        <div class="analytics-title">Flight Activity (Last 24h)</div>
+                        <div class="chart-container">
+                            <canvas id="activityChart"></canvas>
+                            ${isLimited ? '<div class="blurred-chart"><div class="blur-message"><p>Full history available in Pro plan</p><button class="blur-cta" onclick="showPricingModal()">Upgrade</button></div></div>' : ''}
+                        </div>
+                    </div>
+                    <div class="analytics-card">
+                        <div class="analytics-title">Busiest Airports</div>
+                        <div class="chart-container">
+                            <canvas id="airportChart"></canvas>
+                            ${isLimited ? '<div class="blurred-chart"><div class="blur-message"><p>Historical data locked</p><button class="blur-cta" onclick="showPricingModal()">Unlock</button></div></div>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                if (document.getElementById('activityChart')) {
+                    analyticsCharts.activity = new Chart(document.getElementById('activityChart'), {
+                        type: 'line',
+                        data: {
+                            labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
+                            datasets: [{
+                                label: 'Active Flights',
+                                data: [12, 8, 24, 18, 22, 16],
+                                borderColor: '#00c2ff',
+                                backgroundColor: 'rgba(0, 194, 255, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { color: '#a0aff0' },
+                                    grid: { color: '#1e2847' }
+                                },
+                                x: {
+                                    ticks: { color: '#a0aff0' },
+                                    grid: { color: '#1e2847' }
+                                }
+                            }
+                        }
+                    });
+                }
+
+                if (document.getElementById('airportChart')) {
+                    analyticsCharts.airport = new Chart(document.getElementById('airportChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: ['SJU', 'POS', 'SDQ', 'CCS', 'BAR'],
+                            datasets: [{
+                                label: 'Operations',
+                                data: [45, 38, 32, 28, 24],
+                                backgroundColor: '#7b61ff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { color: '#a0aff0' },
+                                    grid: { color: '#1e2847' }
+                                },
+                                x: {
+                                    ticks: { color: '#a0aff0' },
+                                    grid: { color: '#1e2847' }
+                                }
+                            }
+                        }
+                    });
+                }
+            }, 0);
+        }
+
+        // ============ MODAL MANAGEMENT ============
+        function showPricingModal() {
+            document.getElementById('pricingModal').classList.add('active');
+        }
+
+        function closePricingModal() {
+            document.getElementById('pricingModal').classList.remove('active');
+        }
+
+        function showPaywall(title, description, tiers) {
+            document.getElementById('paywallTitle').textContent = title;
+            document.getElementById('paywallDescription').textContent = description;
+
+            const paywallTiers = document.getElementById('paywallTiers');
+            paywallTiers.innerHTML = tiers.map(t => {
+                const tierData = {
+                    SPOTTER: { name: 'Spotter', price: '$4.99/mo', benefit: 'Unlimited searches & weather' },
+                    PRO: { name: 'Pro', price: '$14.99/mo', benefit: 'Everything + Calculator' },
+                    BUSINESS: { name: 'Business', price: '$49.99/mo', benefit: 'Everything + Custom branding' }
+                }[t];
+
+                return `
+                    <div class="paywall-tier-option" onclick="selectPaywallTier('${t}')">
+                        <div class="paywall-tier-check"></div>
+                        <div class="paywall-tier-info">
+                            <div class="paywall-tier-name">${tierData.name}</div>
+                            <div class="paywall-tier-benefit">${tierData.benefit}</div>
+                            <div style="font-size: 0.75rem; color: var(--accent-cyan); margin-top: 0.25rem;">${tierData.price}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('paywallModal').classList.add('active');
+        }
+
+        function selectPaywallTier(tier) {
+            appState.selectedPaywallTier = tier;
+            document.querySelectorAll('.paywall-tier-option').forEach(el => el.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+        }
+
+        function proceedWithPaywall() {
+            if (appState.selectedPaywallTier) {
+                setTier(appState.selectedPaywallTier);
+            }
+        }
+
+        function closePaywall() {
+            document.getElementById('paywallModal').classList.remove('active');
+        }
+
+        function showNotificationBanner() {
+            document.getElementById('notificationBanner').classList.add('active');
+            setTimeout(() => {
+                document.getElementById('notificationBanner').classList.remove('active');
+            }, 8000);
+        }
+
+        // ============ UI INTERACTIONS ============
+        function switchTab(tab) {
+            appState.currentTab = tab;
+            document.querySelectorAll('.sidebar-tab').forEach((el, i) => {
+                el.classList.toggle('active', el.textContent.includes(
+                    tab === 'flights' ? '✈️' : tab === 'airlines' ? '🏢' : '📊'
+                ));
+            });
+            updateFlightDisplay();
+        }
+
+        function setBillingPeriod(period) {
+            appState.billingPeriod = period;
+            document.querySelectorAll('.toggle-btn').forEach(el => el.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+
+        function selectFlight(id) {
+            const flight = appState.flights.find(f => f.id === id);
+            if (flight && map.getBounds().contains([flight.lat, flight.lng])) {
+                map.setView([flight.lat, flight.lng], 8);
+            }
+        }
+
+        function updateDemoBadge() {
+            const badge = document.getElementById('demoBadge');
+            if (appState.demoEndTime) {
+                badge.style.display = 'block';
+                const updateBadge = () => {
+                    const remaining = Math.max(0, appState.demoEndTime - Date.now());
+                    const mins = Math.floor(remaining / 60000);
+                    document.getElementById('demoTime').textContent = `Pro Demo: ${mins} min left`;
+                    if (remaining > 0) {
+                        setTimeout(updateBadge, 30000);
+                    } else {
+                        setTier('FREE');
+                    }
+                };
+                updateBadge();
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // ============ STARTUP ============
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+<script src="nav.js"></script>
+</body>
+</html>

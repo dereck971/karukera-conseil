@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-9K1DM6VZE8"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-9K1DM6VZE8');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connectivité Aérienne — Guadeloupe | KCI Widget</title>
+<meta name="description" content="Widget de connectivité aérienne pour la Guadeloupe. Vols directs, compagnies et destinations depuis l'aéroport Pôle Caraïbes (PTP).">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='75' font-size='75' fill='%2300c2ff'>✈</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #0066cc;
+            --secondary-color: #00d4ff;
+            --accent-color: #ff6b35;
+            --dark-bg: #1a1a2e;
+            --dark-surface: #16213e;
+            --dark-surface-2: #0f3460;
+            --dark-text: #e0e0e0;
+            --dark-text-muted: #999;
+            --light-bg: #f8f9fa;
+            --light-surface: #ffffff;
+            --light-text: #1a1a2e;
+            --light-text-muted: #666;
+            --success: #00d084;
+            --warning: #ffa500;
+            --error: #ff3333;
+            --border-color-dark: #333;
+            --border-color-light: #ddd;
+        }
+
+        body.light-mode {
+            --current-bg: var(--light-bg);
+            --current-surface: var(--light-surface);
+            --current-surface-2: #f0f0f0;
+            --current-text: var(--light-text);
+            --current-text-muted: var(--light-text-muted);
+            --current-border: var(--border-color-light);
+        }
+
+        body.dark-mode {
+            --current-bg: var(--dark-bg);
+            --current-surface: var(--dark-surface);
+            --current-surface-2: var(--dark-surface-2);
+            --current-text: var(--dark-text);
+            --current-text-muted: var(--dark-text-muted);
+            --current-border: var(--border-color-dark);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--current-bg);
+            color: var(--current-text);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .widget-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--current-surface);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .widget-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #004ca3 100%);
+            padding: 24px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .plane-icon {
+            font-size: 28px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .header-title {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-title h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title p {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+
+        .theme-toggle {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .widget-content {
+            padding: 24px;
+        }
+
+        .airport-selector {
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .airport-selector label {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--current-text-muted);
+        }
+
+        .airport-selector select {
+            padding: 8px 12px;
+            border: 1px solid var(--current-border);
+            border-radius: 6px;
+            background-color: var(--current-surface-2);
+            color: var(--current-text);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .airport-selector select:hover,
+        .airport-selector select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+        }
+
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background-color: var(--current-surface-2);
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:nth-child(2) { border-left-color: var(--secondary-color); }
+        .stat-card:nth-child(3) { border-left-color: var(--success); }
+        .stat-card:nth-child(4) { border-left-color: var(--warning); }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--current-text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--current-text);
+        }
+
+        .stat-unit {
+            font-size: 12px;
+            color: var(--current-text-muted);
+            margin-left: 4px;
+            font-weight: 500;
+        }
+
+        .map-container {
+            margin-bottom: 24px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--current-border);
+            height: 300px;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .leaflet-control-zoom {
+            border: 1px solid var(--current-border) !important;
+        }
+
+        .leaflet-control-zoom a {
+            background-color: var(--current-surface) !important;
+            color: var(--current-text) !important;
+            border-color: var(--current-border) !important;
+        }
+
+        .leaflet-control-zoom a:hover {
+            background-color: var(--primary-color) !important;
+            color: white !important;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--current-text);
+            margin-top: 24px;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 8px;
+        }
+
+        .connections-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+
+        .connections-table tbody tr {
+            border-bottom: 1px solid var(--current-border);
+            transition: background-color 0.2s ease;
+        }
+
+        .connections-table tbody tr:hover {
+            background-color: var(--current-surface-2);
+        }
+
+        .connections-table td {
+            padding: 12px;
+            font-size: 13px;
+            color: var(--current-text);
+        }
+
+        .connections-table td:first-child {
+            font-weight: 600;
+            color: var(--primary-color);
+            min-width: 120px;
+        }
+
+        .connections-table td:nth-child(2) {
+            min-width: 200px;
+        }
+
+        .airline-chip {
+            display: inline-block;
+            padding: 4px 8px;
+            margin: 2px 4px 2px 0;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+            background-color: var(--current-surface-2);
+            color: var(--current-text);
+            border: 1px solid var(--current-border);
+        }
+
+        .airline-chip.air-france { background-color: rgba(0, 102, 204, 0.1); border-color: var(--primary-color); }
+        .airline-chip.air-caraibe { background-color: rgba(0, 212, 255, 0.1); border-color: var(--secondary-color); }
+        .airline-chip.winair { background-color: rgba(255, 107, 53, 0.1); border-color: var(--accent-color); }
+        .airline-chip.american { background-color: rgba(0, 144, 240, 0.1); border-color: #0090f0; }
+        .airline-chip.corsair { background-color: rgba(0, 102, 204, 0.1); border-color: var(--primary-color); }
+        .airline-chip.french-bee { background-color: rgba(255, 165, 0, 0.1); border-color: var(--warning); }
+        .airline-chip.air-antilles { background-color: rgba(0, 208, 132, 0.1); border-color: var(--success); }
+
+        .duration-column {
+            text-align: right;
+            color: var(--current-text-muted);
+        }
+
+        .frequency-column {
+            text-align: right;
+            min-width: 100px;
+        }
+
+        .frequency-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            background-color: var(--success);
+            color: white;
+        }
+
+        .frequency-badge.weekly {
+            background-color: var(--warning);
+        }
+
+        .frequency-badge.seasonal {
+            background-color: var(--error);
+        }
+
+        .investor-insight {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--dark-surface-2) 100%);
+            padding: 16px;
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        body.light-mode .investor-insight {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #0052a3 100%);
+            color: white;
+        }
+
+        .investor-insight strong {
+            font-weight: 700;
+        }
+
+        .widget-footer {
+            background-color: var(--current-surface-2);
+            padding: 16px 24px;
+            border-top: 1px solid var(--current-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .footer-text {
+            font-size: 11px;
+            color: var(--current-text-muted);
+        }
+
+        .footer-text a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .footer-text a:hover {
+            text-decoration: underline;
+        }
+
+        .embed-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .embed-button:hover {
+            background-color: #004ca3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 102, 204, 0.3);
+        }
+
+        .embed-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .embed-modal.active {
+            display: flex;
+        }
+
+        .embed-modal-content {
+            background-color: var(--current-surface);
+            padding: 24px;
+            border-radius: 8px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .embed-modal-header {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--current-text);
+        }
+
+        .embed-code-block {
+            background-color: var(--current-surface-2);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--current-border);
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
+            color: var(--current-text);
+            word-break: break-all;
+            margin-bottom: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+
+        .copy-button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-right: 8px;
+        }
+
+        .copy-button:hover {
+            background-color: #004ca3;
+        }
+
+        .copy-button.copied {
+            background-color: var(--success);
+        }
+
+        .close-button {
+            float: right;
+            font-size: 24px;
+            font-weight: 300;
+            color: var(--current-text-muted);
+            cursor: pointer;
+            border: none;
+            background: none;
+            line-height: 1;
+        }
+
+        .close-button:hover {
+            color: var(--current-text);
+        }
+
+        .region-header {
+            background-color: var(--current-surface-2);
+            padding: 8px 12px;
+            font-weight: 700;
+            font-size: 12px;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        @media (max-width: 768px) {
+            .widget-container {
+                border-radius: 0;
+            }
+
+            .widget-header {
+                padding: 16px;
+            }
+
+            .header-title h1 {
+                font-size: 18px;
+            }
+
+            .widget-content {
+                padding: 16px;
+            }
+
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .map-container {
+                height: 250px;
+            }
+
+            .connections-table {
+                font-size: 12px;
+            }
+
+            .connections-table td {
+                padding: 8px;
+            }
+
+            .theme-toggle {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+
+            .widget-footer {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header-left {
+                flex-direction: column;
+            }
+
+            .plane-icon {
+                font-size: 24px;
+            }
+
+            .header-title h1 {
+                font-size: 16px;
+            }
+
+            .stats-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .airport-selector {
+                flex-direction: column;
+            }
+
+            .airport-selector select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <div class="widget-container">
+        <div class="widget-header">
+            <div class="header-left">
+                <div class="plane-icon">✈️</div>
+                <div class="header-title">
+                    <h1>Connectivité aérienne</h1>
+                    <p id="airport-name">Guadeloupe (PTP)</p>
+                </div>
+            </div>
+            <button class="theme-toggle" onclick="toggleTheme()">🌙 Sombre</button>
+        </div>
+
+        <div class="widget-content">
+            <div class="airport-selector">
+                <label for="airport-select">Choisir un aéroport:</label>
+                <select id="airport-select" onchange="handleAirportChange()">
+                    <option value="PTP">Guadeloupe (PTP) - Pointe-à-Pitre</option>
+                    <option value="MIA">Miami (MIA)</option>
+                    <option value="ORY">Paris Orly (ORY)</option>
+                    <option value="CDG">Paris Charles de Gaulle (CDG)</option>
+                    <option value="SXM">Sint Maarten (SXM)</option>
+                    <option value="FDF">Fort-de-France (FDF)</option>
+                    <option value="SDQ">Saint-Domingue (SDQ)</option>
+                    <option value="PAP">Port-au-Prince (PAP)</option>
+                    <option value="HAV">La Havane (HAV)</option>
+                    <option value="ANU">Antigua (ANU)</option>
+                    <option value="SBH">Saint-Barth (SBH)</option>
+                    <option value="GBJ">Marie-Galante (GBJ)</option>
+                    <option value="DOM">Dominique (DOM)</option>
+                    <option value="BGI">Barbade (BGI)</option>
+                    <option value="UVF">Saint-Vincent (UVF)</option>
+                    <option value="SLU">Sainte-Lucie (SLU)</option>
+                    <option value="POS">Port-d'Espagne (POS)</option>
+                    <option value="AVA">Aruba (AVA)</option>
+                    <option value="CUR">Curaçao (CUR)</option>
+                    <option value="BON">Bonaire (BON)</option>
+                    <option value="VIE">Vieques (VIE)</option>
+                    <option value="BQN">Puerto Rico - Aguadilla (BQN)</option>
+                    <option value="SJU">Porto-Rico (SJU)</option>
+                    <option value="STI">Saint-Martin (STI)</option>
+                    <option value="JFK">New York (JFK)</option>
+                    <option value="ATL">Atlanta (ATL)</option>
+                    <option value="FLL">Fort Lauderdale (FLL)</option>
+                    <option value="CUN">Cancun (CUN)</option>
+                </select>
+            </div>
+
+            <div class="stats-bar" id="stats-bar">
+                <div class="stat-card">
+                    <div class="stat-label">Destinations directes</div>
+                    <div class="stat-value"><span id="stat-destinations">0</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Compagnies aériennes</div>
+                    <div class="stat-value"><span id="stat-airlines">0</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Vols par semaine</div>
+                    <div class="stat-value">~<span id="stat-flights">0</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Hub plus proche</div>
+                    <div class="stat-value"><span id="stat-hub">—</span></div>
+                </div>
+            </div>
+
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+
+            <div id="connections-section"></div>
+
+            <div class="investor-insight" id="investor-insight"></div>
+
+            <button class="embed-button" onclick="showEmbedModal()">📋 Code d'intégration</button>
+        </div>
+
+        <div class="widget-footer">
+            <div class="footer-text">
+                Données Caribbean ATC Pro — <a href="https://caribbeanatc.com" target="_blank">caribbeanatc.com</a> | Rapport KCI Premium
+            </div>
+        </div>
+    </div>
+
+    <div class="embed-modal" id="embed-modal">
+        <div class="embed-modal-content">
+            <button class="close-button" onclick="closeEmbedModal()">×</button>
+            <div class="embed-modal-header">Code d'intégration</div>
+            <p style="margin-bottom: 12px; font-size: 13px; color: var(--current-text-muted);">
+                Copiez ce code pour intégrer le widget dans votre rapport:
+            </p>
+            <div class="embed-code-block" id="embed-code"></div>
+            <button class="copy-button" onclick="copyToClipboard()">📋 Copier le code</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script>
+        // Airport coordinates
+        const AIRPORTS = {
+            PTP: { name: 'Guadeloupe (PTP)', lat: 16.2738, lng: -61.5325, country: 'Guadeloupe' },
+            MIA: { name: 'Miami (MIA)', lat: 25.7959, lng: -80.2870, country: 'USA' },
+            ORY: { name: 'Paris Orly (ORY)', lat: 48.7233, lng: 2.3592, country: 'France' },
+            CDG: { name: 'Paris CDG (CDG)', lat: 49.0097, lng: 2.5479, country: 'France' },
+            SXM: { name: 'Sint Maarten (SXM)', lat: 18.0207, lng: -63.1476, country: 'Sint Maarten' },
+            FDF: { name: 'Fort-de-France (FDF)', lat: 14.5941, lng: -61.1893, country: 'Martinique' },
+            SDQ: { name: 'Saint-Domingue (SDQ)', lat: 18.4299, lng: -69.8789, country: 'Rep. Dominicaine' },
+            PAP: { name: 'Port-au-Prince (PAP)', lat: 18.5734, lng: -72.2856, country: 'Haïti' },
+            HAV: { name: 'La Havane (HAV)', lat: 23.0438, lng: -82.4084, country: 'Cuba' },
+            ANU: { name: 'Antigua (ANU)', lat: 17.1286, lng: -61.7925, country: 'Antigua-et-Barbuda' },
+            SBH: { name: 'Saint-Barth (SBH)', lat: 17.9048, lng: -62.8463, country: 'Saint-Barth' },
+            GBJ: { name: 'Marie-Galante (GBJ)', lat: 15.9397, lng: -61.3261, country: 'Marie-Galante' },
+            DOM: { name: 'Dominique (DOM)', lat: 15.5295, lng: -61.3920, country: 'Dominique' },
+            BGI: { name: 'Barbade (BGI)', lat: 13.1939, lng: -59.5432, country: 'Barbade' },
+            UVF: { name: 'Saint-Vincent (UVF)', lat: 12.5436, lng: -61.2042, country: 'Saint-Vincent' },
+            SLU: { name: 'Sainte-Lucie (SLU)', lat: 13.7490, lng: -60.9503, country: 'Sainte-Lucie' },
+            POS: { name: 'Port-d\'Espagne (POS)', lat: 10.5920, lng: -61.3573, country: 'Trinité-et-Tobago' },
+            AVA: { name: 'Aruba (AVA)', lat: 12.1878, lng: -68.7251, country: 'Aruba' },
+            CUR: { name: 'Curaçao (CUR)', lat: 12.1694, lng: -68.9901, country: 'Curaçao' },
+            BON: { name: 'Bonaire (BON)', lat: 12.1897, lng: -68.2682, country: 'Bonaire' },
+            VIE: { name: 'Vieques (VIE)', lat: 18.1233, lng: -65.4425, country: 'Vieques' },
+            BQN: { name: 'Aguadilla (BQN)', lat: 18.4939, lng: -67.1307, country: 'Puerto Rico' },
+            SJU: { name: 'Porto-Rico (SJU)', lat: 18.4386, lng: -66.0761, country: 'Porto-Rico' },
+            STI: { name: 'Saint-Martin (STI)', lat: 18.0755, lng: -63.1093, country: 'Saint-Martin' },
+            JFK: { name: 'New York (JFK)', lat: 40.6413, lng: -73.7781, country: 'USA' },
+            ATL: { name: 'Atlanta (ATL)', lat: 33.6407, lng: -84.4277, country: 'USA' },
+            FLL: { name: 'Fort Lauderdale (FLL)', lat: 26.0726, lng: -80.1527, country: 'USA' },
+            CUN: { name: 'Cancun (CUN)', lat: 21.0087, lng: -87.2167, country: 'Mexique' }
+        };
+
+        // Routes data for PTP (Guadeloupe)
+        const ROUTES_DATA = {
+            PTP: [
+                { from: 'ORY', airlines: ['Air France', 'Air Caraïbes', 'Corsair', 'French Bee'], duration: '8h30', frequency: 'daily' },
+                { from: 'CDG', airlines: ['Air France'], duration: '8h30', frequency: 'weekly' },
+                { from: 'FDF', airlines: ['Air Caraïbes', 'Air Antilles'], duration: '35min', frequency: 'daily' },
+                { from: 'SXM', airlines: ['Air Caraïbes', 'Winair', 'Air Antilles'], duration: '45min', frequency: 'daily' },
+                { from: 'SDQ', airlines: ['Air Caraïbes'], duration: '2h15', frequency: 'weekly' },
+                { from: 'PAP', airlines: ['Air Caraïbes'], duration: '2h30', frequency: 'weekly' },
+                { from: 'HAV', airlines: ['Air Caraïbes'], duration: '3h', frequency: 'weekly' },
+                { from: 'ANU', airlines: ['Air Antilles'], duration: '30min', frequency: 'daily' },
+                { from: 'SBH', airlines: ['Air Antilles'], duration: '25min', frequency: 'daily' },
+                { from: 'GBJ', airlines: ['Air Antilles'], duration: '20min', frequency: 'daily' },
+                { from: 'DOM', airlines: ['Air Antilles'], duration: '35min', frequency: 'weekly' },
+                { from: 'MIA', airlines: ['American Airlines'], duration: '3h45', frequency: 'seasonal' }
+            ]
+        };
+
+        // Haversine formula to calculate distance
+        function haversine(lat1, lon1, lat2, lon2) {
+            const R = 6371; // km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return Math.round(R * c);
+        }
+
+        // Calculate duration based on distance
+        function calculateDuration(distance) {
+            if (distance < 100) return `${Math.round(distance/150 * 60)}min`;
+            const hours = Math.floor(distance / 900);
+            const minutes = Math.round((distance % 900) / 150);
+            return `${hours}h${minutes ? minutes : '00'}`;
+        }
+
+        // Generate routes for any airport
+        function generateRoutesForAirport(airportCode) {
+            if (ROUTES_DATA[airportCode]) {
+                return ROUTES_DATA[airportCode];
+            }
+
+            // Generate synthetic routes for other airports
+            const airport = AIRPORTS[airportCode];
+            if (!airport) return [];
+
+            const routes = [];
+            const targetAirport = AIRPORTS['PTP'];
+            const distance = haversine(airport.lat, airport.lng, targetAirport.lat, targetAirport.lng);
+
+            // Find closest connections based on distance
+            for (const [code, apt] of Object.entries(AIRPORTS)) {
+                if (code === airportCode) continue;
+                const dist = haversine(airport.lat, airport.lng, apt.lat, apt.lng);
+                if (dist < 300) {
+                    routes.push({
+                        from: code,
+                        airlines: ['Air Caraïbes'],
+                        duration: calculateDuration(dist),
+                        frequency: 'daily'
+                    });
+                }
+            }
+
+            return routes.length > 0 ? routes : [
+                { from: 'PTP', airlines: ['Air Caraïbes'], duration: calculateDuration(distance), frequency: 'daily' }
+            ];
+        }
+
+        // Airline chip colors
+        function getAirlineClass(airline) {
+            const map = {
+                'Air France': 'air-france',
+                'Air Caraïbes': 'air-caraibe',
+                'Winair': 'winair',
+                'American Airlines': 'american',
+                'Corsair': 'corsair',
+                'French Bee': 'french-bee',
+                'Air Antilles': 'air-antilles'
+            };
+            return map[airline] || '';
+        }
+
+        // Get frequency badge color
+        function getFrequencyBadge(frequency) {
+            const map = {
+                'daily': 'Daily',
+                'weekly': 'Hebdomadaire',
+                'seasonal': 'Saisonnier'
+            };
+            return map[frequency] || frequency;
+        }
+
+        // Render widget for airport
+        function renderWidget(airportCode) {
+            const airport = AIRPORTS[airportCode];
+            if (!airport) return;
+
+            // Update header
+            document.getElementById('airport-name').textContent = airport.name;
+
+            // Get routes
+            const routes = generateRoutesForAirport(airportCode);
+
+            // Calculate stats
+            const destinations = new Set(routes.map(r => r.from)).size;
+            const airlines = new Set(routes.flatMap(r => r.airlines)).size;
+            const dailyFlights = routes.filter(r => r.frequency === 'daily').length;
+
+            // Find closest hub
+            let closestHub = '—';
+            let closestDist = Infinity;
+            const hubs = ['SXM', 'FDF', 'MIA', 'ORY', 'CDG'];
+            for (const hub of hubs) {
+                const hubApt = AIRPORTS[hub];
+                const dist = haversine(airport.lat, airport.lng, hubApt.lat, hubApt.lng);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closestHub = `${hub} (${Math.round(closestDist/150*60)}min)`;
+                }
+            }
+
+            // Update stats
+            document.getElementById('stat-destinations').textContent = destinations;
+            document.getElementById('stat-airlines').textContent = airlines;
+            document.getElementById('stat-flights').textContent = dailyFlights * 2;
+            document.getElementById('stat-hub').textContent = closestHub;
+
+            // Group routes by region
+            const regions = {
+                'Depuis la France': [],
+                'Depuis la Caraïbe': [],
+                'Depuis l\'Amérique du Nord': [],
+                'Depuis d\'autres régions': []
+            };
+
+            for (const route of routes) {
+                const fromApt = AIRPORTS[route.from];
+                if (!fromApt) continue;
+
+                if (fromApt.country === 'France') {
+                    regions['Depuis la France'].push({ ...route, fromCode: route.from, fromName: fromApt.name });
+                } else if (['Guadeloupe', 'Martinique', 'Marie-Galante', 'Dominique', 'Antigua-et-Barbuda', 'Saint-Barth', 'Sint Maarten', 'Rep. Dominicaine', 'Haïti', 'Cuba', 'Barbade', 'Saint-Vincent', 'Sainte-Lucie', 'Trinité-et-Tobago', 'Aruba', 'Curaçao', 'Bonaire'].includes(fromApt.country)) {
+                    regions['Depuis la Caraïbe'].push({ ...route, fromCode: route.from, fromName: fromApt.name });
+                } else if (['USA', 'Mexique'].includes(fromApt.country)) {
+                    regions['Depuis l\'Amérique du Nord'].push({ ...route, fromCode: route.from, fromName: fromApt.name });
+                } else {
+                    regions['Depuis d\'autres régions'].push({ ...route, fromCode: route.from, fromName: fromApt.name });
+                }
+            }
+
+            // Render connections
+            let html = '';
+            for (const [region, regionRoutes] of Object.entries(regions)) {
+                if (regionRoutes.length === 0) continue;
+
+                html += `<div class="section-title">${region}</div>`;
+                html += '<table class="connections-table"><tbody>';
+
+                for (const route of regionRoutes) {
+                    const airlineChips = route.airlines.map(a =>
+                        `<span class="airline-chip ${getAirlineClass(a)}">${a}</span>`
+                    ).join('');
+
+                    const freqClass = route.frequency === 'daily' ? '' : route.frequency;
+                    const freqLabel = getFrequencyBadge(route.frequency);
+
+                    html += `
+                        <tr>
+                            <td>${route.from}</td>
+                            <td>${airlineChips}</td>
+                            <td class="duration-column">${route.duration}</td>
+                            <td class="frequency-column"><span class="frequency-badge ${freqClass}">${freqLabel}</span></td>
+                        </tr>
+                    `;
+                }
+
+                html += '</tbody></table>';
+            }
+
+            document.getElementById('connections-section').innerHTML = html;
+
+            // Update investor insight
+            const ptpPassengers = 2400000;
+            const insightText = `
+                <strong>${airport.name}</strong> offre une excellente connectivité aérienne avec <strong>${destinations} destinations directes</strong>
+                et <strong>~${dailyFlights * 2} vols hebdomadaires</strong> depuis les principaux hubs.
+                L'aéroport bénéficie d'une demande locative saisonnière soutenue et garantit une <strong>valorisation immobilière stable</strong>
+                pour les investisseurs. Infrastructure moderne, services de qualité internationale.
+            `;
+            document.getElementById('investor-insight').innerHTML = insightText;
+
+            // Update embed code
+            const embedCode = `&lt;iframe src="https://votre-domaine.com/caribbean-atc-widget.html?airport=${airportCode}" width="100%" height="900" style="border: none; border-radius: 8px;" allow="geolocation"&gt;&lt;/iframe&gt;`;
+            document.getElementById('embed-code').textContent = embedCode;
+
+            // Update map
+            updateMap(airportCode, routes);
+        }
+
+        // Map management
+        let map = null;
+        let markers = [];
+        let lines = [];
+
+        function updateMap(airportCode, routes) {
+            const airport = AIRPORTS[airportCode];
+
+            if (!map) {
+                map = L.map('map').setView([airport.lat, airport.lng], 5);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '© CartoDB'
+                }).addTo(map);
+
+                // Dark mode support
+                if (document.body.classList.contains('dark-mode')) {
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        attribution: '© CartoDB'
+                    }).addTo(map);
+                }
+            } else {
+                map.setView([airport.lat, airport.lng], 5);
+            }
+
+            // Clear existing markers and lines
+            markers.forEach(m => map.removeLayer(m));
+            lines.forEach(l => map.removeLayer(l));
+            markers = [];
+            lines = [];
+
+            // Add center airport marker
+            const centerMarker = L.circleMarker([airport.lat, airport.lng], {
+                radius: 8,
+                fillColor: '#0066cc',
+                color: '#fff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 1
+            }).addTo(map).bindPopup(`<strong>${airport.name}</strong><br/>Center Hub`);
+            markers.push(centerMarker);
+
+            // Add route destinations
+            for (const route of routes) {
+                const destAirport = AIRPORTS[route.from];
+                if (!destAirport) continue;
+
+                // Determine color based on country
+                let color = '#00d4ff'; // Default cyan for Caribbean
+                if (destAirport.country === 'France') color = '#0066cc'; // Blue for France
+                if (['USA', 'Mexique'].includes(destAirport.country)) color = '#9933ff'; // Purple for USA
+
+                // Add line
+                const line = L.polyline([
+                    [airport.lat, airport.lng],
+                    [destAirport.lat, destAirport.lng]
+                ], {
+                    color: color,
+                    weight: 2,
+                    opacity: 0.6,
+                    dashArray: route.frequency === 'daily' ? '' : '5, 5'
+                }).addTo(map);
+                lines.push(line);
+
+                // Add destination marker
+                const marker = L.circleMarker([destAirport.lat, destAirport.lng], {
+                    radius: 6,
+                    fillColor: color,
+                    color: '#fff',
+                    weight: 1.5,
+                    opacity: 1,
+                    fillOpacity: 0.7
+                }).addTo(map).bindPopup(`
+                    <strong>${destAirport.name}</strong><br/>
+                    ${route.duration}<br/>
+                    <small>${route.airlines.join(', ')}</small>
+                `);
+                markers.push(marker);
+            }
+        }
+
+        // Theme toggle
+        function toggleTheme() {
+            const isDark = document.body.classList.contains('dark-mode');
+            document.body.classList.toggle('dark-mode');
+            document.body.classList.toggle('light-mode');
+
+            const button = document.querySelector('.theme-toggle');
+            if (isDark) {
+                button.textContent = '☀️ Clair';
+            } else {
+                button.textContent = '🌙 Sombre';
+            }
+
+            // Refresh map with new tile layer
+            if (map) {
+                map.eachLayer(layer => {
+                    if (layer instanceof L.TileLayer) {
+                        map.removeLayer(layer);
+                    }
+                });
+
+                if (isDark) {
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                        attribution: '© CartoDB'
+                    }).addTo(map);
+                } else {
+                    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                        attribution: '© CartoDB'
+                    }).addTo(map);
+                }
+            }
+        }
+
+        // Airport selector change
+        function handleAirportChange() {
+            const selected = document.getElementById('airport-select').value;
+            renderWidget(selected);
+        }
+
+        // Embed modal
+        function showEmbedModal() {
+            document.getElementById('embed-modal').classList.add('active');
+        }
+
+        function closeEmbedModal() {
+            document.getElementById('embed-modal').classList.remove('active');
+        }
+
+        function copyToClipboard() {
+            const code = document.getElementById('embed-code').textContent;
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-button');
+                btn.textContent = '✓ Copié';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = '📋 Copier le code';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        // Click outside modal to close
+        document.getElementById('embed-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'embed-modal') {
+                closeEmbedModal();
+            }
+        });
+
+        // Get airport from URL parameter if available
+        function getAirportFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('airport') || 'PTP';
+        }
+
+        // Initialize
+        window.addEventListener('DOMContentLoaded', () => {
+            const airport = getAirportFromURL();
+            document.getElementById('airport-select').value = airport;
+            renderWidget(airport);
+        });
+    </script>
+<script src="nav.js"></script>
+</body>
+</html>
