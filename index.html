@@ -53,22 +53,46 @@
   }
   </script>
 
-  <!-- Google Analytics GA4 — loaded only after cookie consent -->
+  <!-- Vercel Web Analytics — no cookies, 100% visitors tracked -->
+  <script defer src="/_vercel/insights/script.js"></script>
+
+  <!-- Google Analytics GA4 — Consent Mode v2 + full tracking after consent -->
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    function loadGA4() {
-      if (document.getElementById('ga4-script')) return;
+    /* Consent Mode v2: anonymous measurement before consent */
+    gtag('consent', 'default', {
+      analytics_storage: 'denied',
+      ad_storage: 'denied',
+      ad_user_data: 'denied',
+      ad_personalization: 'denied',
+      wait_for_update: 500
+    });
+    /* Load GA4 immediately — Consent Mode handles privacy */
+    (function() {
       var s = document.createElement('script');
       s.id = 'ga4-script';
       s.async = true;
       s.src = 'https://www.googletagmanager.com/gtag/js?id=G-9K1DM6VZE8';
       document.head.appendChild(s);
-      gtag('js', new Date());
-      gtag('config', 'G-9K1DM6VZE8');
+    })();
+    gtag('js', new Date());
+    gtag('config', 'G-9K1DM6VZE8', { send_page_view: true });
+    function grantGA4Consent() {
+      gtag('consent', 'update', { analytics_storage: 'granted' });
     }
-    /* Auto-load if already consented */
-    if (localStorage.getItem('kci_cookies') === 'accepted') { loadGA4(); }
+    if (localStorage.getItem('kci_cookies') === 'accepted') { grantGA4Consent(); }
+  </script>
+
+  <!-- TikTok Pixel — remplacer PIXEL_ID par ton ID depuis TikTok Business Center -->
+  <script>
+    !function (w, d, t) {
+      w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=r;ttq._t=ttq._t||{};ttq._t[e+"-"+o]=+new Date;var s=document.createElement("script");s.type="text/javascript";s.async=!0;s.src=r+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(s,a)};
+      /* TODO: remplacer CXXXXXXXXXXXXXXXXXXXXXX par ton vrai Pixel ID TikTok */
+      /* Pour l'obtenir: business.tiktok.com > Events Manager > Web Events > Create Pixel */
+      /* ttq.load('CXXXXXXXXXXXXXXXXXXXXXX'); */
+      /* ttq.page(); */
+    }(window, document, 'ttq');
   </script>
 
   <!-- Font: Inter only -->
@@ -1242,12 +1266,57 @@
     function acceptCookies() {
       localStorage.setItem('kci_cookies', 'accepted');
       document.getElementById('cookie-banner').style.display = 'none';
-      loadGA4();
+      grantGA4Consent();
     }
     function refuseCookies() {
       localStorage.setItem('kci_cookies', 'refused');
       document.getElementById('cookie-banner').style.display = 'none';
+      /* GA4 reste en mode anonyme (Consent Mode denied) */
     }
+  </script>
+
+  <!-- Enhanced engagement tracking -->
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    /* Scroll depth tracking — 25%, 50%, 75%, 100% */
+    var scrollThresholds = [25, 50, 75, 100];
+    var scrollFired = {};
+    window.addEventListener('scroll', function() {
+      var scrollPct = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100);
+      scrollThresholds.forEach(function(t) {
+        if (scrollPct >= t && !scrollFired[t]) {
+          scrollFired[t] = true;
+          if (typeof gtag === 'function') gtag('event', 'scroll_depth', { percent: t });
+        }
+      });
+    }, { passive: true });
+
+    /* Time on page tracking — 30s, 60s, 120s, 300s */
+    [30, 60, 120, 300].forEach(function(sec) {
+      setTimeout(function() {
+        if (typeof gtag === 'function') gtag('event', 'time_on_page', { seconds: sec });
+      }, sec * 1000);
+    });
+
+    /* Track form field interactions */
+    document.querySelectorAll('#kci-order-form input, #kci-order-form select, #kci-order-form textarea').forEach(function(el) {
+      el.addEventListener('focus', function() {
+        if (typeof gtag === 'function') gtag('event', 'form_field_focus', { field_name: el.name || el.id });
+      }, { once: true });
+    });
+
+    /* Track form abandonment */
+    var formStarted = false;
+    var formEl = document.getElementById('kci-order-form');
+    if (formEl) {
+      formEl.addEventListener('input', function() { formStarted = true; }, { once: true });
+      window.addEventListener('beforeunload', function() {
+        if (formStarted && typeof gtag === 'function') {
+          gtag('event', 'form_abandon', { form_id: 'kci-order-form' });
+        }
+      });
+    }
+  });
   </script>
 
 
