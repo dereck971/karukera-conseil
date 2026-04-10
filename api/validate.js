@@ -172,6 +172,31 @@ async function sendReportToClient(report) {
     `<li style="padding:6px 0;font-size:13px;color:#6B6B65;border-bottom:1px dashed #E8E8E4;">${escapeHtml(item)}</li>`
   ).join('');
 
+  // ─── SECTION FISCALE ──────────────────────────────────────────────
+  const dispositifsHtml = (j.dispositifs_fiscaux || []).map(d => {
+    const eligColor = d.eligibilite === 'oui' ? '#2A9D6C' : d.eligibilite === 'possible' ? '#D48A1A' : '#9C9C94';
+    const eligLabel = d.eligibilite === 'oui' ? 'ÉLIGIBLE' : d.eligibilite === 'possible' ? 'À VÉRIFIER' : 'NON';
+    return `
+      <tr>
+        <td style="padding:8px 12px;font-size:13px;font-weight:600;color:#1A1A1A;border-bottom:1px solid #E8E8E4;">${escapeHtml(d.nom)}</td>
+        <td style="padding:8px 12px;font-size:11px;border-bottom:1px solid #E8E8E4;">
+          <span style="background:${eligColor};color:#fff;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;">${eligLabel}</span>
+        </td>
+        <td style="padding:8px 12px;font-size:13px;font-weight:600;color:#2A9D6C;text-align:right;border-bottom:1px solid #E8E8E4;">${escapeHtml(d.impact || '')}</td>
+      </tr>`;
+  }).join('');
+
+  const fiscalSectionHtml = dispositifsHtml ? `
+    <h3 style="font-size:14px;font-weight:600;color:#0B1526;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #C2A060;">Optimisation fiscale</h3>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+      <tr style="background:#0B1526;">
+        <th style="padding:10px 12px;color:#C2A060;font-size:11px;text-align:left;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Dispositif</th>
+        <th style="padding:10px 12px;color:#C2A060;font-size:11px;text-align:left;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Eligibilite</th>
+        <th style="padding:10px 12px;color:#C2A060;font-size:11px;text-align:right;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Impact</th>
+      </tr>
+      ${dispositifsHtml}
+    </table>` : '';
+
   const tableauHtml = (j.tableau_financier || []).map(row => {
     const isBold = row.type === 'total' || row.type === 'highlight';
     const bg = row.type === 'total' ? '#F5EFE0' : row.type === 'highlight' ? '#D1FAE5' : 'transparent';
@@ -209,6 +234,7 @@ async function sendReportToClient(report) {
     </div>
     <h3 style="font-size:14px;font-weight:600;color:#0B1526;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #C2A060;">Sous-scores détaillés</h3>
     <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">${subScoresHtml}</table>
+    ${fiscalSectionHtml}
     <h3 style="font-size:14px;font-weight:600;color:#0B1526;margin:0 0 12px;padding-bottom:8px;border-bottom:2px solid #C2A060;">Estimation financière</h3>
     <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
       <tr style="background:#0B1526;">
