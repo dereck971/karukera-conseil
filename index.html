@@ -1011,7 +1011,8 @@
           console.warn('KCI: Formspree returned ' + response.status + ' — order data saved locally');
         }
         if (typeof gtag === 'function') {
-          gtag('event', 'begin_checkout', { plan: plan, currency: 'EUR' });
+          gtag('event', 'begin_checkout', { event_category: 'funnel', step: '4_form_submitted', plan: plan, currency: 'EUR' });
+          gtag('event', 'redirect_stripe', { event_category: 'funnel', step: '5_stripe_redirect', plan: plan });
         }
         if (STRIPE_LINKS[plan] && STRIPE_LINKS[plan] !== '#') {
           window.location.href = STRIPE_LINKS[plan];
@@ -1041,6 +1042,7 @@
       el.addEventListener('click', () => {
         if (typeof gtag === 'function') {
           gtag('event', 'cta_click', {
+            event_category: 'engagement',
             element: el.textContent.trim().slice(0, 40),
             plan: el.dataset?.plan || 'none'
           });

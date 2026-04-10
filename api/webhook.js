@@ -175,8 +175,19 @@ async function handleCheckoutCompleted(session) {
 
   console.log('[webhook] Client:', clientName, clientEmail, '| Plan:', plan);
 
-  // 4. Construire le prompt IA selon le plan
-  const prompt = buildAnalysePrompt(plan, bienData, clientName);
+  // 4. Lookup DVF réel (non bloquant — si ça échoue, l'IA génère sans)
+  let dvfData = null;
+  try {
+    dvfData = await fetchDVFData(bienData.commune);
+    if (dvfData) {
+      console.log('[webhook] DVF récupéré:', dvfData.nb_transactions, 'transactions,', dvfData.mediane_prix_m2, '€/m²');
+    }
+  } catch (err) {
+    console.warn('[webhook] DVF lookup non bloquant:', err.message);
+  }
+
+  // 5. Construire le prompt IA selon le plan + données DVF réelles
+  const prompt = buildAnalysePrompt(plan, bienData, clientName, dvfData);
 
   // 5. Générer le rapport via Anthropic
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
@@ -197,6 +208,7 @@ async function handleCheckoutCompleted(session) {
 
   // 6. Stocker le rapport en attente de validation admin
   const reportId = crypto.randomBytes(12).toString('hex');
+  const mapUrl = getStaticMapUrl(bienData.commune);
   const reportData = {
     id: reportId,
     stripeSessionId: session.id,
@@ -208,6 +220,8 @@ async function handleCheckoutCompleted(session) {
     clientPhone,
     bienData,
     analyseJson,
+    dvfData: dvfData || null,
+    mapUrl: mapUrl || null,
     emailSent: false
   };
 
@@ -219,13 +233,115 @@ async function handleCheckoutCompleted(session) {
   console.log('[webhook] Email admin envoyé pour rapport:', reportId);
 }
 
+// ─── CAPTURE SATELLITE AUTOMATIQUE ───────────────────────────────
+// Génère une URL de carte statique centrée sur la commune via OpenStreetMap/Geoportail
+// Retourne l'URL de l'image (à intégrer dans le rapport)
+function getStaticMapUrl(commune) {
+  // Coordonnées GPS des communes Guadeloupe (centroides approximatifs)
+  const COORDS = {
+    'Abymes': [16.2708, -61.5028], 'Anse-Bertrand': [16.4717, -61.5036],
+    'Baie-Mahault': [16.2667, -61.5833], 'Baillif': [16.0167, -61.7500],
+    'Basse-Terre': [15.9972, -61.7278], 'Bouillante': [16.1333, -61.7667],
+    'Capesterre-Belle-Eau': [16.0500, -61.5667], 'Deshaies': [16.3000, -61.7833],
+    'Gourbeyre': [15.9833, -61.7000], 'Goyave': [16.1333, -61.5667],
+    'Grand-Bourg': [15.8833, -61.3167], 'Lamentin': [16.2667, -61.6333],
+    'Le Gosier': [16.2167, -61.4833], 'Le Moule': [16.3333, -61.3500],
+    'Morne-à-l\'Eau': [16.3333, -61.4500], 'Petit-Bourg': [16.2000, -61.5833],
+    'Petit-Canal': [16.3833, -61.4833], 'Pointe-Noire': [16.2333, -61.7833],
+    'Pointe-à-Pitre': [16.2411, -61.5339], 'Port-Louis': [16.4167, -61.5333],
+    'Saint-Claude': [16.0167, -61.7000], 'Saint-François': [16.2500, -61.2667],
+    'Saint-Louis': [15.9500, -61.3167], 'Sainte-Anne': [16.2333, -61.3833],
+    'Sainte-Rose': [16.3333, -61.7000], 'Terre-de-Bas': [15.8500, -61.6333],
+    'Terre-de-Haut': [15.8667, -61.5833], 'Trois-Rivières': [15.9667, -61.6500],
+    'Vieux-Fort': [15.9500, -61.7000], 'Vieux-Habitants': [16.0500, -61.7500]
+  };
+  const coords = COORDS[commune];
+  if (!coords) return null;
+  const [lat, lon] = coords;
+  // OpenStreetMap static tile (gratuit, sans API key)
+  const zoom = 14;
+  return `https://static-maps.yandex.ru/v1?ll=${lon},${lat}&z=${zoom}&size=600,400&l=sat&lang=fr_FR`;
+}
+
+// ─── LOOKUP DVF RÉEL ─────────────────────────────────────────────
+// Récupère les dernières transactions immobilières réelles via l'API DVF open data
+async function fetchDVFData(commune) {
+  if (!commune) return null;
+  try {
+    // Mapping commune → code INSEE (communes Guadeloupe 971)
+    const COMMUNE_INSEE = {
+      'Abymes': '97101', 'Anse-Bertrand': '97102', 'Baie-Mahault': '97103',
+      'Baillif': '97104', 'Basse-Terre': '97105', 'Bouillante': '97106',
+      'Capesterre-Belle-Eau': '97107', 'Capesterre-de-Marie-Galante': '97108',
+      'Deshaies': '97109', 'Gourbeyre': '97110', 'Goyave': '97111',
+      'Grand-Bourg': '97112', 'Lamentin': '97113', 'Le Gosier': '97114',
+      'Le Moule': '97115', 'Morne-à-l\'Eau': '97116', 'Petit-Bourg': '97117',
+      'Petit-Canal': '97118', 'Pointe-Noire': '97119', 'Pointe-à-Pitre': '97120',
+      'Port-Louis': '97121', 'Saint-Claude': '97122', 'Saint-François': '97123',
+      'Saint-Louis': '97134', 'Sainte-Anne': '97128', 'Sainte-Rose': '97129',
+      'Terre-de-Bas': '97130', 'Terre-de-Haut': '97131', 'Trois-Rivières': '97132',
+      'Vieux-Fort': '97133', 'Vieux-Habitants': '97134'
+    };
+    const codeInsee = COMMUNE_INSEE[commune];
+    if (!codeInsee) {
+      console.log('[DVF] Commune non trouvée dans la table INSEE:', commune);
+      return null;
+    }
+    // API DVF open data — dernières 2 années
+    const url = `https://api.cquest.org/dvf?code_commune=${codeInsee}&nature_mutation=Vente&limit=20`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data.resultats || data.resultats.length === 0) return null;
+    // Extraire les stats pertinentes
+    const ventes = data.resultats
+      .filter(v => v.valeur_fonciere && v.valeur_fonciere > 0)
+      .map(v => ({
+        date: v.date_mutation,
+        prix: v.valeur_fonciere,
+        type: v.type_local || 'Terrain',
+        surface: v.surface_terrain || v.surface_reelle_bati || 0,
+        prix_m2: (v.surface_terrain || v.surface_reelle_bati) > 0
+          ? Math.round(v.valeur_fonciere / (v.surface_terrain || v.surface_reelle_bati))
+          : null
+      }));
+    if (ventes.length === 0) return null;
+    const prix_m2_list = ventes.filter(v => v.prix_m2).map(v => v.prix_m2);
+    const mediane_m2 = prix_m2_list.length > 0
+      ? prix_m2_list.sort((a, b) => a - b)[Math.floor(prix_m2_list.length / 2)]
+      : null;
+    return {
+      nb_transactions: ventes.length,
+      mediane_prix_m2: mediane_m2,
+      derniere_vente: ventes[0],
+      echantillon: ventes.slice(0, 5).map(v =>
+        `${v.date} — ${v.type} — ${v.prix.toLocaleString('fr-FR')}€ (${v.surface}m²${v.prix_m2 ? ', ' + v.prix_m2 + '€/m²' : ''})`
+      )
+    };
+  } catch (err) {
+    console.warn('[DVF] Lookup failed (non bloquant):', err.message);
+    return null;
+  }
+}
+
 // ─── CONSTRUCTION DU PROMPT IA ───────────────────────────────────
-function buildAnalysePrompt(plan, bienData, clientName) {
+function buildAnalysePrompt(plan, bienData, clientName, dvfData) {
   const base = `Analyse de faisabilité immobilière pour ${clientName} en Guadeloupe.`;
   const bienInfo = Object.entries(bienData)
     .filter(([, v]) => v && String(v).trim())
     .map(([k, v]) => `- ${k}: ${v}`)
     .join('\n');
+
+  // Injecter les données DVF réelles si disponibles
+  const dvfSection = dvfData ? `
+
+DONNÉES DVF RÉELLES (source : data.gouv.fr) :
+- Nombre de transactions récentes : ${dvfData.nb_transactions}
+- Prix médian au m² : ${dvfData.mediane_prix_m2 ? dvfData.mediane_prix_m2 + ' €/m²' : 'Non disponible'}
+- Dernières ventes :
+${dvfData.echantillon.map(v => '  ' + v).join('\n')}
+
+IMPORTANT : Utilise ces prix DVF réels comme base de ton analyse financière. Ne fabrique PAS de prix — utilise ceux ci-dessus.` : '';
 
   const planInstructions = {
     essentielle: `Produis une analyse ESSENTIELLE (format court, 1 page A4) :
@@ -289,6 +405,7 @@ Structure JSON attendue :
 
 Données du bien :
 ${bienInfo || '(Données limitées — produis une analyse générale basée sur le marché guadeloupéen)'}
+${dvfSection}
 
 ${planInstructions[plan] || planInstructions.recommandee}
 
