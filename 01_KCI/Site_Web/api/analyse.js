@@ -5,40 +5,46 @@ const crypto = require('crypto');
 
 // ─── STOCKAGE PERSISTANT ──────────────────────────────────────────
 // Utilise Vercel KV si disponible, sinon fallback RAM (dev local)
-let kvStore;
+let kvClient = null;
 try {
-  kvStore = require('@vercel/kv');
+  if (process.env.KV_REST_API_URL) {
+    kvClient = require('@vercel/kv').kv;
+  }
 } catch (e) {
-  kvStore = null;
+  kvClient = null;
 }
 
 const memoryFallback = global._kciPending || (global._kciPending = new Map());
 
 const store = {
   async get(key) {
-    if (kvStore) {
-      return await kvStore.get(`report:${key}`);
+    if (kvClient) {
+      try {
+        return await kvClient.get(`report:${key}`);
+      } catch (e) {
+        console.error('[store] KV get error:', e.message);
+        return memoryFallback.get(key) || null;
+      }
     }
     return memoryFallback.get(key) || null;
   },
   async set(key, value, options = {}) {
-    if (kvStore) {
-      // TTL de 7 jours par défaut
-      await kvStore.set(`report:${key}`, JSON.stringify(value), { ex: options.ttl || 7 * 24 * 3600 });
+    if (kvClient) {
+      try {
+        // TTL de 7 jours par défaut
+        await kvClient.set(`report:${key}`, JSON.stringify(value), { ex: options.ttl || 7 * 24 * 3600 });
+      } catch (e) {
+        console.error('[store] KV set error:', e.message);
+        memoryFallback.set(key, value);
+      }
     } else {
       memoryFallback.set(key, value);
     }
   }
 };
 
-// ─── ESCAPE HTML (XSS protection) ─────────────────────────────────
-function escapeHtml(str) {
-  if (typeof str !== 'string') return '';
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
 module.exports = async (req, res) => {
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://analyse-immo.vercel.app';
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://www.karukera-conseil.com';
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -67,10 +73,6 @@ module.exports = async (req, res) => {
   }
 
   const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
-  if (!ANTHROPIC_KEY) {
-    console.error('[analyse] ANTHROPIC_API_KEY not configured');
-    return res.status(500).json({ error: 'Configuration serveur incomplète.' });
-  }
 
   // ─── ÉTAPE 1 : GÉNÉRATION PRINCIPALE ────────────────────────────
   let analyseJson;
@@ -84,10 +86,18 @@ module.exports = async (req, res) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
+        max_tokens: 5000,
         system: `Tu es un expert immobilier senior spécialisé en Guadeloupe pour Karukera Conseil Immobilier (KCI), cabinet fondé par Dereck Rauzduel, architecte EPFL.
-Tu maîtrises : marché foncier guadeloupéen, PLU des communes, PPRI, loi littoral, LMNP, prix au m² par secteur, contraintes cycloniques et sismiques (zone 5).
-Tu analyses chaque projet avec rigueur et pragmatisme.
+
+EXPERTISE MARCHÉ :
+Tu maîtrises : marché foncier guadeloupéen, PLU des 32 communes, PPRI, loi littoral, prix au m² par secteur, contraintes cycloniques et sismiques (zone 5). Prix construction réaliste : 1 500-1 800 €/m² TTC all-in.
+
+EXPERTISE FISCALE OM 2026 (TOUJOURS ANALYSER) :
+Pinel Outre-Mer = FERMÉ depuis 31/12/2024. NE JAMAIS PROPOSER.
+Dispositifs actifs : CIOP (art. 244 quater W, crédit impôt 35-38.25% hors plafond niches), LLI (TVA 10% + exo TF 20 ans hors plafond), Girardin industriel (one-shot 110-115%, jusqu'à 2029), Girardin logement social (jusqu'à 60k€, jusqu'à 2029), Denormandie OM (23/29/32% sur 6/9/12 ans, Basse-Terre éligible zone ORT), Déficit foncier (10 700€/an, 21 400€ rénov énergétique), Loc'Avantages (20-65%), LMNP réel (amortissement 2-3.5%/an, PS 18.6% en 2026), PTZ OM (zone B1, jusqu'à 2027).
+Subventions : MaPrimeRénov OM, Éco-PTZ, LBU, ANAH, ADEME, ZFANG, LODEOM (réformé 2026, 6 barèmes), ACRE.
+
+RÈGLES : Le score global DOIT intégrer le potentiel fiscal. Toujours identifier les dispositifs éligibles et chiffrer l'impact.
 Réponds UNIQUEMENT en JSON valide. Zéro markdown. Zéro backtick. Zéro explication hors JSON.`,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -96,7 +106,7 @@ Réponds UNIQUEMENT en JSON valide. Zéro markdown. Zéro backtick. Zéro explic
     if (!r1.ok) {
       const err = await r1.text();
       console.error('[analyse] Anthropic step1 error:', err);
-      return res.status(500).json({ error: 'Erreur lors de la génération de l\'analyse. Veuillez réessayer.' });
+      return res.status(500).json({ error: 'Anthropic API error', detail: err });
     }
 
     const d1 = await r1.json();
@@ -104,7 +114,7 @@ Réponds UNIQUEMENT en JSON valide. Zéro markdown. Zéro backtick. Zéro explic
     analyseJson = JSON.parse(raw1);
   } catch (e) {
     console.error('[analyse] Step1 parse error:', e.message);
-    return res.status(500).json({ error: 'Erreur lors du traitement de l\'analyse. Veuillez réessayer.' });
+    return res.status(500).json({ error: 'Erreur génération analyse', detail: e.message });
   }
 
   // ─── ÉTAPE 2 : VÉRIFICATION IA (double-check) ───────────────────
@@ -162,7 +172,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
 
       if (verificationResult.corrections_appliquees && verificationResult.json_corrige) {
         analyseJson = verificationResult.json_corrige;
-        // JSON corrigé par la vérification IA
+        console.log('[analyse] JSON corrigé par la vérification IA');
       }
     }
   } catch (e) {
@@ -205,19 +215,10 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
   try {
     const { Resend } = require('resend');
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const adminSecret = process.env.ADMIN_SECRET;
-    if (!adminEmail) {
-      console.error('[analyse] ADMIN_EMAIL environment variable is required');
-      throw new Error('ADMIN_EMAIL not configured');
-    }
-    if (!adminSecret) {
-      console.error('[analyse] ADMIN_SECRET environment variable is required');
-      throw new Error('ADMIN_SECRET not configured');
-    }
+    const adminEmail = process.env.ADMIN_EMAIL || 'dereck.rauzduel@gmail.com';
     const baseUrl = process.env.BASE_URL || `https://${req.headers.host}`;
-    const approveToken = crypto.createHmac('sha256', adminSecret).update(`${reportId}:approve`).digest('hex');
-    const rejectToken  = crypto.createHmac('sha256', adminSecret).update(`${reportId}:reject`).digest('hex');
+    const approveToken = crypto.createHmac('sha256', process.env.ADMIN_SECRET).update(`${reportId}:approve`).digest('hex');
+    const rejectToken  = crypto.createHmac('sha256', process.env.ADMIN_SECRET).update(`${reportId}:reject`).digest('hex');
     const approveUrl = `${baseUrl}/api/validate?id=${reportId}&action=approve&token=${approveToken}`;
     const rejectUrl  = `${baseUrl}/api/validate?id=${reportId}&action=reject&token=${rejectToken}`;
 
@@ -225,7 +226,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
       ? `<div style="background:#FEF3C7;border-left:4px solid #D97706;padding:12px 16px;margin:16px 0;border-radius:6px;">
            <strong style="color:#92400E;">Points signalés par la vérification IA :</strong>
            <ul style="margin:8px 0 0;padding-left:20px;color:#92400E;">
-             ${verificationResult.problemes.map(p => `<li>${escapeHtml(p)}</li>`).join('')}
+             ${verificationResult.problemes.map(p => `<li>${p}</li>`).join('')}
            </ul>
          </div>`
       : `<div style="background:#D1FAE5;border-left:4px solid #10B981;padding:12px 16px;margin:16px 0;border-radius:6px;">
@@ -255,9 +256,9 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
       </div>
     </div>
     <div style="background:#F7F7F5;border-radius:8px;padding:14px 18px;margin-bottom:20px;font-size:13px;color:#6B6B65;">
-      <strong style="color:#1A1A1A;">Client :</strong> ${escapeHtml(clientName || 'Non renseigné')}<br>
-      <strong style="color:#1A1A1A;">Email :</strong> ${escapeHtml(clientEmail || 'Non renseigné')}<br>
-      <strong style="color:#1A1A1A;">Téléphone :</strong> ${escapeHtml(clientPhone || 'Non renseigné')}
+      <strong style="color:#1A1A1A;">Client :</strong> ${clientName || 'Non renseigné'}<br>
+      <strong style="color:#1A1A1A;">Email :</strong> ${clientEmail || 'Non renseigné'}<br>
+      <strong style="color:#1A1A1A;">Téléphone :</strong> ${clientPhone || 'Non renseigné'}
     </div>
     ${problemesHtml}
     <div style="display:flex;gap:12px;margin:24px 0;">
@@ -271,7 +272,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
 </div>
 </body></html>`
     });
-    // Email admin envoyé successfully
+    console.log('[analyse] Email admin envoyé:', reportId);
   } catch (emailErr) {
     console.error('[analyse] Email admin error (non bloquant):', emailErr.message);
   }

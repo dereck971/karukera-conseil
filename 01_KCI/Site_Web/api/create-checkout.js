@@ -22,7 +22,7 @@ const PLANS = {
 };
 
 module.exports = async (req, res) => {
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://analyse-immo.vercel.app';
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://www.karukera-conseil.com';
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -31,17 +31,9 @@ module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      console.error('[create-checkout] STRIPE_SECRET_KEY not configured');
-      return res.status(500).json({ error: 'Configuration serveur incomplète.' });
-    }
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const baseUrl = req.headers.origin || `https://${req.headers.host}`;
     const { plan } = req.body;
-
-    if (plan && !PLANS[plan]) {
-      return res.status(400).json({ error: 'Plan invalide. Choisissez : essentielle, recommandee, ou premium.' });
-    }
 
     const planConfig = PLANS[plan] || PLANS.recommandee;
 

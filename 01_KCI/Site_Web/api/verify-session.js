@@ -13,7 +13,7 @@ function generateToken(payload) {
 }
 
 module.exports = async (req, res) => {
-  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://analyse-immo.vercel.app';
+  const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://www.karukera-conseil.com';
   res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -21,26 +21,12 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  if (!process.env.TOKEN_SECRET) {
-    console.error('[verify-session] TOKEN_SECRET not configured');
-    return res.status(500).json({ success: false, error: 'Configuration serveur incomplète.' });
-  }
-
   const { session_id } = req.query;
   if (!session_id) {
     return res.status(400).json({ success: false, error: 'session_id manquant' });
   }
 
-  // Validate session_id format (Stripe session IDs start with cs_)
-  if (typeof session_id !== 'string' || session_id.length > 200 || !/^cs_/.test(session_id)) {
-    return res.status(400).json({ success: false, error: 'session_id invalide' });
-  }
-
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      console.error('[verify-session] STRIPE_SECRET_KEY not configured');
-      return res.status(500).json({ success: false, error: 'Configuration serveur incomplète.' });
-    }
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripe.checkout.sessions.retrieve(session_id);
 
