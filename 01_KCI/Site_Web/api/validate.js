@@ -86,20 +86,25 @@ module.exports = async (req, res) => {
   }
 
   if (report.status !== 'pending') {
+    const label = report.status === 'approved' ? 'approuvé'
+      : report.status === 'processing' ? 'en cours de traitement'
+      : 'refusé';
     return res.status(200).send(html(
       'Déjà traité',
-      `Ce rapport a déjà été <strong>${report.status === 'approved' ? 'approuvé' : 'refusé'}</strong>.`,
+      `Ce rapport a déjà été <strong>${label}</strong>.`,
       '#2A9D6C'
     ));
   }
 
   // ─── APPROUVER ──────────────────────────────────────────────────
   if (action === 'approve') {
-    report.status = 'approved';
+    // Anti race-condition : verrouiller immédiatement AVANT l'envoi email
+    report.status = 'processing';
     await store.set(id, report);
 
     try {
       await sendReportToClient(report);
+      report.status = 'approved';
       report.emailSent = true;
       await store.set(id, report);
       // Rapport approuvé + email client envoyé

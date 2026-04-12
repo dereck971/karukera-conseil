@@ -128,7 +128,9 @@
 
   async function loadReports() {
     try {
-      const res = await fetch(`/api/pending?secret=${encodeURIComponent(adminSecret)}`);
+      const res = await fetch('/api/pending', {
+        headers: { 'Authorization': `Bearer ${adminSecret}` }
+      });
       if (!res.ok) return false;
       const data = await res.json();
       renderReports(data.reports || []);

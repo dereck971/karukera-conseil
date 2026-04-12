@@ -1,7 +1,8 @@
-// api/create-checkout.js v6
+// api/create-checkout.js v7
 // Crée une session Stripe Checkout pour les 3 offres (49/129/299€)
 
 const Stripe = require('stripe');
+const { getBaseUrl } = require('./_lib/security');
 
 const PLANS = {
   essentielle: {
@@ -32,7 +33,7 @@ module.exports = async (req, res) => {
 
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    const baseUrl = req.headers.origin || `https://${req.headers.host}`;
+    const baseUrl = getBaseUrl();
     const { plan } = req.body;
 
     const planConfig = PLANS[plan] || PLANS.recommandee;

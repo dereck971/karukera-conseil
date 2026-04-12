@@ -1,9 +1,10 @@
-// api/submit-form.js v2
+// api/submit-form.js v3
 // Reçoit les données du formulaire client + fichiers (base64),
 // stocke en KV, puis crée une session Stripe Checkout avec formId en metadata.
 
 const crypto = require('crypto');
 const Stripe = require('stripe');
+const { getBaseUrl, validateMagicBytes } = require('./_lib/security');
 
 // ─── STOCKAGE PERSISTANT ──────────────────────────────────────────
 let kvClient = null;
@@ -155,6 +156,12 @@ module.exports = async (req, res) => {
           error: `Type de fichier non autorisé : ${f.type}. Formats acceptés : JPG, PNG, WebP, PDF, TIFF.`
         });
       }
+      // Validation magic bytes — le Content-Type seul est forgeable
+      if (!validateMagicBytes(f.data, f.type)) {
+        return res.status(400).json({
+          error: `Le fichier "${f.name}" ne correspond pas au type déclaré (${f.type}). Fichier corrompu ou type incorrect.`
+        });
+      }
       validatedFiles.push({
         name: f.name.slice(0, 100),
         type: f.type,
@@ -215,7 +222,7 @@ module.exports = async (req, res) => {
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    const baseUrl = process.env.BASE_URL || `https://${req.headers.host}`;
+    const baseUrl = getBaseUrl();
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',

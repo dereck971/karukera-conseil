@@ -1,6 +1,8 @@
 // api/pending.js
 // Liste les rapports en attente de validation admin
-// GET /api/pending?secret=ADMIN_SECRET
+// GET /api/pending (Authorization: Bearer ADMIN_SECRET)
+
+const { verifyAdmin } = require('./_lib/security');
 
 let kvClient = null;
 try {
@@ -16,8 +18,7 @@ const memoryFallback = global._kciPending || (global._kciPending = new Map());
 module.exports = async (req, res) => {
   if (req.method !== 'GET') return res.status(405).end();
 
-  const { secret } = req.query;
-  if (!secret || secret !== process.env.ADMIN_SECRET) {
+  if (!verifyAdmin(req)) {
     return res.status(403).json({ error: 'Accès refusé.' });
   }
 

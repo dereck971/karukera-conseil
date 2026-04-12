@@ -120,7 +120,7 @@ module.exports = async (req, res) => {
         from: `KCI Lead <${process.env.FROM_EMAIL || 'noreply@karukera-conseil.com'}>`,
         to: adminEmail,
         subject: `[KCI] Nouveau lead — ${email}`,
-        html: `<p>Nouveau lead via le guide gratuit KCI.</p><p><strong>Email :</strong> ${email.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</p><p><strong>Date :</strong> ${new Date().toLocaleString('fr-FR')}</p><p><strong>Source :</strong> Exit popup — "5 pièges à éviter"</p>`
+        html: `<p>Nouveau lead via le guide gratuit KCI.</p><p><strong>Email :</strong> ${email.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}</p><p><strong>Date :</strong> ${new Date().toLocaleString('fr-FR')}</p><p><strong>Source :</strong> Exit popup — "5 pièges à éviter"</p>`
       });
     }
 

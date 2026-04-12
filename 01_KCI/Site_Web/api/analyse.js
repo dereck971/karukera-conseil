@@ -1,7 +1,8 @@
-// api/analyse.js v6
+// api/analyse.js v7
 // Génère l'analyse + double vérification IA + notification admin
 
 const crypto = require('crypto');
+const { getBaseUrl, rateLimit, getClientIp } = require('./_lib/security');
 
 // ─── STOCKAGE PERSISTANT ──────────────────────────────────────────
 // Utilise Vercel KV si disponible, sinon fallback RAM (dev local)
@@ -51,6 +52,12 @@ module.exports = async (req, res) => {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+
+  // ─── RATE LIMITING (5 requêtes/min par IP) ─────────────────────
+  const clientIp = getClientIp(req);
+  if (!rateLimit(clientIp, 5, 60000)) {
+    return res.status(429).json({ error: 'Trop de requêtes. Réessayez dans 1 minute.' });
+  }
 
   const { prompt, clientEmail, clientName, clientPhone, bienData } = req.body;
   if (!prompt) return res.status(400).json({ error: 'Missing prompt' });
@@ -216,7 +223,7 @@ Réponds UNIQUEMENT en JSON valide avec cette structure :
     const { Resend } = require('resend');
     const resend = new Resend(process.env.RESEND_API_KEY);
     const adminEmail = process.env.ADMIN_EMAIL || 'dereck.rauzduel@gmail.com';
-    const baseUrl = process.env.BASE_URL || `https://${req.headers.host}`;
+    const baseUrl = getBaseUrl();
     const approveToken = crypto.createHmac('sha256', process.env.ADMIN_SECRET).update(`${reportId}:approve`).digest('hex');
     const rejectToken  = crypto.createHmac('sha256', process.env.ADMIN_SECRET).update(`${reportId}:reject`).digest('hex');
     const approveUrl = `${baseUrl}/api/validate?id=${reportId}&action=approve&token=${approveToken}`;

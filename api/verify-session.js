@@ -1,16 +1,8 @@
-// api/verify-session.js v6
-// Vérifie le paiement Stripe et retourne un token d'accès signé (HMAC)
+// api/verify-session.js v7
+// Vérifie le paiement Stripe et retourne un token d'accès chiffré (AES-256-GCM)
 
 const Stripe = require('stripe');
-const crypto = require('crypto');
-
-function generateToken(payload) {
-  const secret = process.env.TOKEN_SECRET;
-  if (!secret) throw new Error('TOKEN_SECRET environment variable is required');
-  const data = Buffer.from(JSON.stringify(payload)).toString('base64');
-  const sig = crypto.createHmac('sha256', secret).update(data).digest('hex');
-  return `${data}.${sig}`;
-}
+const { encryptPayload } = require('./_lib/security');
 
 module.exports = async (req, res) => {
   const allowedOrigin = process.env.ALLOWED_ORIGIN || 'https://www.karukera-conseil.com';
@@ -44,7 +36,7 @@ module.exports = async (req, res) => {
       issuedAt: Date.now(),
     };
 
-    const token = generateToken(payload);
+    const token = encryptPayload(payload);
 
     return res.status(200).json({
       success: true,
