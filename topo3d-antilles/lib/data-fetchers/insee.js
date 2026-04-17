@@ -42,6 +42,7 @@ const COMMUNES_971 = {
   '97134': 'Vieux-Habitants'
 };
 
+// Mapping VÉRIFIÉ 17/04/2026 via API IGN officielle (geo.api.gouv.fr/communes?codeDepartement=972)
 const COMMUNES_972 = {
   '97201': "L'Ajoupa-Bouillon",
   '97202': 'Les Anses-d\u2019Arlet',
@@ -61,21 +62,21 @@ const COMMUNES_972 = {
   '97216': 'Le Marigot',
   '97217': 'Le Marin',
   '97218': 'Le Morne-Rouge',
-  '97219': 'Le Morne-Vert',
-  '97220': 'Le Prêcheur',
-  '97221': 'Rivière-Pilote',
-  '97222': 'Rivière-Salée',
-  '97223': 'Le Robert',
-  '97224': 'Saint-Esprit',
-  '97225': 'Saint-Joseph',
-  '97226': 'Saint-Pierre',
-  '97227': 'Sainte-Anne',
-  '97228': 'Sainte-Luce',
-  '97229': 'Sainte-Marie',
-  '97230': 'Schoelcher',
-  '97231': 'La Trinité',
-  '97232': 'Les Trois-Îlets',
-  '97233': 'Le Vauclin',
+  '97219': 'Le Prêcheur',
+  '97220': 'Rivière-Pilote',
+  '97221': 'Rivière-Salée',
+  '97222': 'Le Robert',
+  '97223': 'Saint-Esprit',
+  '97224': 'Saint-Joseph',
+  '97225': 'Saint-Pierre',
+  '97226': 'Sainte-Anne',
+  '97227': 'Sainte-Luce',
+  '97228': 'Sainte-Marie',
+  '97229': 'Schœlcher',
+  '97230': 'La Trinité',
+  '97231': 'Les Trois-Îlets',
+  '97232': 'Le Vauclin',
+  '97233': 'Le Morne-Vert',
   '97234': 'Bellefontaine'
 };
 

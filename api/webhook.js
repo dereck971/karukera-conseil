@@ -268,19 +268,19 @@ function getStaticMapUrl(commune) {
 async function fetchDVFData(commune) {
   if (!commune) return null;
   try {
-    // Mapping commune → code INSEE (communes Guadeloupe 971)
+    // Mapping commune → code INSEE (communes Guadeloupe 971) — VÉRIFIÉ 17/04/2026 via API IGN geo.api.gouv.fr
     const COMMUNE_INSEE = {
-      'Abymes': '97101', 'Anse-Bertrand': '97102', 'Baie-Mahault': '97103',
+      'Les Abymes': '97101', 'Abymes': '97101', 'Anse-Bertrand': '97102', 'Baie-Mahault': '97103',
       'Baillif': '97104', 'Basse-Terre': '97105', 'Bouillante': '97106',
       'Capesterre-Belle-Eau': '97107', 'Capesterre-de-Marie-Galante': '97108',
-      'Deshaies': '97109', 'Gourbeyre': '97110', 'Goyave': '97111',
-      'Grand-Bourg': '97112', 'Lamentin': '97113', 'Le Gosier': '97114',
-      'Le Moule': '97115', 'Morne-à-l\'Eau': '97116', 'Petit-Bourg': '97117',
-      'Petit-Canal': '97118', 'Pointe-Noire': '97119', 'Pointe-à-Pitre': '97120',
-      'Port-Louis': '97121', 'Saint-Claude': '97122', 'Saint-François': '97123',
-      'Saint-Louis': '97134', 'Sainte-Anne': '97128', 'Sainte-Rose': '97129',
-      'Terre-de-Bas': '97130', 'Terre-de-Haut': '97131', 'Trois-Rivières': '97132',
-      'Vieux-Fort': '97133', 'Vieux-Habitants': '97134'
+      'Gourbeyre': '97109', 'La Désirade': '97110', 'Deshaies': '97111',
+      'Grand-Bourg': '97112', 'Le Gosier': '97113', 'Goyave': '97114',
+      'Lamentin': '97115', 'Morne-à-l\'Eau': '97116', 'Le Moule': '97117',
+      'Petit-Bourg': '97118', 'Petit-Canal': '97119', 'Pointe-à-Pitre': '97120',
+      'Pointe-Noire': '97121', 'Port-Louis': '97122', 'Saint-Claude': '97124',
+      'Saint-François': '97125', 'Saint-Louis': '97126', 'Sainte-Anne': '97128',
+      'Sainte-Rose': '97129', 'Terre-de-Bas': '97130', 'Terre-de-Haut': '97131',
+      'Trois-Rivières': '97132', 'Vieux-Fort': '97133', 'Vieux-Habitants': '97134'
     };
     const codeInsee = COMMUNE_INSEE[commune];
     if (!codeInsee) {
