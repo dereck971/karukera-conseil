@@ -1,0 +1,19 @@
+{
+  "name": "topo3d-antilles",
+  "version": "0.1.0",
+  "description": "Jumeaux numeriques 3D pour collectivites Guadeloupe + Martinique (KCI)",
+  "private": true,
+  "scripts": {
+    "serve": "node -e \"const http=require('http'),fs=require('fs'),path=require('path'); const PORT=process.env.PORT||5173; const ROOT=process.cwd(); const MIME={'.html':'text/html;charset=utf-8','.js':'application/javascript','.css':'text/css','.json':'application/json','.geojson':'application/geo+json','.png':'image/png','.jpg':'image/jpeg','.svg':'image/svg+xml'}; http.createServer((req,res)=>{let p=decodeURIComponent(req.url.split('?')[0]);if(p==='/')p='/index.html';let fp=path.join(ROOT,p);try{if(fs.statSync(fp).isDirectory())fp=path.join(fp,'index.html');const data=fs.readFileSync(fp);res.writeHead(200,{'Content-Type':MIME[path.extname(fp)]||'application/octet-stream','Cache-Control':'no-cache'});res.end(data);}catch(e){res.writeHead(404);res.end('Not Found: '+p);}}).listen(PORT,()=>console.log('http://localhost:'+PORT));\"",
+    "fetch:defrichement": "node lib/data-fetchers/karugeo.js fetch-defrichement",
+    "wfs2geojson": "node lib/wfs2geojson.js"
+  },
+  "dependencies": {
+    "proj4": "^2.10.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED",
+  "author": "Dereck Rauzduel <contact@karukera-conseil.com>"
+}
