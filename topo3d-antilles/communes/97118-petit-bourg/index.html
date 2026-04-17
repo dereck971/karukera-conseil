@@ -1242,9 +1242,15 @@ function addAllLayers() {
   // L'ambient-occlusion n'est PAS supporté en MapLibre 4.1.2 et fait silently
   // échouer addLayer — on l'omet jusqu'à upgrade vers 4.5+.
   // Bâtiments publics : hauteur x1.10 pour effet d'importance (subtil).
+  const heightExpr = [
+    'case',
+    ['in', ['coalesce', ['get', 'class'], ''], ['literal', BUILDING_PUBLIC_CLASSES]],
+    ['*', 1.10, ['coalesce', ['get', 'render_height'], ['get', 'height'], 6]],
+    ['coalesce', ['get', 'render_height'], ['get', 'height'], 6]
+  ];
   const buildingPaint = {
     'fill-extrusion-color': BUILDING_COLOR_DEFAULT,
-    'fill-extrusion-height': ['coalesce', ['get', 'render_height'], ['get', 'height'], 6],
+    'fill-extrusion-height': heightExpr,
     'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
     'fill-extrusion-opacity': 0.92,
     'fill-extrusion-vertical-gradient': true
@@ -1266,7 +1272,48 @@ function addAllLayers() {
   });
   layerState['buildings-3d'] = true;
 
-  
+  // ─── Toits terre cuite (overlay au sommet des bâtiments) ───
+  // Couche additionnelle qui dessine un cap terre cuite (1.5 m) sur chaque
+  // bâtiment pour donner un toit visible depuis le haut. N'apparaît qu'en
+  // pitch > 40° (sinon cache les façades). Géré dans un handler 'pitch'.
+  map.addLayer({
+    id: 'buildings-roofs',
+    type: 'fill-extrusion',
+    source: 'buildings-src',
+    'source-layer': 'building',
+    minzoom: 14,
+    paint: {
+      'fill-extrusion-color': [
+        'case',
+        ['in', ['coalesce', ['get', 'class'], ''], ['literal', BUILDING_PUBLIC_CLASSES]],
+        '#c98a5d',  // toit légèrement plus clair pour bâtiments publics
+        '#a64f2c'   // terre cuite standard créole
+      ],
+      'fill-extrusion-base': heightExpr,
+      'fill-extrusion-height': ['+', heightExpr, 1.5],
+      'fill-extrusion-opacity': 0.85,
+      'fill-extrusion-vertical-gradient': false
+    },
+    layout: { visibility: 'none' } // activé dynamiquement selon pitch
+  });
+  layerState['buildings-roofs'] = false;
+
+  // Toggle automatique des toits selon le pitch caméra
+  const updateRoofsVisibility = () => {
+    if (!map.getLayer('buildings-roofs')) return;
+    if (!layerState['buildings-3d']) {
+      map.setLayoutProperty('buildings-roofs', 'visibility', 'none');
+      return;
+    }
+    const show = map.getPitch() > 40;
+    map.setLayoutProperty('buildings-roofs', 'visibility', show ? 'visible' : 'none');
+  };
+  map.on('pitch', updateRoofsVisibility);
+  // Init après ajout
+  setTimeout(updateRoofsVisibility, 200);
+  // Expose pour usage par toggleLayer (synchro buildings-3d → buildings-roofs)
+  window._kciUpdateRoofs = updateRoofsVisibility;
+
   // Roads from OpenFreeMap
   map.addLayer({
     id: 'roads-main', type: 'line', source: 'buildings-src', 'source-layer': 'transportation', minzoom: 12,
@@ -1837,15 +1884,61 @@ function getCat(amenity) {
 }
 
 // ─── BUILDING COLOR MODES ───
-// Palette créole : sable, terre cuite, ardoise — esthétique caribéenne premium
-const BUILDING_COLOR_DEFAULT = ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
-  0, '#f5f0e8',   // crème case basse
-  6, '#e8dcc4',   // sable clair
-  12, '#c9b48a',  // terre cuite claire
-  20, '#a08660',  // ocre R+2
-  35, '#7d6447',  // brun-ardoise R+5
-  60, '#4a3a2a'   // grands collectifs
+// Palette créole : sable, terre cuite, ardoise — esthétique caribéenne premium.
+// Variations multiples :
+//   - Bâtiments publics (mairie, écoles, église, hôpital, etc.) → blanc cassé/crème
+//   - Bâtiments standards : 3 variantes alternées (sable/beige/ocre) pour casser
+//     l'uniformité ; basé sur ID modulo 3 (cf. expression `match`).
+//   - Bâtiments hauts (>30m) gardent la palette ardoise foncée existante.
+//
+// Détection bâtiment public : tag `class` OpenMapTiles (`residential`,
+// `commercial`, `industrial`, `church`, `school`, `hospital`, `public`…).
+// On considère public si class ∈ {school|hospital|church|cathedral|chapel|
+// civic|public|government|townhall|college|university|fire_station|police|kindergarten}.
+const BUILDING_PUBLIC_CLASSES = [
+  'school','college','university','hospital','clinic','townhall','government',
+  'public','civic','religious','church','cathedral','chapel','mosque','temple',
+  'kindergarten','fire_station','police','library','museum','sports_centre','stadium'
 ];
+
+// Couleur publics : blanc cassé → crème en fonction de la hauteur
+const BUILDING_COLOR_PUBLIC = ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+  0, '#fafaf2',   // blanc très doux
+  10, '#f3ecd4',  // crème clair
+  20, '#e8e2d0',  // crème ivoire
+  35, '#d8cdb0'   // ocre pâle pour bâtiments hauts
+];
+
+// Couleur standards : 3 variantes via match sur id modulo 3 + interpolation hauteur
+const BUILDING_COLOR_STANDARD = [
+  'match',
+  ['%', ['coalesce', ['id'], 0], 3],
+  // Variante 0 — sable clair
+  0, ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+       0, '#f5f0e8', 6, '#e8dcc4', 12, '#c9b48a', 20, '#a08660', 35, '#7d6447', 60, '#4a3a2a'
+     ],
+  // Variante 1 — beige moyen
+  1, ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+       0, '#efe6d2', 6, '#dccdaa', 12, '#bea177', 20, '#967752', 35, '#6e573d', 60, '#3f3022'
+     ],
+  // Variante 2 — ocre / terre cuite atténuée
+  2, ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+       0, '#e8d8c0', 6, '#d4b58c', 12, '#b08960', 20, '#86653f', 35, '#624b2c', 60, '#3a2c1c'
+     ],
+  // fallback
+  ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+    0, '#f5f0e8', 6, '#e8dcc4', 12, '#c9b48a', 20, '#a08660', 35, '#7d6447', 60, '#4a3a2a'
+  ]
+];
+
+// Couleur finale = case (public ? PUBLIC : STANDARD)
+const BUILDING_COLOR_DEFAULT = [
+  'case',
+  ['in', ['coalesce', ['get', 'class'], ''], ['literal', BUILDING_PUBLIC_CLASSES]],
+  BUILDING_COLOR_PUBLIC,
+  BUILDING_COLOR_STANDARD
+];
+
 const BUILDING_COLOR_ABANDON = ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
   0, '#e74c3c', 8, '#c0392b', 15, '#a93226', 30, '#7b241c', 50, '#641e16'
 ];
@@ -1868,9 +1961,17 @@ function toggleLayer(layerId, el) {
             0, '#4a5568', 8, '#374151', 15, '#2d3748', 30, '#1a202c', 50, '#171923'
           ]);
       } else {
-        // Restore default blue gradient
+        // Restore default créole palette
         map.setPaintProperty('buildings-3d', 'fill-extrusion-color', BUILDING_COLOR_DEFAULT);
-        map.setPaintProperty('buildings-3d', 'fill-extrusion-opacity', 0.82);
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-opacity', 0.92);
+      }
+    }
+    // Cacher les toits pendant le mode dimming, restaurer après
+    if (map.getLayer('buildings-roofs')) {
+      if (isOn) {
+        map.setLayoutProperty('buildings-roofs', 'visibility', 'none');
+      } else if (typeof window._kciUpdateRoofs === 'function') {
+        setTimeout(() => window._kciUpdateRoofs(), 50);
       }
     }
   }
@@ -1889,6 +1990,12 @@ function toggleLayer(layerId, el) {
   // Handle POI labels together
   if (layerId === 'poi-layer' && map.getLayer('poi-labels')) {
     map.setLayoutProperty('poi-labels', 'visibility', isOn ? 'visible' : 'none');
+  }
+
+  // ─── SPECIAL: Buildings 3D → synchroniser couche toits terre cuite ───
+  if (layerId === 'buildings-3d' && typeof window._kciUpdateRoofs === 'function') {
+    // Le helper relit layerState['buildings-3d'] et le pitch courant
+    setTimeout(() => window._kciUpdateRoofs(), 50);
   }
 
   // ─── SPECIAL: Defrichement DAAF → toggle fill + outline ensemble ───
