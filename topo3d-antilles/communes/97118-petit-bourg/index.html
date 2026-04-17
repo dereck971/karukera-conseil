@@ -7,7 +7,8 @@
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.css"/>
 <script src="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap">
 <!-- KCI Fiscalité : Chart.js pour le dashboard, jsPDF + html2canvas pour l'export DOB -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -21,7 +22,7 @@
 <script defer src="../../lib/fiscal/export_dob_pdf.js" onerror="console.warn('[KCI] export_dob_pdf.js absent (fallback intégré)')"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Montserrat,sans-serif;background:#070b14;color:#e0e0e0;overflow:hidden}
+body{font-family:'IBM Plex Sans',system-ui,sans-serif;background:#070b14;color:#e0e0e0;overflow:hidden}
 #map{width:100%;height:100vh}
 
 /* ─── PANEL ─── */
@@ -91,10 +92,10 @@ body{font-family:Montserrat,sans-serif;background:#070b14;color:#e0e0e0;overflow
 /* ─── KCI FISCALITÉ : section panel ─── */
 .panel-fiscalite{padding:18px 20px 16px;border-top:1px solid rgba(212,175,55,0.3);border-bottom:1px solid rgba(255,255,255,0.04);background:linear-gradient(180deg,rgba(212,175,55,0.04) 0%,transparent 100%)}
 .panel-fiscalite .section-title{display:flex;align-items:center;gap:8px;font-family:'Playfair Display',serif;color:#d4af37;font-size:15px;margin-bottom:14px;text-transform:none;letter-spacing:0.3px;font-weight:700}
-.panel-fiscalite .section-icon{background:rgba(212,175,55,0.15);border:1px solid #d4af37;border-radius:4px;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#d4af37;font-family:Montserrat,sans-serif}
-.panel-fiscalite .badge-mairie{background:#2a4d6e;color:#fff;font-size:9px;font-family:Montserrat,sans-serif;padding:2px 7px;border-radius:3px;margin-left:auto;letter-spacing:0.5px;font-weight:600}
+.panel-fiscalite .section-icon{background:rgba(212,175,55,0.15);border:1px solid #d4af37;border-radius:4px;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#d4af37;font-family:'IBM Plex Sans',system-ui,sans-serif}
+.panel-fiscalite .badge-mairie{background:#2a4d6e;color:#fff;font-size:9px;font-family:'IBM Plex Sans',system-ui,sans-serif;padding:2px 7px;border-radius:3px;margin-left:auto;letter-spacing:0.5px;font-weight:600}
 .panel-fiscalite .layer-row{padding:5px 0}
-.btn-fiscal-primary,.btn-fiscal-secondary,.btn-fiscal-export{width:100%;padding:9px 12px;margin:6px 0;border:1px solid #d4af37;background:rgba(212,175,55,0.1);color:#d4af37;font-family:Montserrat,sans-serif;font-size:11px;font-weight:600;cursor:pointer;border-radius:4px;transition:all 0.2s;letter-spacing:0.3px;text-align:center}
+.btn-fiscal-primary,.btn-fiscal-secondary,.btn-fiscal-export{width:100%;padding:9px 12px;margin:6px 0;border:1px solid #d4af37;background:rgba(212,175,55,0.1);color:#d4af37;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;cursor:pointer;border-radius:4px;transition:all 0.2s;letter-spacing:0.3px;text-align:center}
 .btn-fiscal-primary:hover,.btn-fiscal-secondary:hover{background:rgba(212,175,55,0.25);transform:translateY(-1px)}
 .btn-fiscal-export{background:#d4af37;color:#0a1929;font-weight:700}
 .btn-fiscal-export:hover{background:#c19c2e;transform:translateY(-1px)}
@@ -103,7 +104,7 @@ body{font-family:Montserrat,sans-serif;background:#070b14;color:#e0e0e0;overflow
 .help-text{font-size:10px;color:rgba(255,255,255,0.55);margin-top:4px;font-style:italic;line-height:1.4}
 .fiscal-sources{margin-top:14px;padding-top:12px;border-top:1px dashed rgba(212,175,55,0.2);color:rgba(255,255,255,0.5);font-size:10px;line-height:1.5}
 .fiscal-sources small{font-size:10px}
-#quartierSelect{width:100%;margin-top:6px;padding:7px;background:rgba(255,255,255,0.05);border:1px solid rgba(212,175,55,0.3);color:#fff;font-family:Montserrat,sans-serif;font-size:11px;border-radius:3px;cursor:pointer}
+#quartierSelect{width:100%;margin-top:6px;padding:7px;background:rgba(255,255,255,0.05);border:1px solid rgba(212,175,55,0.3);color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;border-radius:3px;cursor:pointer}
 #quartierSelect:focus{outline:none;border-color:#d4af37}
 #quartierSelect option{background:#0a1929;color:#fff}
 
@@ -118,21 +119,27 @@ body{font-family:Montserrat,sans-serif;background:#070b14;color:#e0e0e0;overflow
 .fiscal-modal-close:hover{background:rgba(212,175,55,0.15);border-color:#d4af37}
 .fiscal-modal-body{padding:20px 24px}
 .fiscal-modal-footer{padding:14px 24px;border-top:1px solid rgba(212,175,55,0.15);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
-.fiscal-modal-footer button{padding:8px 16px;border-radius:4px;font-family:Montserrat,sans-serif;font-size:11px;cursor:pointer;border:1px solid rgba(212,175,55,0.3);background:transparent;color:#d4af37;font-weight:600;transition:all .2s}
+.fiscal-modal-footer button{padding:8px 16px;border-radius:4px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;cursor:pointer;border:1px solid rgba(212,175,55,0.3);background:transparent;color:#d4af37;font-weight:600;transition:all .2s}
 .fiscal-modal-footer button:hover{background:rgba(212,175,55,0.15)}
 .fiscal-modal-footer button.primary{background:#d4af37;color:#0a1929;border-color:#d4af37}
 .fiscal-modal-footer button.primary:hover{background:#c19c2e}
 .fiscal-chart-wrap{position:relative;height:280px;margin-bottom:20px;background:rgba(255,255,255,0.02);border-radius:6px;padding:14px}
 .fiscal-table{width:100%;border-collapse:collapse;font-size:12px;color:#ccc;margin-top:14px}
 .fiscal-table th{text-align:left;padding:8px 10px;background:rgba(212,175,55,0.08);color:#d4af37;font-weight:600;font-size:11px;letter-spacing:0.3px;border-bottom:1px solid rgba(212,175,55,0.25)}
-.fiscal-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.05);font-variant-numeric:tabular-nums}
+.fiscal-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.05);font-variant-numeric:tabular-nums;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px}
+.fiscal-table th{font-family:'IBM Plex Sans',system-ui,sans-serif}
+/* Chiffres tabulaires premium pour les popups KCI (fiscal + parcelle + valeurs DVF) */
+.popup-table td:last-child{font-family:'IBM Plex Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
+.fiscal-popup td,.fiscal-popup .euros{font-family:'IBM Plex Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
+.stat-row .value,.stats-bar-value{font-family:'IBM Plex Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
+.sim-card .scenar-gain{font-family:'IBM Plex Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
 .fiscal-table tr:hover td{background:rgba(212,175,55,0.04)}
 .fiscal-table td.gold{color:#d4af37;font-weight:600}
 .fiscal-table td.green{color:#2ecc71;font-weight:600}
 .fiscal-modal-note{font-size:11px;color:#888;margin-top:14px;padding:10px 12px;background:rgba(212,175,55,0.05);border-left:3px solid #d4af37;border-radius:3px;line-height:1.5}
 
 /* Simulateur banner & cards */
-.sim-banner{position:fixed;top:0;left:0;right:0;background:linear-gradient(90deg,#2a4d6e 0%,#0a1929 100%);color:#fff;padding:12px 24px;z-index:4500;display:none;align-items:center;justify-content:space-between;font-family:Montserrat,sans-serif;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,0.4);border-bottom:2px solid #d4af37}
+.sim-banner{position:fixed;top:0;left:0;right:0;background:linear-gradient(90deg,#2a4d6e 0%,#0a1929 100%);color:#fff;padding:12px 24px;z-index:4500;display:none;align-items:center;justify-content:space-between;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,0.4);border-bottom:2px solid #d4af37}
 .sim-banner.open{display:flex}
 .sim-banner span.sim-label{display:inline-flex;align-items:center;gap:10px}
 .sim-banner span.sim-dot{width:10px;height:10px;border-radius:50%;background:#e74c3c;animation:simPulse 1.4s ease-in-out infinite}
@@ -218,7 +225,7 @@ body{font-family:Montserrat,sans-serif;background:#070b14;color:#e0e0e0;overflow
 
 /* ─── KCI VISUAL PREMIUM ─── */
 /* Watermark KCI bottom-right */
-.kci-watermark{position:fixed;bottom:16px;right:16px;background:rgba(10,25,41,0.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(212,175,55,0.32);border-radius:7px;padding:9px 15px;display:flex;flex-direction:column;gap:2px;font-family:Montserrat,sans-serif;pointer-events:none;z-index:997;box-shadow:0 6px 24px rgba(0,0,0,0.35);transition:opacity .3s}
+.kci-watermark{position:fixed;bottom:16px;right:16px;background:rgba(10,25,41,0.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(212,175,55,0.32);border-radius:7px;padding:9px 15px;display:flex;flex-direction:column;gap:2px;font-family:'IBM Plex Sans',system-ui,sans-serif;pointer-events:none;z-index:997;box-shadow:0 6px 24px rgba(0,0,0,0.35);transition:opacity .3s}
 .kci-watermark .kci-logo-text{font-family:'Playfair Display',serif;font-size:18px;color:#d4af37;font-weight:700;letter-spacing:1.4px;line-height:1}
 .kci-watermark .kci-tagline{font-size:9.5px;color:rgba(255,255,255,0.72);letter-spacing:0.3px}
 .kci-watermark .kci-url{font-size:9px;color:rgba(212,175,55,0.65);letter-spacing:0.3px}
@@ -268,7 +275,7 @@ body{font-family:Montserrat,sans-serif;background:#070b14;color:#e0e0e0;overflow
 /* Cinematic context overlay (presentation) */
 .cine-context{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,25,41,0.85);backdrop-filter:blur(16px);border:1px solid rgba(212,175,55,0.25);border-radius:10px;padding:22px 34px;color:#fff;font-family:'Playfair Display',serif;font-size:22px;text-align:center;z-index:998;display:none;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,0.5);min-width:300px;max-width:60vw}
 .cine-context.show{display:block;animation:cineFadeIn .5s ease-out}
-.cine-context .cine-sub{font-family:Montserrat,sans-serif;font-size:12px;color:#d4af37;margin-top:6px;letter-spacing:0.4px;text-transform:uppercase}
+.cine-context .cine-sub{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#d4af37;margin-top:6px;letter-spacing:0.4px;text-transform:uppercase}
 @keyframes cineFadeIn{from{opacity:0;transform:translate(-50%,-46%) scale(0.96)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 
 /* Responsive */
@@ -292,9 +299,9 @@ body{font-family:Montserrat,sans-serif;background:#070b14;color:#e0e0e0;overflow
     <defs><linearGradient id="kci-load-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#d4af37"/><stop offset="100%" style="stop-color:#b8941e"/></linearGradient></defs>
     <circle cx="50" cy="50" r="46" fill="none" stroke="url(#kci-load-grad)" stroke-width="2.5"/>
     <text x="50" y="42" text-anchor="middle" font-family="Playfair Display,serif" font-size="28" font-weight="700" fill="#d4af37">KCI</text>
-    <text x="50" y="58" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="7" fill="#888" letter-spacing="1.5">GUADELOUPE</text>
+    <text x="50" y="58" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="7" fill="#888" letter-spacing="1.5">GUADELOUPE</text>
     <line x1="25" y1="65" x2="75" y2="65" stroke="#d4af37" stroke-width="0.5" opacity="0.4"/>
-    <text x="50" y="76" text-anchor="middle" font-family="Montserrat,sans-serif" font-size="5.5" fill="#666">URBANISME 3D</text>
+    <text x="50" y="76" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="5.5" fill="#666">URBANISME 3D</text>
   </svg>
   <h2>Initialisation du jumeau numérique</h2>
   <p class="load-sub">Petit-Bourg — Carte 3D urbanistique premium</p>
@@ -799,7 +806,7 @@ body{font-family:Montserrat,sans-serif;background:#070b14;color:#e0e0e0;overflow
       </p>
 
       <label style="display:block;margin-top:14px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.5px">Quartier</label>
-      <select id="quartierSelectModal" style="width:100%;margin-top:6px;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(212,175,55,0.3);color:#fff;font-family:Montserrat,sans-serif;font-size:12px;border-radius:3px">
+      <select id="quartierSelectModal" style="width:100%;margin-top:6px;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(212,175,55,0.3);color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;border-radius:3px">
         <option value="all">Tous les quartiers</option>
         <option value="bovis">Bovis</option>
         <option value="centre">Centre-bourg</option>
@@ -1486,7 +1493,7 @@ function showNotice(title, body) {
   if (!el) {
     el = document.createElement('div');
     el.id = 'notice-toast';
-    el.style.cssText = 'position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:2000;background:rgba(7,11,20,0.96);border:1px solid rgba(212,175,55,0.35);border-radius:8px;padding:16px 20px;max-width:440px;box-shadow:0 12px 32px rgba(0,0,0,0.5);font-family:Montserrat,sans-serif';
+    el.style.cssText = 'position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:2000;background:rgba(7,11,20,0.96);border:1px solid rgba(212,175,55,0.35);border-radius:8px;padding:16px 20px;max-width:440px;box-shadow:0 12px 32px rgba(0,0,0,0.5);font-family:"IBM Plex Sans",system-ui,sans-serif';
     document.body.appendChild(el);
   }
   el.innerHTML = `<div style="font-family:'Playfair Display',serif;color:#d4af37;font-size:14px;font-weight:700;margin-bottom:8px">${title}</div><div style="color:#ccc;font-size:12px;line-height:1.6">${body}</div><button onclick="document.getElementById('notice-toast').remove()" style="margin-top:10px;padding:4px 12px;background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.3);border-radius:4px;color:#d4af37;font-family:inherit;font-size:11px;cursor:pointer">Fermer</button>`;
@@ -2482,7 +2489,7 @@ function showTourLabel(text) {
   if (!label) {
     label = document.createElement('div');
     label.id = 'tour-label';
-    label.style.cssText = "position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:rgba(7,11,20,0.9);backdrop-filter:blur(12px);border:1px solid rgba(212,175,55,0.2);border-radius:8px;padding:10px 24px;z-index:998;font-family:Montserrat,sans-serif;font-size:13px;color:#e0e0e0;text-align:center;transition:opacity .4s;pointer-events:none";
+    label.style.cssText = "position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:rgba(7,11,20,0.9);backdrop-filter:blur(12px);border:1px solid rgba(212,175,55,0.2);border-radius:8px;padding:10px 24px;z-index:998;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;color:#e0e0e0;text-align:center;transition:opacity .4s;pointer-events:none";
     document.body.appendChild(label);
   }
   label.textContent = text;
@@ -2666,7 +2673,7 @@ map.on('pitchend', () => {
       }
       new maplibregl.Popup({ offset: 10, maxWidth: '340px', className: 'fiscal-popup' })
         .setLngLat(e.lngLat)
-        .setHTML('<div style="font-family:Montserrat,sans-serif;color:#0a1929">' + html + '</div>')
+        .setHTML('<div style="font-family:\'IBM Plex Sans\',system-ui,sans-serif;color:#0a1929">' + html + '</div>')
         .addTo(map);
     };
     map.on('click', _fiscalClickHandler);
@@ -2723,7 +2730,7 @@ map.on('pitchend', () => {
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'fiscalToast';
-      toast.style.cssText = "position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#0a1929;border:1px solid #d4af37;color:#d4af37;padding:10px 18px;border-radius:6px;font-family:Montserrat,sans-serif;font-size:12px;z-index:6000;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:480px;text-align:center;transition:opacity .25s,transform .25s";
+      toast.style.cssText = "position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#0a1929;border:1px solid #d4af37;color:#d4af37;padding:10px 18px;border-radius:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;z-index:6000;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:480px;text-align:center;transition:opacity .25s,transform .25s";
       document.body.appendChild(toast);
     }
     toast.textContent = msg;
@@ -2783,7 +2790,7 @@ map.on('pitchend', () => {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { labels: { color: '#ddd', font: { family: 'Montserrat' } } },
+          legend: { labels: { color: '#ddd', font: { family: 'IBM Plex Sans' } } },
           tooltip: {
             callbacks: { label: c => c.dataset.label + ' : ' + fmtEur(c.parsed.y) }
           }
