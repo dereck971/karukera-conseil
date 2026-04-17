@@ -16,10 +16,10 @@
 <!-- KCI Fiscalité : modules dynamiques (chargés tôt en defer pour être prêts au boot) -->
 <script defer src="../../lib/fiscal/recettes_parcelle.js"></script>
 <script defer src="../../lib/fiscal/popup_recettes.js"></script>
-<script defer src="../../lib/fiscal/dashboard_zones_plu.js" onerror="console.warn('[KCI] dashboard_zones_plu.js absent (fallback intégré)')"></script>
+<script defer src="../../lib/fiscal/dashboard_zone_plu.js" onerror="console.warn('[KCI] dashboard_zone_plu.js absent (fallback intégré)')"></script>
 <script defer src="../../lib/fiscal/sous_fiscalisation.js" onerror="console.warn('[KCI] sous_fiscalisation.js absent (fallback intégré)')"></script>
-<script defer src="../../lib/fiscal/simulateur_requalif.js" onerror="console.warn('[KCI] simulateur_requalif.js absent (fallback intégré)')"></script>
-<script defer src="../../lib/fiscal/export_dob_pdf.js" onerror="console.warn('[KCI] export_dob_pdf.js absent (fallback intégré)')"></script>
+<script defer src="../../lib/fiscal/simulateur_requalification.js" onerror="console.warn('[KCI] simulateur_requalification.js absent (fallback intégré)')"></script>
+<script defer src="../../lib/fiscal/export_dob.js" onerror="console.warn('[KCI] export_dob.js absent (fallback intégré)')"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'IBM Plex Sans',system-ui,sans-serif;background:#070b14;color:#e0e0e0;overflow:hidden}
@@ -889,6 +889,7 @@ let currentScoreThreshold = 45; // High confidence threshold by default
 function makeStyle(baseTiles, attribution) {
   return {
     version: 8,
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
     sources: {
       'base-tiles': { type: 'raster', tiles: baseTiles, tileSize: 256, attribution: attribution || '' }
     },
@@ -1842,7 +1843,7 @@ async function loadPOIs() {
       id: 'poi-labels', type: 'symbol', source: 'poi-src', minzoom: 16,
       layout: {
         'text-field': ['get', 'name'], 'text-size': 10, 'text-offset': [0, 1.5], 'text-anchor': 'top',
-        'text-font': ['Open Sans Regular', 'Arial Unicode MS Regular'],
+        'text-font': ['Noto Sans Regular'],
         visibility: 'none'
       },
       paint: { 'text-color': '#ddd', 'text-halo-color': 'rgba(0,0,0,0.8)', 'text-halo-width': 1 }
@@ -2282,9 +2283,17 @@ function animateStats() {
   animateCounter('s-suspect', suspect);
   animateCounter('s-vacant', vacant);
 
-  // Floating stats bar
+  // Floating stats bar — protections contre total=0 (dataset bati absent)
   animateCounter('sb-abandon', confirmed);
-  document.getElementById('sb-taux').textContent = (buildingData.features.filter(f => (f.properties.dvf_count || 0) === 0).length / total * 100).toFixed(1).replace('.', ',') + '%';
+  const tauxEl = document.getElementById('sb-taux');
+  if (tauxEl) {
+    if (total > 0) {
+      const tauxVacance = buildingData.features.filter(f => (f.properties.dvf_count || 0) === 0).length / total * 100;
+      tauxEl.textContent = tauxVacance.toFixed(1).replace('.', ',') + '%';
+    } else {
+      tauxEl.textContent = '—';
+    }
+  }
   animateCounter('sb-vacant', vacant);
 
   // Score bar

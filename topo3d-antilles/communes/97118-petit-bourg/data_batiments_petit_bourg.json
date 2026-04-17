@@ -1,0 +1,25 @@
+{
+  "type": "FeatureCollection",
+  "_meta": {
+    "commune": "Petit-Bourg",
+    "insee": "97118",
+    "schema_version": "1.0.0",
+    "generated_at": "2026-04-17",
+    "source": "TEMPLATE — a remplir par croisement BDTOPO IGN + DVF Cerema + observation terrain mairie",
+    "feature_properties_schema": {
+      "score": "0-100, score d'abandon (calcule via heuristique IGN+DVF)",
+      "dvf_count": "nombre de mutations DVF detectees (0 = vacant probable)",
+      "vacant": "boolean, parcelle non batie ou batiment vide",
+      "usage": "residentiel | commercial | agricole | industriel | mixte",
+      "annee_construction": "AAAA",
+      "surface_bati_m2": "number",
+      "adresse": "string",
+      "section_cadastrale": "string",
+      "numero_parcelle": "string",
+      "potentiel": "high | medium | low | none",
+      "notes": "free text"
+    },
+    "instructions": "Pour activer les couches 'Batiments abandonnes', 'Heatmap densite' et les stats reelles, remplir le tableau 'features' ci-dessous via l'ETL lib/data-fetchers/build_batiments_commune.js (TODO) ou un export CSV de la mairie."
+  },
+  "features": []
+}
