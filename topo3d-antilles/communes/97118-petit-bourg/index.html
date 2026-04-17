@@ -685,10 +685,14 @@ body{font-family:'IBM Plex Sans',system-ui,sans-serif;background:#070b14;color:#
       <div class="layer-info"><span class="layer-name">Sous-fiscalisation (rouge)</span></div>
       <div class="toggle" id="tgl-fiscal-sous-fisc"></div>
     </div>
-    <div class="layer-row" onclick="toggleLayer('fiscal-dents-creuses',this)">
-      <div class="layer-info"><span class="layer-name">Dents creuses (potentiel)</span></div>
+    <div class="layer-row" onclick="toggleLayer('fiscal-dents-creuses',this)" title="Parcelles non baties en zone U du PLU - candidates a la densification">
+      <div class="layer-info"><span class="layer-name">Dents creuses (potentiel densification)</span></div>
       <div class="toggle" id="tgl-fiscal-dents-creuses"></div>
     </div>
+    <small style="display:block;color:rgba(255,255,255,0.5);font-size:10px;line-height:1.35;margin:2px 0 6px 0">
+      Cadastre non bati x zone U PLU (&gt;150 m2). Override mairie possible via<br>
+      <code style="color:#d4af37">data/dents_creuses/{INSEE}_mairie.geojson</code>
+    </small>
 
     <!-- Bloc 2 : Dashboard agrégé -->
     <div class="fiscal-dashboard-trigger">
@@ -748,7 +752,7 @@ body{font-family:'IBM Plex Sans',system-ui,sans-serif;background:#070b14;color:#
     OpenStreetMap POI / Overpass • IGN WMS/WMTS/WFS • AWS Terrarium DEM • LiDAR HD IGN<br>
     PPRN officiel <a href="https://pprn971guadeloupe.fr/" style="color:#666" target="_blank" rel="noopener">pprn971guadeloupe.fr</a> (DEAL Guadeloupe)<br>
     Défrichement DAAF — KaruGéo (datacarto.karugeo.fr) · Monuments Mérimée<br>
-    Commune de Petit-Bourg — 97118 — EPCI : CANBT (Communauté d'agglomération du Nord Basse-Terre)<br>
+    Commune de Petit-Bourg — 97118 — EPCI : CANBT (Communauté d'agglomération du Nord Basse-Terre) — Maire : David Nebor<br>
     © 2026 Karukera Conseil Immobilier — Topo3D Antilles<br>
     Contact : <a href="mailto:contact@karukera-conseil.com" style="color:#888">contact@karukera-conseil.com</a>
   </div>
@@ -2680,6 +2684,15 @@ map.on('pitchend', () => {
 
   const FISCAL_DATA_URL = '../../data/fiscal/dgfip/petitbourg_recettes.json';
   const FISCAL_AGGREG_URL = '../../data/fiscal/dgfip/petitbourg_zones_plu_aggregat.json';
+  // ─── KCI dents creuses : couche GeoJSON cadastre non-bati en zone U ───
+  // Override possible : si .._mairie.geojson existe, il prend le pas.
+  const DENTS_CREUSES_INSEE = '97118';
+  const DENTS_CREUSES_SLUG = 'petit-bourg';
+  const DENTS_CREUSES_URL = '../../data/dents_creuses/' + DENTS_CREUSES_INSEE + '-' + DENTS_CREUSES_SLUG + '.geojson';
+  const DENTS_CREUSES_OVERRIDE_URL = '../../data/dents_creuses/' + DENTS_CREUSES_INSEE + '-' + DENTS_CREUSES_SLUG + '_mairie.geojson';
+  let DENTS_CREUSES_LOADED = false;
+  let DENTS_CREUSES_POPUP_BOUND = false;
+  let DENTS_CREUSES_SOURCE_LABEL = 'Calcul automatique KCI';
   let FISCAL_DATA = null;
   let FISCAL_AGGREG = null;
   let fiscalChart = null;
@@ -2826,19 +2839,144 @@ map.on('pitchend', () => {
     showFiscalToast(isOn ? 'Sous-fiscalisation : parcelles à fort écart estimé / réel surlignées en rouge.' : 'Couche désactivée.');
   }
 
-  // ─── FALLBACK : dents creuses (proxy : parcelles vacantes en zone U) ───
-  function fallbackDentsCreusesToggle(isOn) {
-    if (!map.getSource('vacant-parcels-poly') && isOn) {
-      if (typeof loadVacantParcels === 'function') loadVacantParcels();
-    }
-    setTimeout(() => {
-      if (map.getLayer('vacant-parcels-fill')) {
-        map.setLayoutProperty('vacant-parcels-fill', 'visibility', isOn ? 'visible' : 'none');
-        map.setLayoutProperty('vacant-parcels-outline', 'visibility', isOn ? 'visible' : 'none');
+  // ─── DENTS CREUSES : couche GeoJSON cadastre non-bati en zone U ───
+  // Source : compute_dents_creuses.py (cadastre Etalab x Overpass batiments x PLU GPU)
+  // Mecanisme override mairie : fichier .._mairie.geojson a la place si present.
+  async function fetchDentsCreusesGeoJSON() {
+    // Essai override mairie d'abord
+    try {
+      const r = await fetch(DENTS_CREUSES_OVERRIDE_URL, { method: 'HEAD' });
+      if (r.ok) {
+        const res = await fetch(DENTS_CREUSES_OVERRIDE_URL);
+        if (res.ok) {
+          DENTS_CREUSES_SOURCE_LABEL = 'Liste officielle commune (override mairie)';
+          return await res.json();
+        }
       }
-    }, 600);
-    showFiscalToast(isOn ? 'Dents creuses : parcelles vacantes en zone U affichées (potentiel densification).' : 'Couche désactivée.');
+    } catch (e) { /* silent: pas d'override */ }
+    // Fallback version calculee
+    const res = await fetch(DENTS_CREUSES_URL);
+    if (!res.ok) throw new Error('Dents creuses GeoJSON HTTP ' + res.status);
+    DENTS_CREUSES_SOURCE_LABEL = 'Calcul automatique KCI (cadastre + bati + PLU)';
+    return await res.json();
   }
+
+  async function ensureDentsCreusesLayer() {
+    if (DENTS_CREUSES_LOADED) return true;
+    try {
+      const geo = await fetchDentsCreusesGeoJSON();
+      if (map.getSource('dents-creuses-src')) return true;
+      map.addSource('dents-creuses-src', { type: 'geojson', data: geo, generateId: true });
+      map.addLayer({
+        id: 'dents-creuses-fill',
+        type: 'fill',
+        source: 'dents-creuses-src',
+        paint: {
+          'fill-color': '#f4b942',
+          'fill-opacity': 0.55,
+          'fill-outline-color': '#c8941f'
+        },
+        layout: { visibility: 'none' }
+      });
+      map.addLayer({
+        id: 'dents-creuses-line',
+        type: 'line',
+        source: 'dents-creuses-src',
+        paint: {
+          'line-color': '#c8941f',
+          'line-width': 2,
+          'line-dasharray': [3, 2]
+        },
+        layout: { visibility: 'none' }
+      });
+      // Popup au clic
+      if (!DENTS_CREUSES_POPUP_BOUND) {
+        map.on('click', 'dents-creuses-fill', (e) => {
+          if (!e.features || !e.features.length) return;
+          const f = e.features[0];
+          const p = f.properties || {};
+          const surf = Number(p.surface_m2 || 0);
+          const potentielTFNB = Math.round(surf * 0.08); // proxy: 0.08 EUR/m2/an
+          const potentielBati = Math.round(surf * 0.35 * 15); // proxy: 35% emprise x 15 EUR/m2
+          const idAttr = (p.id || '').toString().replace(/'/g, "\\'");
+          const html = (
+            '<div class="fiscal-popup" style="min-width:240px;font-family:\'IBM Plex Sans\',system-ui,sans-serif;color:#0a1929">' +
+            '<div style="background:#c8941f;color:#fff;padding:6px 10px;font-weight:700;border-radius:4px 4px 0 0;font-size:12px">Dent creuse identifiee</div>' +
+            '<div style="padding:10px 12px;background:#fff8e7">' +
+            '<table class="popup-table" style="width:100%;font-size:11px;color:#0a1929">' +
+            '<tr><td>Surface</td><td><b>' + surf.toFixed(0) + ' m2</b></td></tr>' +
+            '<tr><td>Section</td><td>' + (p.section || '?') + ' ' + (p.numero || '') + '</td></tr>' +
+            '<tr><td>Zone PLU</td><td>' + (p.zone_plu || 'U') + '</td></tr>' +
+            '<tr><td>ID parcelle</td><td style="font-size:10px">' + (p.id || '?') + '</td></tr>' +
+            '<tr><td>Source</td><td style="font-size:10px">' + (p.source || DENTS_CREUSES_SOURCE_LABEL) + '</td></tr>' +
+            '</table>' +
+            '<div style="margin-top:8px;padding:6px;background:#fbf0d0;border-left:3px solid #c8941f;font-size:10px">' +
+            '<b>Potentiel densification estime :</b><br>' +
+            'TFNB actuelle : ~' + potentielTFNB.toLocaleString('fr-FR') + ' EUR/an<br>' +
+            'TFB apres construction : ~' + potentielBati.toLocaleString('fr-FR') + ' EUR/an' +
+            '</div>' +
+            '<button onclick="openSimulatorOnParcel(\'' + idAttr + '\')" style="margin-top:8px;width:100%;padding:6px 10px;background:#d4af37;color:#0a1929;border:none;border-radius:3px;font-weight:600;cursor:pointer;font-size:11px">Simuler densification</button>' +
+            '</div>' +
+            '</div>'
+          );
+          new maplibregl.Popup({ offset: 10, maxWidth: '320px' })
+            .setLngLat(e.lngLat)
+            .setHTML(html)
+            .addTo(map);
+        });
+        map.on('mouseenter', 'dents-creuses-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'dents-creuses-fill', () => { map.getCanvas().style.cursor = ''; });
+        DENTS_CREUSES_POPUP_BOUND = true;
+      }
+      const n = (geo.features || []).length;
+      const meta = geo._meta || {};
+      console.log('[KCI dents creuses] Charge ' + n + ' features (source=' + DENTS_CREUSES_SOURCE_LABEL + ', PLU=' + (meta.plu_disponible ? 'oui' : 'proxy') + ')');
+      DENTS_CREUSES_LOADED = true;
+      return true;
+    } catch (err) {
+      console.warn('[KCI dents creuses] echec chargement:', err);
+      showFiscalToast('Dents creuses : donnees indisponibles (' + err.message + ')', true);
+      return false;
+    }
+  }
+
+  function setDentsCreusesVisibility(isOn) {
+    if (map.getLayer('dents-creuses-fill')) {
+      map.setLayoutProperty('dents-creuses-fill', 'visibility', isOn ? 'visible' : 'none');
+    }
+    if (map.getLayer('dents-creuses-line')) {
+      map.setLayoutProperty('dents-creuses-line', 'visibility', isOn ? 'visible' : 'none');
+    }
+  }
+
+  // Remplace le fallback vacant-parcels par la vraie couche dents creuses.
+  async function fallbackDentsCreusesToggle(isOn) {
+    const ok = await ensureDentsCreusesLayer();
+    if (!ok) return;
+    setDentsCreusesVisibility(isOn);
+    const src = map.getSource('dents-creuses-src');
+    let count = 0;
+    if (src && src._data && src._data.features) count = src._data.features.length;
+    showFiscalToast(isOn
+      ? 'Dents creuses : ' + count + ' parcelle(s) potentielle(s) affichee(s) en jaune ambre.'
+      : 'Couche dents creuses desactivee.');
+  }
+
+  // Expose pour le bouton "Simuler densification" dans le popup
+  window.openSimulatorOnParcel = function (parcelId) {
+    try {
+      if (window.kciFiscalSimulateur && typeof window.kciFiscalSimulateur.openForParcelle === 'function') {
+        window.kciFiscalSimulateur.openForParcelle(parcelId);
+        return;
+      }
+    } catch (e) { /* fallback */ }
+    if (typeof enableSimulatorMode === 'function') {
+      enableSimulatorMode();
+      showFiscalToast('Module simulateur requalification active. Cliquez sur la parcelle cible sur la carte.');
+    } else {
+      showFiscalToast('Module simulateur en chargement, reessayez dans quelques secondes.');
+    }
+  };
 
   // ─── TOAST UTILITAIRE ───
   function showFiscalToast(msg, isError) {

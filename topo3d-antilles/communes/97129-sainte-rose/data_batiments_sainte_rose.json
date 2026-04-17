@@ -2,7 +2,7 @@
   "type": "FeatureCollection",
   "_meta": {
     "commune": "Sainte-Rose",
-    "insee": "97127",
+    "insee": "97129",
     "schema_version": "1.0.0",
     "generated_at": "2026-04-17",
     "source": "TEMPLATE — a remplir par croisement BDTOPO IGN + DVF Cerema + observation terrain mairie",

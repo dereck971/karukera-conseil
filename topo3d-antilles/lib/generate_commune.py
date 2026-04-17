@@ -386,6 +386,15 @@ def rewrite_html(template_html: str, ctx: dict) -> str:
         "const FISCAL_AGGREG_URL = '../../data/fiscal/dgfip/petitbourg_zones_plu_aggregat.json';",
         f"const FISCAL_AGGREG_URL = '../../data/fiscal/dgfip/{slug_underscore}_zones_plu_aggregat.json';"
     )
+    # 19bis) Dents creuses : variables INSEE + SLUG pour la couche GeoJSON
+    h = h.replace(
+        "const DENTS_CREUSES_INSEE = '97118';",
+        f"const DENTS_CREUSES_INSEE = '{insee}';"
+    )
+    h = h.replace(
+        "const DENTS_CREUSES_SLUG = 'petit-bourg';",
+        f"const DENTS_CREUSES_SLUG = '{slug}';"
+    )
 
     # 20) PDF export filenames
     h = h.replace(
@@ -421,7 +430,7 @@ def rewrite_html(template_html: str, ctx: dict) -> str:
             '<div class="stat-row"><span class="label">Population (2022)</span><span class="value">24 665</span></div>',
             '<div class="stat-row"><span class="label">Population (2022)</span><span class="value">17 168</span></div>'
         )
-    elif insee == "97127":  # Sainte-Rose
+    elif insee == "97129":  # Sainte-Rose
         h = h.replace(
             '<div class="stat-row"><span class="label">Surface commune</span><span class="value">131,92 km²</span></div>',
             '<div class="stat-row"><span class="label">Surface commune</span><span class="value">118,75 km²</span></div>'
