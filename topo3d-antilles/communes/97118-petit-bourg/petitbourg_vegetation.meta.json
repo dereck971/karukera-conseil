@@ -1,0 +1,16 @@
+{
+  "commune": "Petit-Bourg",
+  "insee": "97118",
+  "bbox": "16.14,-61.66,16.24,-61.54",
+  "source": "WFS IGN BDTOPO_V3:zone_de_vegetation",
+  "fetched_at": "2026-04-17T06:18:14.151Z",
+  "polygons_in": 4495,
+  "polygons_out": 4062,
+  "polygons_dropped": 433,
+  "surface_totale_ha": 4720,
+  "surface_totale_m2": 47198633,
+  "biomasse_totale_t": 1119832,
+  "co2_stocke_total_t": 2055212,
+  "file_size_kb": 4086,
+  "simplify_tolerance_deg": 0.00003
+}

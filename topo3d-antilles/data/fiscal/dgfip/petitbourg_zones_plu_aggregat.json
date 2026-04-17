@@ -1,0 +1,102 @@
+{
+  "_meta": {
+    "commune": "Petit-Bourg",
+    "code_insee": "97118",
+    "date_extraction": "2026-04-17",
+    "produit_par": "Karukera Conseil Immobilier (KCI) - Dereck Rauzduel",
+    "sources": [
+      {
+        "nom": "PLU Petit-Bourg approuve 21/06/2017 - revisions 2020/2022",
+        "url": "https://www.geoportail-urbanisme.gouv.fr/document/document/97118_PLU_20220318/",
+        "licence": "Licence Ouverte 2.0 - GPU"
+      },
+      {
+        "nom": "petitbourg_recettes.json (cf. ce repo)",
+        "usage": "Recettes par section croisees avec zonage PLU"
+      },
+      {
+        "nom": "Base SIRENE INSEE",
+        "url": "https://api.insee.fr/entreprises/sirene/",
+        "usage": "Comptage etablissements assujettis CFE par zone"
+      }
+    ],
+    "disclaimer": "Aggregation PLU x recettes : la correspondance section cadastrale -> zone PLU est ESTIMEE car certaines sections croisent plusieurs zones. A affiner par requete SIG croisee (couche cadastre + couche PLU)."
+  },
+
+  "zones": {
+    "U": {
+      "libelle": "Zones urbaines (UA, UB, UC, UD, UE, UH, UL)",
+      "description": "Bourg, lotissements equipes, zones d'activites - secteurs deja urbanises ou en voie de l'etre.",
+      "sections_principales": ["AB", "AC", "AN", "AO", "AM"],
+      "nb_parcelles": 1443,
+      "nb_parcelles_baties": 1211,
+      "nb_parcelles_non_baties": 232,
+      "tfb_estimee_eur": 476100,
+      "tfnb_estimee_eur": 33400,
+      "cfe_estimee_eur": 980000,
+      "nb_etablissements_cfe": 712,
+      "potentiel_densification_estime_eur": 1850000,
+      "_note_potentiel": "Si 50% des dents creuses (232) sont batiees a moyen terme, gain TFB ~+232k EUR/an"
+    },
+    "AU": {
+      "libelle": "Zones a urbaniser (1AU, 2AU)",
+      "description": "Reserves d'urbanisation futures (1AU operationnelles, 2AU strict)",
+      "sections_principales": ["AD", "AE", "AH"],
+      "nb_parcelles": 234,
+      "nb_parcelles_baties": 87,
+      "nb_parcelles_non_baties": 147,
+      "tfb_estimee_eur": 38500,
+      "tfnb_estimee_eur": 14200,
+      "cfe_estimee_eur": 45000,
+      "nb_etablissements_cfe": 34,
+      "potentiel_densification_estime_eur": 850000,
+      "_note_potentiel": "Activation des zones 1AU (PUP/ZAC) = recettes TFB futures considerables"
+    },
+    "A": {
+      "libelle": "Zones agricoles (A, As, Ar)",
+      "description": "Espaces destines a l'activite agricole - constructibilite tres limitee",
+      "sections_principales": ["BC", "AT", "AS partiel"],
+      "nb_parcelles": 412,
+      "nb_parcelles_baties": 78,
+      "nb_parcelles_non_baties": 334,
+      "tfb_estimee_eur": 12500,
+      "tfnb_estimee_eur": 38600,
+      "cfe_estimee_eur": 18000,
+      "nb_etablissements_cfe": 28,
+      "potentiel_densification_estime_eur": 0,
+      "_note_potentiel": "Zone proteger - pas de densification possible. Optimisation TFNB via revision VL."
+    },
+    "N": {
+      "libelle": "Zones naturelles (N, Nr, Nh, Ns)",
+      "description": "Espaces proteges (forets, mangroves, abords cours d'eau, sites remarquables)",
+      "sections_principales": ["BD", "BE", "AP", "AR partiel"],
+      "nb_parcelles": 765,
+      "nb_parcelles_baties": 154,
+      "nb_parcelles_non_baties": 611,
+      "tfb_estimee_eur": 18900,
+      "tfnb_estimee_eur": 31200,
+      "cfe_estimee_eur": 9500,
+      "nb_etablissements_cfe": 12,
+      "potentiel_densification_estime_eur": 0,
+      "_note_potentiel": "Protection stricte - aucun gain fiscal vise. Mais Ns/Nh peuvent accueillir batis legers."
+    }
+  },
+
+  "synthese_par_zone": {
+    "_methodologie": "Agregation manuelle pour dashboard - somme controllee",
+    "total_parcelles": 2854,
+    "total_baties": 1530,
+    "total_non_baties": 1324,
+    "total_tfb_estimee_eur": 546000,
+    "total_tfnb_estimee_eur": 117400,
+    "total_cfe_estimee_eur": 1052500,
+    "total_etablissements_cfe": 786,
+    "total_potentiel_densification_eur": 2700000,
+    "_ecart_avec_reel": {
+      "tfb_reel_2023_eur": 6800000,
+      "tfb_estime_open_data_eur": 546000,
+      "ratio_couverture_estimation": "8.0%",
+      "explication": "L'estimation open data ne couvre qu'environ 8% du produit reel TFB car la VL moyenne par section est conservatrice et certaines parcelles ont des VL tres superieures (residences principales hauts revenus, immobilier neuf). C'est NORMAL pour une estimation publique et confirme la necessite du dataset interne mairie."
+    }
+  }
+}

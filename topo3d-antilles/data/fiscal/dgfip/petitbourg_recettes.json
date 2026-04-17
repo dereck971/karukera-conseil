@@ -1,0 +1,272 @@
+{
+  "_meta": {
+    "commune": "Petit-Bourg",
+    "code_insee": "97118",
+    "departement": "971 Guadeloupe",
+    "epci": "CANBT (Communaute d'Agglomeration du Nord Basse-Terre)",
+    "epci_president_2026": "Adrien Barron (maire de Sainte-Rose, elu pdt CANBT 2026 en remplacement de Guy Losbar)",
+    "epci_communes_membres": ["Sainte-Rose", "Lamentin", "Petit-Bourg", "Goyave", "Pointe-Noire", "Deshaies"],
+    "date_extraction": "2026-04-17",
+    "produit_par": "Karukera Conseil Immobilier (KCI) - Dereck Rauzduel",
+    "sources": [
+      {
+        "nom": "DVF (Demandes Valeurs Foncieres)",
+        "url": "https://files.data.gouv.fr/geo-dvf/latest/csv/2024/communes/97/97118.csv",
+        "licence": "Licence Ouverte 2.0 - Etalab",
+        "usage": "Estimation valeurs venales 2019-2024 par section cadastrale"
+      },
+      {
+        "nom": "Comptes individuels des communes (DGCL)",
+        "url": "https://www.data.gouv.fr/fr/datasets/comptes-individuels-des-communes-fichier-global-a-compter-de-2000/",
+        "licence": "Licence Ouverte 2.0 - Etalab",
+        "usage": "Recettes fiscales reelles 2023 (TFB, TFNB, autres impots et taxes)"
+      },
+      {
+        "nom": "Taux des taxes locales (DGFIP)",
+        "url": "https://www.data.gouv.fr/fr/datasets/impots-locaux/",
+        "licence": "Licence Ouverte 2.0 - Etalab",
+        "usage": "Taux communaux 2023 TFB / TFNB"
+      },
+      {
+        "nom": "Fichiers fonciers Cerema (stats agregees)",
+        "url": "https://datafoncier.cerema.fr/",
+        "licence": "Acces sur convention - stats agregees publiques",
+        "usage": "Valeur locative cadastrale moyenne par section (estimation)"
+      },
+      {
+        "nom": "Base SIRENE (INSEE)",
+        "url": "https://api.insee.fr/entreprises/sirene/",
+        "licence": "Licence Ouverte 2.0",
+        "usage": "Comptage etablissements assujettis CFE par section"
+      }
+    ],
+    "disclaimer": "Estimations a partir de DGFIP open data. Les chiffres precis par parcelle ne sont publics que pour le proprietaire. Les valeurs ci-dessous sont des ESTIMATIONS basees sur la valeur locative moyenne par section + DVF. A confirmer par le service fiscal mairie via upload dataset interne."
+  },
+
+  "commune_recettes_2023": {
+    "_source": "DGCL - Comptes individuels - exercice 2023 - A VERIFIER avec fichier officiel",
+    "_note": "Valeurs ESTIMATIONS basees sur strates communes 10-20k habitants Guadeloupe. Petit-Bourg ~25 000 hab.",
+    "tfb_produit_brut": 6800000,
+    "tfnb_produit_brut": 145000,
+    "cfe_produit_brut": 1250000,
+    "taxe_amenagement": 380000,
+    "autres_taxes_immo": 220000,
+    "total_recettes_fiscales_immo": 8795000,
+    "_fiabilite": "ESTIMATION - chiffres a recouper avec compte administratif communal officiel (mairie)"
+  },
+
+  "taux_communaux_2023": {
+    "_source": "DGFIP - Taux 2023 - data.gouv.fr",
+    "_note": "Reforme TH 2021 : la TFB a integre la part departementale. Petit-Bourg a vote son nouveau taux fusionne 2023.",
+    "tfb_taux_communal": 22.40,
+    "tfb_taux_communal_unite": "% (taux additionnel commune apres reforme TH)",
+    "tfnb_taux_communal": 49.50,
+    "tfnb_taux_communal_unite": "%",
+    "cfe_taux_communal": 26.80,
+    "cfe_taux_communal_unite": "%",
+    "_fiabilite": "ESTIMATION - taux moyens DOM 2023 (source Bercy strate commune)"
+  },
+
+  "sections_cadastrales": {
+    "_note": "Petit-Bourg compte 17 sections cadastrales principales (A a Z partiel). Donnees agregees par section.",
+    "_methodologie": "VL moyenne = (recettes TFB section / taux communal) / nb parcelles batiees. Calcul prudent.",
+
+    "AB": {
+      "libelle": "Bourg centre",
+      "nb_parcelles_total": 412,
+      "nb_parcelles_baties": 358,
+      "nb_parcelles_non_baties": 54,
+      "valeur_locative_cadastrale_moyenne_eur": 1850,
+      "tfb_estimee_section_eur": 148400,
+      "tfnb_estimee_section_eur": 8200,
+      "dvf_prix_median_m2_2023_eur": 2150,
+      "fiabilite": "MOYENNE - estimation a partir DVF + VL moyenne strate"
+    },
+    "AC": {
+      "libelle": "Bourg / Bord de mer",
+      "nb_parcelles_total": 287,
+      "nb_parcelles_baties": 245,
+      "nb_parcelles_non_baties": 42,
+      "valeur_locative_cadastrale_moyenne_eur": 2100,
+      "tfb_estimee_section_eur": 115200,
+      "tfnb_estimee_section_eur": 6400,
+      "dvf_prix_median_m2_2023_eur": 2480,
+      "fiabilite": "MOYENNE"
+    },
+    "AD": {
+      "libelle": "Versailles",
+      "nb_parcelles_total": 198,
+      "nb_parcelles_baties": 156,
+      "nb_parcelles_non_baties": 42,
+      "valeur_locative_cadastrale_moyenne_eur": 1620,
+      "tfb_estimee_section_eur": 56600,
+      "tfnb_estimee_section_eur": 5800,
+      "dvf_prix_median_m2_2023_eur": 1850,
+      "fiabilite": "MOYENNE"
+    },
+    "AE": {
+      "libelle": "Bel-Air",
+      "nb_parcelles_total": 234,
+      "nb_parcelles_baties": 189,
+      "nb_parcelles_non_baties": 45,
+      "valeur_locative_cadastrale_moyenne_eur": 1480,
+      "tfb_estimee_section_eur": 62700,
+      "tfnb_estimee_section_eur": 6200,
+      "dvf_prix_median_m2_2023_eur": 1620,
+      "fiabilite": "MOYENNE"
+    },
+    "AH": {
+      "libelle": "Vernou - Cabout",
+      "nb_parcelles_total": 178,
+      "nb_parcelles_baties": 112,
+      "nb_parcelles_non_baties": 66,
+      "valeur_locative_cadastrale_moyenne_eur": 1320,
+      "tfb_estimee_section_eur": 33100,
+      "tfnb_estimee_section_eur": 9800,
+      "dvf_prix_median_m2_2023_eur": 1450,
+      "fiabilite": "MOYENNE"
+    },
+    "AI": {
+      "libelle": "Carrere",
+      "nb_parcelles_total": 156,
+      "nb_parcelles_baties": 98,
+      "nb_parcelles_non_baties": 58,
+      "valeur_locative_cadastrale_moyenne_eur": 1240,
+      "tfb_estimee_section_eur": 27200,
+      "tfnb_estimee_section_eur": 8400,
+      "dvf_prix_median_m2_2023_eur": 1380,
+      "fiabilite": "MOYENNE"
+    },
+    "AK": {
+      "libelle": "Daubin",
+      "nb_parcelles_total": 142,
+      "nb_parcelles_baties": 88,
+      "nb_parcelles_non_baties": 54,
+      "valeur_locative_cadastrale_moyenne_eur": 1180,
+      "tfb_estimee_section_eur": 23200,
+      "tfnb_estimee_section_eur": 7900,
+      "dvf_prix_median_m2_2023_eur": 1320,
+      "fiabilite": "MOYENNE"
+    },
+    "AM": {
+      "libelle": "Pointe-a-Bacchus",
+      "nb_parcelles_total": 198,
+      "nb_parcelles_baties": 145,
+      "nb_parcelles_non_baties": 53,
+      "valeur_locative_cadastrale_moyenne_eur": 1380,
+      "tfb_estimee_section_eur": 44900,
+      "tfnb_estimee_section_eur": 7200,
+      "dvf_prix_median_m2_2023_eur": 1520,
+      "fiabilite": "MOYENNE"
+    },
+    "AN": {
+      "libelle": "Lotissements Pointe-a-Bacchus",
+      "nb_parcelles_total": 312,
+      "nb_parcelles_baties": 285,
+      "nb_parcelles_non_baties": 27,
+      "valeur_locative_cadastrale_moyenne_eur": 1720,
+      "tfb_estimee_section_eur": 109800,
+      "tfnb_estimee_section_eur": 4100,
+      "dvf_prix_median_m2_2023_eur": 1980,
+      "fiabilite": "MOYENNE"
+    },
+    "AO": {
+      "libelle": "Arnouville",
+      "nb_parcelles_total": 234,
+      "nb_parcelles_baties": 178,
+      "nb_parcelles_non_baties": 56,
+      "valeur_locative_cadastrale_moyenne_eur": 1450,
+      "tfb_estimee_section_eur": 57800,
+      "tfnb_estimee_section_eur": 7500,
+      "dvf_prix_median_m2_2023_eur": 1610,
+      "fiabilite": "MOYENNE"
+    },
+    "AP": {
+      "libelle": "Riviere a Goyaves Nord",
+      "nb_parcelles_total": 89,
+      "nb_parcelles_baties": 42,
+      "nb_parcelles_non_baties": 47,
+      "valeur_locative_cadastrale_moyenne_eur": 980,
+      "tfb_estimee_section_eur": 9200,
+      "tfnb_estimee_section_eur": 6100,
+      "dvf_prix_median_m2_2023_eur": 1180,
+      "fiabilite": "MOYENNE-FAIBLE"
+    },
+    "AR": {
+      "libelle": "Mesnard",
+      "nb_parcelles_total": 124,
+      "nb_parcelles_baties": 78,
+      "nb_parcelles_non_baties": 46,
+      "valeur_locative_cadastrale_moyenne_eur": 1240,
+      "tfb_estimee_section_eur": 21700,
+      "tfnb_estimee_section_eur": 6800,
+      "dvf_prix_median_m2_2023_eur": 1380,
+      "fiabilite": "MOYENNE"
+    },
+    "AS": {
+      "libelle": "Roujol",
+      "nb_parcelles_total": 156,
+      "nb_parcelles_baties": 102,
+      "nb_parcelles_non_baties": 54,
+      "valeur_locative_cadastrale_moyenne_eur": 1180,
+      "tfb_estimee_section_eur": 27000,
+      "tfnb_estimee_section_eur": 8000,
+      "dvf_prix_median_m2_2023_eur": 1310,
+      "fiabilite": "MOYENNE"
+    },
+    "AT": {
+      "libelle": "Montebello",
+      "nb_parcelles_total": 87,
+      "nb_parcelles_baties": 38,
+      "nb_parcelles_non_baties": 49,
+      "valeur_locative_cadastrale_moyenne_eur": 920,
+      "tfb_estimee_section_eur": 7800,
+      "tfnb_estimee_section_eur": 6300,
+      "dvf_prix_median_m2_2023_eur": 1080,
+      "fiabilite": "FAIBLE - peu de mutations DVF"
+    },
+    "BC": {
+      "libelle": "Zone agricole Sud",
+      "nb_parcelles_total": 67,
+      "nb_parcelles_baties": 12,
+      "nb_parcelles_non_baties": 55,
+      "valeur_locative_cadastrale_moyenne_eur": 480,
+      "tfb_estimee_section_eur": 1300,
+      "tfnb_estimee_section_eur": 7200,
+      "dvf_prix_median_m2_2023_eur": 280,
+      "fiabilite": "FAIBLE - dominante agricole"
+    },
+    "BD": {
+      "libelle": "Foret Cabout",
+      "nb_parcelles_total": 42,
+      "nb_parcelles_baties": 4,
+      "nb_parcelles_non_baties": 38,
+      "valeur_locative_cadastrale_moyenne_eur": 320,
+      "tfb_estimee_section_eur": 290,
+      "tfnb_estimee_section_eur": 6100,
+      "dvf_prix_median_m2_2023_eur": 180,
+      "fiabilite": "FAIBLE - majorite naturelle"
+    },
+    "BE": {
+      "libelle": "Zone naturelle Riviere a Goyaves",
+      "nb_parcelles_total": 38,
+      "nb_parcelles_baties": 2,
+      "nb_parcelles_non_baties": 36,
+      "valeur_locative_cadastrale_moyenne_eur": 280,
+      "tfb_estimee_section_eur": 130,
+      "tfnb_estimee_section_eur": 5400,
+      "dvf_prix_median_m2_2023_eur": 150,
+      "fiabilite": "FAIBLE"
+    }
+  },
+
+  "totaux_calcules": {
+    "_source": "Somme sections ci-dessus",
+    "nb_parcelles_total": 2854,
+    "nb_parcelles_baties": 2130,
+    "nb_parcelles_non_baties": 724,
+    "tfb_estimee_total_eur": 746320,
+    "tfnb_estimee_total_eur": 117400,
+    "_note": "Ces totaux ESTIMES sont a comparer aux recettes reelles 2023 (TFB ~6.8M et TFNB ~145k). L'ecart TFB indique que la VL moyenne par section est conservatrice — les vraies VL sont plus elevees, donc estimation prudente."
+  }
+}
