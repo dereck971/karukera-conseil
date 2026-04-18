@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carte 3D — {{COMMUNE_NAME}} | Topo3D Antilles</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.css"/>
+<script src="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Montserrat',system-ui,sans-serif;background:#070b14;color:#e0e0e0;overflow:hidden}
+#map{width:100%;height:100vh}
+.panel{position:absolute;top:0;left:0;width:380px;height:100vh;background:rgba(7,11,20,0.92);backdrop-filter:blur(24px);z-index:1000;overflow-y:auto;border-right:1px solid rgba(212,175,55,0.15);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.panel.collapsed{transform:translateX(-380px)}
+.panel-toggle{position:absolute;top:50%;right:-44px;transform:translateY(-50%);width:44px;height:64px;background:rgba(7,11,20,0.92);border:1px solid rgba(212,175,55,0.2);border-left:none;border-radius:0 10px 10px 0;cursor:pointer;color:#d4af37;display:flex;align-items:center;justify-content:center;font-size:16px}
+.panel-header{padding:24px 20px 16px;border-bottom:1px solid rgba(212,175,55,0.1)}
+.panel-header h1{font-family:'Playfair Display',serif;font-size:20px;color:#d4af37;font-weight:700}
+.panel-header .subtitle{font-size:11px;color:#888;margin-top:4px}
+.section{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.section-title{font-size:10px;text-transform:uppercase;color:#555;letter-spacing:1.5px;margin-bottom:10px;font-weight:600}
+.layer-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;cursor:pointer}
+.layer-info{display:flex;align-items:center;gap:8px;flex:1}
+.layer-dot{width:10px;height:10px;border-radius:50%}
+.layer-name{font-size:12px;color:#bbb}
+.toggle{width:36px;height:20px;border-radius:10px;background:rgba(255,255,255,0.06);position:relative;cursor:pointer;transition:background .25s}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#555;transition:all .25s}
+.toggle.on{background:rgba(212,175,55,0.25)}
+.toggle.on::after{transform:translateX(16px);background:#d4af37}
+.panel-footer{padding:14px 20px;font-size:9px;color:#444;line-height:1.6}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="panel collapsed" id="panel">
+  <div class="panel-toggle" onclick="document.getElementById('panel').classList.toggle('collapsed')">▶</div>
+  <div class="panel-header">
+    <h1>{{COMMUNE_NAME}} 3D</h1>
+    <div class="subtitle">INSEE {{INSEE_CODE}} — Topo3D Antilles</div>
+  </div>
+  <div class="section">
+    <div class="section-title">Couches de base</div>
+    <div class="layer-row" onclick="toggleLayer('cadastre-wms',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#a78bfa"></div><span class="layer-name">Cadastre IGN</span></div>
+      <div class="toggle on" id="tgl-cadastre-wms"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('ortho-ign',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#34d399"></div><span class="layer-name">Orthophoto IGN</span></div>
+      <div class="toggle" id="tgl-ortho-ign"></div>
+    </div>
+  </div>
+  <div class="panel-footer">
+    Source : IGN Géoplateforme · KaruGéo · OpenStreetMap<br>
+    Topo3D Antilles · Karukera Conseil Immobilier · contact@karukera-conseil.com
+  </div>
+</div>
+<script>
+// === TEMPLATE Topo3D Antilles ===
+// {{COMMUNE_NAME}} — INSEE {{INSEE_CODE}}
+// Bbox WGS84 : S={{BBOX_S}} W={{BBOX_W}} N={{BBOX_N}} E={{BBOX_E}}
+// Centre : [{{CENTER_LON}}, {{CENTER_LAT}}]
+// PPRN Lizmap projet : {{PPRN_PROJECT}}
+
+const CENTER = [{{CENTER_LON}}, {{CENTER_LAT}}];
+const layerState = {};
+
+const map = new maplibregl.Map({
+  container: 'map',
+  style: { version: 8, sources: { 'sat': { type: 'raster', tiles: ['https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg&STYLE=normal'], tileSize: 256, attribution: '© IGN' } }, layers: [{ id: 'sat', type: 'raster', source: 'sat' }] },
+  center: CENTER, zoom: 14, pitch: 60, bearing: 0, maxPitch: 85, antialias: true
+});
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
+
+map.on('style.load', () => {
+  map.addSource('terrarium', { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium', tileSize: 256, maxzoom: 15 });
+  map.setTerrain({ source: 'terrarium', exaggeration: 1.3 });
+
+  map.addSource('cadastre-wms-src', { type: 'raster', tiles: ['https://data.geopf.fr/wms-r/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=CADASTRALPARCELS.PARCELLAIRE_EXPRESS&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&STYLES='], tileSize: 256 });
+  map.addLayer({ id: 'cadastre-wms', type: 'raster', source: 'cadastre-wms-src', paint: { 'raster-opacity': 0.55 }, layout: { visibility: 'visible' } });
+  layerState['cadastre-wms'] = true;
+
+  map.addSource('ortho-ign-src', { type: 'raster', tiles: ['https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg&STYLE=normal'], tileSize: 256 });
+  map.addLayer({ id: 'ortho-ign', type: 'raster', source: 'ortho-ign-src', paint: { 'raster-opacity': 0.85 }, layout: { visibility: 'none' } });
+  layerState['ortho-ign'] = false;
+});
+
+function toggleLayer(layerId, el) {
+  const tgl = el.querySelector('.toggle');
+  const isOn = tgl.classList.toggle('on');
+  layerState[layerId] = isOn;
+  if (map.getLayer(layerId)) map.setLayoutProperty(layerId, 'visibility', isOn ? 'visible' : 'none');
+}
+</script>
+</body>
+</html>

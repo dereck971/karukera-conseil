@@ -1,0 +1,79 @@
+{
+  "_meta": {
+    "commune": "Petit-Bourg",
+    "insee": "97118",
+    "format_version": "1.0.0",
+    "statut": "DEMO — donnees fictives generees pour demonstration UI. NE PAS UTILISER POUR ANALYSE REELLE.",
+    "source": "KCI / Topo3D Antilles — 17/04/2026",
+    "demo": true
+  },
+  "parcelles": [
+    {
+      "ref_cadastrale": "97118 000 AB 0001",
+      "lng": -61.5898, "lat": 16.1935,
+      "valeur_locative_eur": 4250, "tfb_eur": 1832, "tfnb_eur": 0, "cfe_eur": 0,
+      "annee_revision_vl": 2017,
+      "proprietaire_type": "particulier", "usage": "residentiel", "categorie_fiscale": "M",
+      "sous_fiscalise": false, "demo": true
+    },
+    {
+      "ref_cadastrale": "97118 000 AB 0042",
+      "lng": -61.5912, "lat": 16.1948,
+      "valeur_locative_eur": 1850, "tfb_eur": 320, "tfnb_eur": 0, "cfe_eur": 0,
+      "annee_revision_vl": 1995,
+      "proprietaire_type": "indivision", "usage": "residentiel", "categorie_fiscale": "M",
+      "sous_fiscalise": true, "demo": true,
+      "_note": "Ratio TFB/VL = 0.17 < 0.30 ET revision 1995 < 2010"
+    },
+    {
+      "ref_cadastrale": "97118 000 BC 0103",
+      "lng": -61.5876, "lat": 16.1921,
+      "valeur_locative_eur": 12500, "tfb_eur": 5400, "tfnb_eur": 0, "cfe_eur": 3200,
+      "annee_revision_vl": 2017,
+      "proprietaire_type": "sas", "usage": "commercial", "categorie_fiscale": "U",
+      "sous_fiscalise": false, "demo": true
+    },
+    {
+      "ref_cadastrale": "97118 000 CD 0257",
+      "lng": -61.6010, "lat": 16.1980,
+      "valeur_locative_eur": 0, "tfb_eur": 0, "tfnb_eur": 215, "cfe_eur": 0,
+      "annee_revision_vl": 2017,
+      "proprietaire_type": "particulier", "usage": "agricole", "categorie_fiscale": "",
+      "sous_fiscalise": false, "demo": true
+    },
+    {
+      "ref_cadastrale": "97118 000 DE 0089",
+      "lng": -61.5840, "lat": 16.1850,
+      "valeur_locative_eur": 8200, "tfb_eur": 1100, "tfnb_eur": 0, "cfe_eur": 0,
+      "annee_revision_vl": 2002,
+      "proprietaire_type": "sci", "usage": "residentiel", "categorie_fiscale": "M",
+      "sous_fiscalise": true, "demo": true,
+      "_note": "Ratio TFB/VL = 0.13 < 0.30, revision 2002 < 2010 — probable sous-evaluation"
+    },
+    {
+      "ref_cadastrale": "97118 000 EF 0410",
+      "lng": -61.5780, "lat": 16.2000,
+      "valeur_locative_eur": 5600, "tfb_eur": 2410, "tfnb_eur": 0, "cfe_eur": 0,
+      "annee_revision_vl": 2020,
+      "proprietaire_type": "particulier", "usage": "residentiel", "categorie_fiscale": "M",
+      "sous_fiscalise": false, "demo": true
+    },
+    {
+      "ref_cadastrale": "97118 000 FG 0512",
+      "lng": -61.5950, "lat": 16.1800,
+      "valeur_locative_eur": 0, "tfb_eur": 0, "tfnb_eur": 0, "cfe_eur": 0,
+      "annee_revision_vl": 1985,
+      "proprietaire_type": "indivision", "usage": "indetermine", "categorie_fiscale": "",
+      "sous_fiscalise": true, "demo": true,
+      "_note": "Aucune fiscalite — parcelle potentiellement abandonnee ou non-declaree"
+    },
+    {
+      "ref_cadastrale": "97118 000 GH 0033",
+      "lng": -61.6200, "lat": 16.1700,
+      "valeur_locative_eur": 9300, "tfb_eur": 4015, "tfnb_eur": 0, "cfe_eur": 0,
+      "annee_revision_vl": 2017,
+      "proprietaire_type": "particulier", "usage": "residentiel", "categorie_fiscale": "M",
+      "sous_fiscalise": false, "demo": true
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "petit-bourg",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "/tmp/kci-preview-server/serve.mjs"
+      ],
+      "port": 8765,
+      "autoPort": true
+    },
+    {
+      "name": "topo3d-antilles",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/tmp/topo3d-serve.mjs"],
+      "port": 5174,
+      "autoPort": true
+    }
+  ]
+}

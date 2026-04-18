@@ -1,0 +1,13 @@
+node_modules/
+package-lock.json
+*.log
+.env
+.env.local
+.DS_Store
+
+# Audit log et données fiscales uploadées dynamiquement — ne pas versionner
+data/fiscal/_ingestion_log.jsonl
+data/fiscal/*.json
+!data/fiscal/demo_*.json
+!data/fiscal/schema.json
+!data/fiscal/dgfip/*.json

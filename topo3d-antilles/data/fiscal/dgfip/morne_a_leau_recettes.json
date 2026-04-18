@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "commune": "Morne-à-l'Eau",
+    "insee": "97116",
+    "annee": 2024,
+    "source": "TEMPLATE — DGFIP open data",
+    "schema": "parcelle -> recette TFB+TFNB+CFE"
+  },
+  "parcelles": []
+}

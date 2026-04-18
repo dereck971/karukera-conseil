@@ -1,0 +1,78 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Topo3D Antilles — Schema Fiscalite Cadastrale par Commune",
+  "description": "Format attendu pour les donnees fiscales transmises par les services communaux (ex : Mme Aly, Petit-Bourg). Une ligne = une parcelle.",
+  "version": "1.0.0",
+  "format_recommande": "CSV (UTF-8, separateur ; , decimale .)",
+  "format_tolere": "Excel xlsx (1 onglet, header en ligne 1)",
+  "colonnes_obligatoires": {
+    "ref_cadastrale": {
+      "type": "string",
+      "description": "Reference cadastrale complete (ex : 97118 000 AB 0123)",
+      "format": "{INSEE5} {prefixe3} {section} {numero4}",
+      "exemple": "97118 000 AB 0123"
+    },
+    "valeur_locative_eur": {
+      "type": "number",
+      "description": "Valeur locative cadastrale en euros (base annuelle)",
+      "exemple": 4250
+    },
+    "tfb_eur": {
+      "type": "number",
+      "description": "Taxe Fonciere Bati due en euros par an (TFB)",
+      "exemple": 1832
+    },
+    "tfnb_eur": {
+      "type": "number",
+      "description": "Taxe Fonciere Non Bati en euros par an (TFNB)",
+      "exemple": 215
+    },
+    "cfe_eur": {
+      "type": "number",
+      "description": "Cotisation Fonciere des Entreprises en euros par an (CFE) — 0 si pas d'activite economique",
+      "exemple": 0
+    },
+    "annee_revision_vl": {
+      "type": "integer",
+      "description": "Annee de la derniere revision de la valeur locative (referentiel 1970 historique, revisee localement depuis 2017)",
+      "exemple": 2017
+    }
+  },
+  "colonnes_optionnelles": {
+    "proprietaire_type": {
+      "type": "string",
+      "enum": ["particulier", "sci", "sarl", "sas", "etat", "commune", "indivision", "autre"],
+      "description": "Type juridique du proprietaire (anonymise — pas de nom)"
+    },
+    "usage": {
+      "type": "string",
+      "enum": ["residentiel", "commercial", "industriel", "agricole", "religieux", "sportif", "annexe", "indetermine"],
+      "description": "Usage principal du bati"
+    },
+    "categorie_fiscale": {
+      "type": "string",
+      "description": "Categorie fiscale officielle (M, U, MA, etc.) selon nomenclature DGFiP",
+      "exemple": "M"
+    },
+    "annee_construction": {
+      "type": "integer",
+      "description": "Annee de construction (utile pour detection sous-fiscalisation)",
+      "exemple": 1985
+    }
+  },
+  "regle_sous_fiscalisation": {
+    "description": "Une parcelle est marquee 'sous-fiscalisee' si TFB / valeur_locative < 0.30 OU annee_revision_vl < 2010. A affiner avec Mme Aly.",
+    "seuils": {
+      "ratio_tfb_vl_min": 0.30,
+      "annee_revision_min": 2010
+    }
+  },
+  "exemple_csv": [
+    "ref_cadastrale;valeur_locative_eur;tfb_eur;tfnb_eur;cfe_eur;annee_revision_vl;proprietaire_type;usage;categorie_fiscale",
+    "97118 000 AB 0123;4250;1832;0;0;2017;particulier;residentiel;M",
+    "97118 000 AB 0124;0;0;215;0;1995;commune;agricole;",
+    "97118 000 BC 0042;12500;5400;0;3200;2017;sas;commercial;U"
+  ],
+  "rgpd": "Aucune donnee personnelle nominative dans ce format. Le proprietaire est uniquement caracterise par son type juridique. Les references cadastrales sont des donnees publiques.",
+  "contact_kci": "contact@karukera-conseil.com"
+}

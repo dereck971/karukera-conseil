@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "commune": "Sainte-Rose",
+    "insee": "97129",
+    "annee": 2024,
+    "source": "TEMPLATE — DGFIP open data",
+    "schema": "parcelle -> recette TFB+TFNB+CFE"
+  },
+  "parcelles": []
+}
