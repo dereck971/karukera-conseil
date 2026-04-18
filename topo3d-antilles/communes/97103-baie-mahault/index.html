@@ -1,0 +1,3388 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carte 3D — Baie-Mahault | Maquette Urbanistique Interactive</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.css"/>
+<script src="https://unpkg.com/maplibre-gl@4.1.2/dist/maplibre-gl.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:wght@600;700&display=swap">
+<!-- KCI Fiscalité : Chart.js pour le dashboard, jsPDF + html2canvas pour l'export DOB -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- KCI Fiscalité : modules dynamiques (chargés tôt en defer pour être prêts au boot) -->
+<script defer src="../../lib/fiscal/recettes_parcelle.js"></script>
+<script defer src="../../lib/fiscal/popup_recettes.js"></script>
+<script defer src="../../lib/fiscal/dashboard_zone_plu.js" onerror="console.warn('[KCI] dashboard_zone_plu.js absent (fallback intégré)')"></script>
+<script defer src="../../lib/fiscal/sous_fiscalisation.js" onerror="console.warn('[KCI] sous_fiscalisation.js absent (fallback intégré)')"></script>
+<script defer src="../../lib/fiscal/simulateur_requalification.js" onerror="console.warn('[KCI] simulateur_requalification.js absent (fallback intégré)')"></script>
+<script defer src="../../lib/fiscal/export_dob.js" onerror="console.warn('[KCI] export_dob.js absent (fallback intégré)')"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'IBM Plex Sans',system-ui,sans-serif;background:#070b14;color:#e0e0e0;overflow:hidden}
+#map{width:100%;height:100vh}
+
+/* ─── PANEL ─── */
+.panel{position:absolute;top:0;left:0;width:380px;height:100vh;background:rgba(7,11,20,0.92);backdrop-filter:blur(24px);z-index:1000;overflow-y:auto;border-right:1px solid rgba(212,175,55,0.15);transition:transform .35s cubic-bezier(.4,0,.2,1);scrollbar-width:thin;scrollbar-color:rgba(212,175,55,0.2) transparent}
+.panel::-webkit-scrollbar{width:5px}
+.panel::-webkit-scrollbar-thumb{background:rgba(212,175,55,0.2);border-radius:3px}
+.panel.collapsed{transform:translateX(-380px)}
+.panel-toggle{position:absolute;top:50%;right:-44px;transform:translateY(-50%);width:44px;height:64px;background:rgba(7,11,20,0.92);backdrop-filter:blur(24px);border:1px solid rgba(212,175,55,0.2);border-left:none;border-radius:0 10px 10px 0;cursor:pointer;color:#d4af37;display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .2s}
+.panel-toggle:hover{background:rgba(212,175,55,0.08)}
+
+/* Header */
+.panel-header{padding:24px 20px 16px;border-bottom:1px solid rgba(212,175,55,0.1)}
+.panel-header h1{font-family:'Playfair Display',serif;font-size:20px;color:#d4af37;font-weight:700;letter-spacing:0.5px}
+.panel-header .subtitle{font-size:11px;color:#888;margin-top:4px;font-weight:400;letter-spacing:0.3px}
+.panel-header .badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:1px;background:rgba(212,175,55,0.12);color:#d4af37;margin-top:8px}
+
+/* Stats */
+.stats{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.stat-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px}
+.stat-row .label{color:#777}
+.stat-row .value{font-weight:600;color:#fff;font-variant-numeric:tabular-nums}
+.stat-row .value.gold{color:#d4af37}
+.stat-row .value.red{color:#e74c3c}
+.stat-row .value.green{color:#2ecc71}
+.score-bar{margin:10px 0 4px;height:5px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden;display:flex}
+.score-bar div{height:100%;transition:width .8s ease}
+
+/* Sections */
+.section{padding:14px 20px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.section-title{font-size:10px;text-transform:uppercase;color:#555;letter-spacing:1.5px;margin-bottom:10px;font-weight:600}
+
+/* Layer toggles */
+.layer-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;cursor:pointer}
+.layer-row:hover .layer-name{color:#fff}
+.layer-info{display:flex;align-items:center;gap:8px;flex:1}
+.layer-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.layer-name{font-size:12px;color:#bbb;transition:color .2s}
+.toggle{width:36px;height:20px;border-radius:10px;background:rgba(255,255,255,0.06);position:relative;cursor:pointer;transition:background .25s;flex-shrink:0}
+.toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#555;transition:all .25s}
+.toggle.on{background:rgba(212,175,55,0.25)}
+.toggle.on::after{transform:translateX(16px);background:#d4af37}
+
+/* Filters */
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.filter-btn{padding:4px 10px;border-radius:14px;font-size:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#999;transition:all .2s;font-family:inherit}
+.filter-btn.active{border-color:#d4af37;color:#d4af37;background:rgba(212,175,55,0.08)}
+.filter-btn:hover{border-color:rgba(212,175,55,0.4)}
+
+/* Slider */
+.slider-row{display:flex;align-items:center;gap:10px;padding:5px 0}
+.slider-row label{font-size:11px;color:#888;min-width:90px}
+.slider-row input[type=range]{flex:1;accent-color:#d4af37;height:3px}
+.slider-row .slider-val{font-size:11px;color:#d4af37;min-width:30px;text-align:right}
+
+/* Fly-to presets */
+.flyto-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.flyto-btn{padding:8px;border-radius:6px;font-size:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:#bbb;transition:all .2s;text-align:center;font-family:inherit}
+.flyto-btn:hover{border-color:rgba(212,175,55,0.3);color:#d4af37;background:rgba(212,175,55,0.05)}
+
+/* Legend */
+.legend-item{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:11px;color:#999}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Footer */
+.panel-footer{padding:14px 20px;font-size:9px;color:#444;line-height:1.6;border-top:1px solid rgba(255,255,255,0.04)}
+
+/* ─── KCI FISCALITÉ : section panel ─── */
+.panel-fiscalite{padding:18px 20px 16px;border-top:1px solid rgba(212,175,55,0.3);border-bottom:1px solid rgba(255,255,255,0.04);background:linear-gradient(180deg,rgba(212,175,55,0.04) 0%,transparent 100%)}
+.panel-fiscalite .section-title{display:flex;align-items:center;gap:8px;font-family:'Playfair Display',serif;color:#d4af37;font-size:15px;margin-bottom:14px;text-transform:none;letter-spacing:0.3px;font-weight:700}
+.panel-fiscalite .section-icon{background:rgba(212,175,55,0.15);border:1px solid #d4af37;border-radius:4px;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#d4af37;font-family:'IBM Plex Sans',system-ui,sans-serif}
+.panel-fiscalite .badge-mairie{background:#2a4d6e;color:#fff;font-size:9px;font-family:'IBM Plex Sans',system-ui,sans-serif;padding:2px 7px;border-radius:3px;margin-left:auto;letter-spacing:0.5px;font-weight:600}
+.panel-fiscalite .layer-row{padding:5px 0}
+.btn-fiscal-primary,.btn-fiscal-secondary,.btn-fiscal-export{width:100%;padding:9px 12px;margin:6px 0;border:1px solid #d4af37;background:rgba(212,175,55,0.1);color:#d4af37;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;font-weight:600;cursor:pointer;border-radius:4px;transition:all 0.2s;letter-spacing:0.3px;text-align:center}
+.btn-fiscal-primary:hover,.btn-fiscal-secondary:hover{background:rgba(212,175,55,0.25);transform:translateY(-1px)}
+.btn-fiscal-export{background:#d4af37;color:#0a1929;font-weight:700}
+.btn-fiscal-export:hover{background:#c19c2e;transform:translateY(-1px)}
+.btn-fiscal-secondary.active-sim{background:rgba(231,76,60,0.2);border-color:#e74c3c;color:#e74c3c}
+.fiscal-dashboard-trigger,.fiscal-simulator-trigger,.fiscal-export-trigger{margin-top:10px}
+.help-text{font-size:10px;color:rgba(255,255,255,0.55);margin-top:4px;font-style:italic;line-height:1.4}
+.fiscal-sources{margin-top:14px;padding-top:12px;border-top:1px dashed rgba(212,175,55,0.2);color:rgba(255,255,255,0.5);font-size:10px;line-height:1.5}
+.fiscal-sources small{font-size:10px}
+#quartierSelect{width:100%;margin-top:6px;padding:7px;background:rgba(255,255,255,0.05);border:1px solid rgba(212,175,55,0.3);color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;border-radius:3px;cursor:pointer}
+#quartierSelect:focus{outline:none;border-color:#d4af37}
+#quartierSelect option{background:#0a1929;color:#fff}
+
+/* ─── KCI FISCALITÉ : modaux flottants ─── */
+.fiscal-modal-backdrop{position:fixed;inset:0;background:rgba(7,11,20,0.78);backdrop-filter:blur(6px);z-index:5000;display:none;align-items:center;justify-content:center;padding:24px}
+.fiscal-modal-backdrop.open{display:flex}
+.fiscal-modal{background:#0a1929;border:1px solid rgba(212,175,55,0.35);border-radius:10px;max-width:880px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:fiscalModalIn .25s ease-out}
+@keyframes fiscalModalIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.fiscal-modal-header{display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid rgba(212,175,55,0.2)}
+.fiscal-modal-header h2{font-family:'Playfair Display',serif;color:#d4af37;font-size:18px;font-weight:700}
+.fiscal-modal-close{background:transparent;border:1px solid rgba(212,175,55,0.3);color:#d4af37;width:30px;height:30px;border-radius:4px;cursor:pointer;font-size:16px;display:inline-flex;align-items:center;justify-content:center;transition:all .2s}
+.fiscal-modal-close:hover{background:rgba(212,175,55,0.15);border-color:#d4af37}
+.fiscal-modal-body{padding:20px 24px}
+.fiscal-modal-footer{padding:14px 24px;border-top:1px solid rgba(212,175,55,0.15);display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.fiscal-modal-footer button{padding:8px 16px;border-radius:4px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:11px;cursor:pointer;border:1px solid rgba(212,175,55,0.3);background:transparent;color:#d4af37;font-weight:600;transition:all .2s}
+.fiscal-modal-footer button:hover{background:rgba(212,175,55,0.15)}
+.fiscal-modal-footer button.primary{background:#d4af37;color:#0a1929;border-color:#d4af37}
+.fiscal-modal-footer button.primary:hover{background:#c19c2e}
+.fiscal-chart-wrap{position:relative;height:280px;margin-bottom:20px;background:rgba(255,255,255,0.02);border-radius:6px;padding:14px}
+.fiscal-table{width:100%;border-collapse:collapse;font-size:12px;color:#ccc;margin-top:14px}
+.fiscal-table th{text-align:left;padding:8px 10px;background:rgba(212,175,55,0.08);color:#d4af37;font-weight:600;font-size:11px;letter-spacing:0.3px;border-bottom:1px solid rgba(212,175,55,0.25)}
+.fiscal-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.05);font-variant-numeric:tabular-nums;font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11.5px}
+.fiscal-table th{font-family:'IBM Plex Sans',system-ui,sans-serif}
+/* Chiffres tabulaires premium pour les popups KCI (fiscal + parcelle + valeurs DVF) */
+.popup-table td:last-child{font-family:'IBM Plex Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
+.fiscal-popup td,.fiscal-popup .euros{font-family:'IBM Plex Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
+.stat-row .value,.stats-bar-value{font-family:'IBM Plex Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
+.sim-card .scenar-gain{font-family:'IBM Plex Mono',ui-monospace,monospace;font-feature-settings:"tnum" 1}
+.fiscal-table tr:hover td{background:rgba(212,175,55,0.04)}
+.fiscal-table td.gold{color:#d4af37;font-weight:600}
+.fiscal-table td.green{color:#2ecc71;font-weight:600}
+.fiscal-modal-note{font-size:11px;color:#888;margin-top:14px;padding:10px 12px;background:rgba(212,175,55,0.05);border-left:3px solid #d4af37;border-radius:3px;line-height:1.5}
+
+/* Simulateur banner & cards */
+.sim-banner{position:fixed;top:0;left:0;right:0;background:linear-gradient(90deg,#2a4d6e 0%,#0a1929 100%);color:#fff;padding:12px 24px;z-index:4500;display:none;align-items:center;justify-content:space-between;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,0.4);border-bottom:2px solid #d4af37}
+.sim-banner.open{display:flex}
+.sim-banner span.sim-label{display:inline-flex;align-items:center;gap:10px}
+.sim-banner span.sim-dot{width:10px;height:10px;border-radius:50%;background:#e74c3c;animation:simPulse 1.4s ease-in-out infinite}
+@keyframes simPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.sim-banner button{background:transparent;border:1px solid rgba(255,255,255,0.4);color:#fff;padding:5px 12px;border-radius:3px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:600}
+.sim-banner button:hover{background:rgba(255,255,255,0.1);border-color:#fff}
+.sim-mode .maplibregl-canvas{cursor:crosshair !important}
+
+.sim-scenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:6px}
+.sim-card{background:rgba(255,255,255,0.03);border:1px solid rgba(212,175,55,0.2);border-radius:6px;padding:14px;transition:all .2s;cursor:default}
+.sim-card:hover{border-color:#d4af37;background:rgba(212,175,55,0.08);transform:translateY(-2px)}
+.sim-card h4{font-family:'Playfair Display',serif;color:#d4af37;font-size:14px;margin-bottom:8px}
+.sim-card .scenar-detail{font-size:11px;color:#aaa;line-height:1.5;margin-bottom:10px}
+.sim-card .scenar-gain{font-size:18px;font-weight:700;color:#2ecc71;font-variant-numeric:tabular-nums}
+.sim-card .scenar-gain-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:0.5px}
+
+/* Loader export DOB */
+.fiscal-loader{display:none;align-items:center;gap:10px;color:#d4af37;font-size:12px;padding:10px 0}
+.fiscal-loader.show{display:flex}
+.fiscal-spinner{width:18px;height:18px;border:2px solid rgba(212,175,55,0.2);border-top-color:#d4af37;border-radius:50%;animation:fiscalSpin .8s linear infinite}
+@keyframes fiscalSpin{to{transform:rotate(360deg)}}
+
+.dob-preview{background:rgba(255,255,255,0.04);border:1px dashed rgba(212,175,55,0.25);border-radius:6px;padding:18px;margin:12px 0;font-size:11px;color:#aaa;line-height:1.6}
+.dob-preview h5{color:#d4af37;font-family:'Playfair Display',serif;font-size:13px;margin-bottom:6px}
+.dob-page-list{margin-top:8px;padding-left:16px}
+.dob-page-list li{margin:3px 0}
+
+/* Presentation mode */
+.pres-mode .panel{transform:translateX(-380px)!important}
+.pres-watermark{position:fixed;bottom:20px;right:20px;font-family:'Playfair Display',serif;font-size:14px;color:rgba(212,175,55,0.4);z-index:999;pointer-events:none;display:none}
+.pres-mode .pres-watermark{display:block}
+.pres-legend{position:fixed;bottom:20px;left:20px;background:rgba(7,11,20,0.85);backdrop-filter:blur(12px);border-radius:8px;padding:12px 16px;z-index:999;display:none;border:1px solid rgba(212,175,55,0.1)}
+.pres-mode .pres-legend{display:block}
+
+/* Top bar */
+.top-bar{position:fixed;top:16px;right:16px;z-index:999;display:flex;gap:8px}
+.top-btn{padding:8px 14px;border-radius:6px;font-size:11px;cursor:pointer;border:1px solid rgba(255,255,255,0.08);background:rgba(7,11,20,0.8);backdrop-filter:blur(12px);color:#ccc;transition:all .2s;font-family:inherit;display:flex;align-items:center;gap:6px}
+.top-btn:hover{border-color:rgba(212,175,55,0.3);color:#d4af37}
+.top-btn.active{border-color:#d4af37;color:#d4af37;background:rgba(212,175,55,0.08)}
+
+/* Floating stats bar */
+.stats-bar{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:998;display:flex;align-items:center;gap:0;background:rgba(7,11,20,0.88);backdrop-filter:blur(16px);border:1px solid rgba(212,175,55,0.15);border-radius:12px;padding:8px 20px;white-space:nowrap}
+.pres-mode .stats-bar{bottom:60px}
+.stats-bar-item{text-align:center;padding:0 12px}
+.stats-bar-value{display:block;font-size:16px;font-weight:700;color:#d4af37;font-variant-numeric:tabular-nums}
+.stats-bar-label{display:block;font-size:8px;color:#777;text-transform:uppercase;letter-spacing:0.5px;margin-top:1px}
+.stats-bar-sep{width:1px;height:28px;background:rgba(255,255,255,0.06);flex-shrink:0}
+@media(max-width:768px){.stats-bar{bottom:auto;top:60px;padding:6px 12px;gap:0;font-size:12px}.stats-bar-value{font-size:12px}.stats-bar-item{padding:0 6px}}
+
+/* Search bar */
+.search-container{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:1001;width:420px;max-width:calc(100vw - 420px)}
+.search-box{position:relative}
+.search-box input{width:100%;padding:10px 40px 10px 16px;border-radius:10px;border:1px solid rgba(212,175,55,0.2);background:rgba(7,11,20,0.9);backdrop-filter:blur(24px);color:#fff;font-family:inherit;font-size:13px;outline:none;transition:border-color .2s}
+.search-box input::placeholder{color:#666}
+.search-box input:focus{border-color:rgba(212,175,55,0.5)}
+.search-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#666;font-size:16px;pointer-events:none}
+.search-results{position:absolute;top:calc(100% + 4px);left:0;right:0;background:rgba(7,11,20,0.95);backdrop-filter:blur(24px);border:1px solid rgba(212,175,55,0.15);border-radius:8px;max-height:240px;overflow-y:auto;display:none;scrollbar-width:thin;scrollbar-color:rgba(212,175,55,0.2) transparent}
+.search-results.visible{display:block}
+.search-result-item{padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.03);transition:background .15s;font-size:12px}
+.search-result-item:hover{background:rgba(212,175,55,0.08)}
+.search-result-item .result-label{color:#e0e0e0;font-weight:500}
+.search-result-item .result-context{color:#777;font-size:10px;margin-top:2px}
+.search-result-item:last-child{border-bottom:none}
+
+/* Loading overlay */
+#loading{position:fixed;inset:0;background:#070b14;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .8s}
+#loading.done{opacity:0;pointer-events:none}
+#loading h2{font-family:'Playfair Display',serif;color:#d4af37;font-size:22px;margin-bottom:8px}
+#loading p{color:#666;font-size:12px}
+.loader{width:40px;height:40px;border:3px solid rgba(212,175,55,0.1);border-top-color:#d4af37;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:20px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Popup */
+.maplibregl-popup-content{background:rgba(7,11,20,0.95)!important;color:#e0e0e0!important;border:1px solid rgba(212,175,55,0.2)!important;border-radius:8px!important;padding:16px!important;min-width:260px;box-shadow:0 8px 32px rgba(0,0,0,0.5)!important}
+.maplibregl-popup-tip{border-top-color:rgba(7,11,20,0.95)!important}
+.maplibregl-popup-close-button{color:#888!important;font-size:18px!important;right:8px!important;top:6px!important}
+.popup-title{font-family:'Playfair Display',serif;font-size:14px;color:#d4af37;margin-bottom:8px}
+.popup-badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;color:#fff;margin-bottom:10px}
+.popup-table{width:100%;font-size:11px;border-collapse:collapse}
+.popup-table td{padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.popup-table td:first-child{color:#777;width:100px}
+.popup-table td:last-child{color:#ddd;font-weight:500}
+
+/* ─── KCI VISUAL PREMIUM ─── */
+/* Watermark KCI bottom-right */
+.kci-watermark{position:fixed;bottom:16px;right:16px;background:rgba(10,25,41,0.62);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(212,175,55,0.32);border-radius:7px;padding:9px 15px;display:flex;flex-direction:column;gap:2px;font-family:'IBM Plex Sans',system-ui,sans-serif;pointer-events:none;z-index:997;box-shadow:0 6px 24px rgba(0,0,0,0.35);transition:opacity .3s}
+.kci-watermark .kci-logo-text{font-family:'Playfair Display',serif;font-size:18px;color:#d4af37;font-weight:700;letter-spacing:1.4px;line-height:1}
+.kci-watermark .kci-tagline{font-size:9.5px;color:rgba(255,255,255,0.72);letter-spacing:0.3px}
+.kci-watermark .kci-url{font-size:9px;color:rgba(212,175,55,0.65);letter-spacing:0.3px}
+.pres-mode .kci-watermark{opacity:0.4}
+.no-watermark .kci-watermark{display:none}
+
+/* Loading screen premium */
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at center, #0a1929 0%, #050810 100%)}
+#loading .kci-logo-load{width:96px;height:96px;margin-bottom:20px;opacity:0;animation:kciFadeIn .9s ease-out forwards}
+#loading h2{opacity:0;animation:kciFadeIn .9s ease-out .2s forwards}
+#loading .load-sub{color:#888;font-size:11px;margin-top:6px;letter-spacing:0.4px;opacity:0;animation:kciFadeIn .9s ease-out .4s forwards}
+#loading .load-progress-wrap{margin-top:28px;width:280px;opacity:0;animation:kciFadeIn .9s ease-out .6s forwards}
+#loading .load-bar{height:3px;width:100%;background:rgba(212,175,55,0.1);border-radius:2px;overflow:hidden;position:relative}
+#loading .load-bar-fill{position:absolute;top:0;left:0;height:100%;width:0%;background:linear-gradient(90deg,#d4af37,#f1c75a,#d4af37);background-size:200% 100%;animation:kciShimmer 2s linear infinite;transition:width .6s ease}
+#loading .load-steps{display:flex;justify-content:space-between;font-size:9px;color:#666;margin-top:10px;letter-spacing:0.3px;text-transform:uppercase}
+#loading .load-step.active{color:#d4af37}
+#loading .load-step.done{color:#5a7a5a}
+@keyframes kciFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes kciShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* Time-of-day preset buttons */
+.tod-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:8px}
+.tod-btn{padding:8px 6px;border-radius:6px;font-size:10px;cursor:pointer;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:#bbb;transition:all .25s ease;text-align:center;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px}
+.tod-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(212,175,55,0.12)}
+.tod-btn .tod-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.tod-btn.tod-aube{border-color:rgba(245,208,168,0.3);color:#f5d0a8}
+.tod-btn.tod-aube:hover{background:rgba(245,208,168,0.08)}
+.tod-btn.tod-midi{border-color:rgba(136,193,232,0.3);color:#88c1e8}
+.tod-btn.tod-midi:hover{background:rgba(136,193,232,0.08)}
+.tod-btn.tod-golden{border-color:rgba(240,168,104,0.4);color:#f0a868}
+.tod-btn.tod-golden:hover{background:rgba(240,168,104,0.08)}
+.tod-btn.tod-crepu{border-color:rgba(120,90,180,0.4);color:#9c80c5}
+.tod-btn.tod-crepu:hover{background:rgba(120,90,180,0.08)}
+.tod-btn.active{background:rgba(212,175,55,0.12);border-color:#d4af37}
+
+/* Cinematic preset section */
+.cine-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
+.cine-btn{padding:10px 8px;border-radius:6px;font-size:10.5px;cursor:pointer;border:1px solid rgba(212,175,55,0.18);background:rgba(212,175,55,0.04);color:#d4af37;transition:all .25s ease;text-align:center;font-family:inherit;font-weight:500;letter-spacing:0.2px}
+.cine-btn:hover{background:rgba(212,175,55,0.12);border-color:#d4af37;transform:translateY(-1px);box-shadow:0 4px 12px rgba(212,175,55,0.15)}
+.cine-btn-primary{grid-column:1/-1;background:linear-gradient(135deg,#d4af37,#b8941e);color:#0a1929;border-color:#d4af37;font-weight:700}
+.cine-btn-primary:hover{background:linear-gradient(135deg,#e6c043,#c19c2e);box-shadow:0 6px 18px rgba(212,175,55,0.32)}
+
+/* Improved button transitions */
+.flyto-btn,.top-btn,.filter-btn{transition:all .2s ease!important;cursor:pointer}
+.flyto-btn:hover,.filter-btn:hover{transform:translateY(-1px)}
+
+/* Cinematic context overlay (presentation) */
+.cine-context{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(10,25,41,0.85);backdrop-filter:blur(16px);border:1px solid rgba(212,175,55,0.25);border-radius:10px;padding:22px 34px;color:#fff;font-family:'Playfair Display',serif;font-size:22px;text-align:center;z-index:998;display:none;pointer-events:none;box-shadow:0 12px 40px rgba(0,0,0,0.5);min-width:300px;max-width:60vw}
+.cine-context.show{display:block;animation:cineFadeIn .5s ease-out}
+.cine-context .cine-sub{font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;color:#d4af37;margin-top:6px;letter-spacing:0.4px;text-transform:uppercase}
+@keyframes cineFadeIn{from{opacity:0;transform:translate(-50%,-46%) scale(0.96)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+/* Responsive */
+@media(max-width:768px){
+  .panel{width:100%;height:auto;max-height:55vh;top:auto;bottom:0;border-right:none;border-top:1px solid rgba(212,175,55,0.2);border-radius:16px 16px 0 0}
+  .panel.collapsed{transform:translateY(100%)}
+  .panel-toggle{top:-44px;right:50%;transform:translateX(50%);width:64px;height:36px;border-radius:10px 10px 0 0;border:1px solid rgba(212,175,55,0.2);border-bottom:none}
+  .top-bar{top:10px;right:10px}
+  .kci-watermark{bottom:auto;top:8px;left:8px;right:auto;padding:6px 10px}
+  .kci-watermark .kci-logo-text{font-size:14px}
+  .kci-watermark .kci-tagline,.kci-watermark .kci-url{display:none}
+  .cine-context{font-size:16px;padding:14px 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading">
+  <svg class="kci-logo-load" viewBox="0 0 100 100">
+    <defs><linearGradient id="kci-load-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#d4af37"/><stop offset="100%" style="stop-color:#b8941e"/></linearGradient></defs>
+    <circle cx="50" cy="50" r="46" fill="none" stroke="url(#kci-load-grad)" stroke-width="2.5"/>
+    <text x="50" y="42" text-anchor="middle" font-family="Playfair Display,serif" font-size="28" font-weight="700" fill="#d4af37">KCI</text>
+    <text x="50" y="58" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="7" fill="#888" letter-spacing="1.5">GUADELOUPE</text>
+    <line x1="25" y1="65" x2="75" y2="65" stroke="#d4af37" stroke-width="0.5" opacity="0.4"/>
+    <text x="50" y="76" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="5.5" fill="#666">URBANISME 3D</text>
+  </svg>
+  <h2>Initialisation du jumeau numérique</h2>
+  <p class="load-sub">Baie-Mahault — Carte 3D urbanistique premium</p>
+  <div class="load-progress-wrap">
+    <div class="load-bar"><div class="load-bar-fill" id="loadBarFill"></div></div>
+    <div class="load-steps">
+      <span class="load-step" id="ls-terrain">Relief</span>
+      <span class="load-step" id="ls-buildings">Bâti 3D</span>
+      <span class="load-step" id="ls-veg">Végétation</span>
+      <span class="load-step" id="ls-plu">PLU/DVF</span>
+      <span class="load-step" id="ls-ready">Prêt</span>
+    </div>
+  </div>
+</div>
+
+<!-- Map -->
+<div id="map"></div>
+
+<!-- Presentation watermark -->
+<div class="pres-watermark">KARUKERA CONSEIL IMMOBILIER</div>
+
+<!-- KCI Premium watermark (always visible) -->
+<div class="kci-watermark" id="kciWatermark">
+  <span class="kci-logo-text">KCI</span>
+  <span class="kci-tagline">Karukera Conseil Immobilier · Urbanisme 3D</span>
+  <span class="kci-url">karukera-conseil.com</span>
+</div>
+
+<!-- Cinematic context overlay (used during cinematic tours) -->
+<div class="cine-context" id="cineContext"></div>
+
+<!-- Floating mini legend (presentation mode) -->
+<div class="pres-legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#e74c3c"></div>Abandon très probable</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#e67e22"></div>Abandon probable</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#2ecc71"></div>Potentiel développement</div>
+</div>
+
+<!-- Floating stats bar — key metrics for institutional prospects -->
+<div class="stats-bar" id="statsBar">
+  <div class="stats-bar-item"><span class="stats-bar-value" id="sb-abandon">—</span><span class="stats-bar-label">Abandon confirmé</span></div>
+  <div class="stats-bar-sep"></div>
+  <div class="stats-bar-item"><span class="stats-bar-value" style="color:#e67e22" id="sb-taux">—</span><span class="stats-bar-label">Taux vacance DVF</span></div>
+  <div class="stats-bar-sep"></div>
+  <div class="stats-bar-item"><span class="stats-bar-value" style="color:#2ecc71" id="sb-vacant">—</span><span class="stats-bar-label">Foncier mutable</span></div>
+  <div class="stats-bar-sep"></div>
+  <div class="stats-bar-item"><span class="stats-bar-value" style="color:#f59e0b">-2,1%</span><span class="stats-bar-label">Évol. pop. 5 ans</span></div>
+  <div class="stats-bar-sep"></div>
+  <div class="stats-bar-item"><span class="stats-bar-value" style="color:#e74c3c">Zone 5</span><span class="stats-bar-label">Risque sismique</span></div>
+  <div class="stats-bar-sep"></div>
+  <div class="stats-bar-item"><span class="stats-bar-value" style="color:#2ecc71">13,0%</span><span class="stats-bar-label">Taux vacance</span></div>
+</div>
+
+<!-- Search bar -->
+<div class="search-container" id="searchContainer">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Rechercher une adresse à Baie-Mahault (97103)..." autocomplete="off" spellcheck="false">
+    <span class="search-icon">⌕</span>
+  </div>
+  <div class="search-results" id="searchResults"></div>
+</div>
+
+<!-- Top bar buttons -->
+<div class="top-bar">
+  <button class="top-btn" onclick="togglePresentation()" id="presBtn">Présentation</button>
+  <button class="top-btn" onclick="toggleRotation()" id="rotBtn">Rotation</button>
+  <button class="top-btn" onclick="exportPNG()">Export PNG</button>
+  <button class="top-btn" onclick="switchBase('satellite')">Satellite</button>
+  <button class="top-btn" onclick="switchBase('osm')">Plan</button>
+  <button class="top-btn" onclick="switchBase('ign')">IGN</button>
+</div>
+
+<!-- Side panel -->
+<div class="panel collapsed" id="panel">
+  <div class="panel-toggle" onclick="togglePanel()">◀</div>
+
+  <div class="panel-header">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+      <svg width="36" height="36" viewBox="0 0 100 100" style="flex-shrink:0">
+        <defs><linearGradient id="kci-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#d4af37"/><stop offset="100%" style="stop-color:#b8941e"/></linearGradient></defs>
+        <circle cx="50" cy="50" r="46" fill="none" stroke="url(#kci-grad)" stroke-width="3"/>
+        <text x="50" y="40" text-anchor="middle" font-family="serif" font-size="28" font-weight="700" fill="#d4af37">KCI</text>
+        <text x="50" y="58" text-anchor="middle" font-family="sans-serif" font-size="8" fill="#888" letter-spacing="1.5">GUADELOUPE</text>
+        <line x1="25" y1="65" x2="75" y2="65" stroke="#d4af37" stroke-width="0.5" opacity="0.4"/>
+        <text x="50" y="76" text-anchor="middle" font-family="sans-serif" font-size="6" fill="#666">URBANISME 3D</text>
+      </svg>
+      <div>
+        <h1 style="margin:0;font-size:18px">BAIE-MAHAULT 3D</h1>
+        <div class="subtitle" style="margin:0;font-size:10px">Maquette urbanistique interactive</div>
+      </div>
+    </div>
+    <div class="badge">KARUKERA CONSEIL IMMOBILIER</div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-row"><span class="label">Bâtiments analysés</span><span class="value gold" id="s-total">0</span></div>
+    <div class="stat-row"><span class="label">Abandon confirmé (score ≥ 45)</span><span class="value red" id="s-abandoned">0</span></div>
+    <div class="stat-row"><span class="label">Suspects (score 35-44)</span><span class="value" style="color:#e67e22" id="s-suspect">0</span></div>
+    <div class="stat-row"><span class="label">Parcelles vacantes</span><span class="value green" id="s-vacant">0</span></div>
+    <div class="stat-row"><span class="label">Surface commune</span><span class="value">131,92 km²</span></div>
+    <div class="stat-row"><span class="label">Population (2022)</span><span class="value">24 665</span></div>
+    <div class="stat-row"><span class="label">Zone sismique</span><span class="value red">5 (très forte)</span></div>
+    <div class="score-bar">
+      <div id="bar-low" style="background:#27ae60;width:0%"></div>
+      <div id="bar-med" style="background:#f39c12;width:0%"></div>
+      <div id="bar-high" style="background:#e67e22;width:0%"></div>
+      <div id="bar-crit" style="background:#e74c3c;width:0%"></div>
+    </div>
+  </div>
+
+  <!-- Layers: Base -->
+  <div class="section">
+    <div class="section-title">Couches de base</div>
+    <div class="layer-row" onclick="toggleLayer('buildings-3d',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#5fa8d3"></div><span class="layer-name">Bâtiments 3D</span></div>
+      <div class="toggle on" id="tgl-buildings-3d"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('cadastre-wms',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#a78bfa"></div><span class="layer-name">Cadastre IGN</span></div>
+      <div class="toggle on" id="tgl-cadastre-wms"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('ortho-ign',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#34d399"></div><span class="layer-name">Orthophoto IGN</span></div>
+      <div class="toggle" id="tgl-ortho-ign"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('hillshade',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#94a3b8"></div><span class="layer-name">Ombrage relief</span></div>
+      <div class="toggle on" id="tgl-hillshade"></div>
+    </div>
+  </div>
+
+  <!-- Layers: Analysis -->
+  <div class="section">
+    <div class="section-title">Analyse abandon & potentiel</div>
+    <div class="layer-row" onclick="toggleLayer('abandoned-markers',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#e74c3c"></div><span class="layer-name">Bâtiments abandonnés</span></div>
+      <div class="toggle" id="tgl-abandoned-markers"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('vacant-markers',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#2ecc71"></div><span class="layer-name">Parcelles à potentiel</span></div>
+      <div class="toggle" id="tgl-vacant-markers"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('heatmap-abandon',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:linear-gradient(90deg,#f39c12,#e74c3c)"></div><span class="layer-name">Heatmap abandon</span></div>
+      <div class="toggle" id="tgl-heatmap-abandon"></div>
+    </div>
+  </div>
+
+  <!-- Layers: LiDAR & Topo -->
+  <div class="section">
+    <div class="section-title">Topographie LiDAR HD IGN</div>
+    <div class="layer-row" onclick="toggleLayer('lidar-mnt',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#78716c"></div><span class="layer-name">LiDAR MNT (sol nu)</span></div>
+      <div class="toggle" id="tgl-lidar-mnt"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('lidar-mns',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#a8a29e"></div><span class="layer-name">LiDAR MNS (sursol)</span></div>
+      <div class="toggle" id="tgl-lidar-mns"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('lidar-mnh',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#d6d3d1"></div><span class="layer-name">LiDAR MNH (hauteurs)</span></div>
+      <div class="toggle" id="tgl-lidar-mnh"></div>
+    </div>
+  </div>
+
+  <!-- Layers: Vegetation 3D -->
+  <div class="section">
+    <div class="section-title">Végétation 3D</div>
+    <div class="layer-row" onclick="toggleLayer('vegetation-3d',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#2d6a4f"></div><span class="layer-name">Volume canopée (BD TOPO)</span></div>
+      <div class="toggle" id="tgl-vegetation-3d"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('vegetation-flat',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#90c595"></div><span class="layer-name">Zones boisées (à plat)</span></div>
+      <div class="toggle" id="tgl-vegetation-flat"></div>
+    </div>
+    <div class="slider-row">
+      <label>Opacité veg.</label>
+      <input type="range" id="vegOpacitySlider" min="20" max="100" value="70" oninput="setVegetationOpacity(this.value)">
+      <span class="slider-val" id="vegOpacityVal">70%</span>
+    </div>
+    <div class="slider-row">
+      <label>Hauteur ×</label>
+      <input type="range" id="vegHeightSlider" min="50" max="200" value="100" oninput="setVegetationHeightFactor(this.value)">
+      <span class="slider-val" id="vegHeightVal">1.0×</span>
+    </div>
+    <div style="font-size:10px;color:#666;margin-top:6px;line-height:1.4">
+      <span id="vegStats">— ha de couvert · — t CO₂ stocké</span>
+    </div>
+  </div>
+
+  <!-- Layers: Regulatory -->
+  <div class="section">
+    <div class="section-title">Réglementation</div>
+    <div class="layer-row" onclick="toggleLayer('plu-zonage',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#f59e0b"></div><span class="layer-name">PLU Zonage</span></div>
+      <div class="toggle" id="tgl-plu-zonage"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('plu-prescrip',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#fb923c"></div><span class="layer-name">PLU Prescriptions</span></div>
+      <div class="toggle" id="tgl-plu-prescrip"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('zones-risk',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#ef4444"></div><span class="layer-name">Zones de risques (PPR)</span></div>
+      <div class="toggle" id="tgl-zones-risk"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('monuments-h',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#a855f7"></div><span class="layer-name">Monuments historiques</span></div>
+      <div class="toggle" id="tgl-monuments-h"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('archeo-zppa',this)" title="Zones de Présomption de Prescription Archéologique — DRAC Guadeloupe">
+      <div class="layer-info"><div class="layer-dot" style="background:#92400e"></div><span class="layer-name">Archéologie (ZPPA — placeholder DRAC)</span></div>
+      <div class="toggle" id="tgl-archeo-zppa"></div>
+    </div>
+  </div>
+
+  <!-- Layers: PPRN officiel Baie-Mahault (Lizmap DEAL Guadeloupe) -->
+  <div class="section">
+    <div class="section-title">PPRN Baie-Mahault (officiel)</div>
+    <div class="layer-row" onclick="toggleLayer('pprn-inondation',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#3b82f6"></div><span class="layer-name">Zonage inondation</span></div>
+      <div class="toggle" id="tgl-pprn-inondation"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('pprn-mvt',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#a16207"></div><span class="layer-name">Zonage mouvement de terrain</span></div>
+      <div class="toggle" id="tgl-pprn-mvt"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('pprn-cyclonique',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#9333ea"></div><span class="layer-name">Zonage cyclonique / houle</span></div>
+      <div class="toggle" id="tgl-pprn-cyclonique"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('pprn-sismique',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#dc2626"></div><span class="layer-name">Aléa sismique (zone 5)</span></div>
+      <div class="toggle" id="tgl-pprn-sismique"></div>
+    </div>
+    <div style="font-size:9px;color:#555;margin-top:8px;line-height:1.4">
+      Source : <a href="https://pprn971guadeloupe.fr/" style="color:#888" target="_blank" rel="noopener">pprn971guadeloupe.fr</a> · DEAL Guadeloupe
+    </div>
+  </div>
+
+  <!-- Layers: Forêt & défrichement DAAF (KaruGéo WFS → GeoJSON local) -->
+  <div class="section">
+    <div class="section-title">Forêt &amp; défrichement (DAAF)</div>
+    <div class="layer-row" onclick="toggleLayer('defrichement-daaf',this)" title="Zones soumises à autorisation de défrichement — Code forestier Art. L341/L342-1">
+      <div class="layer-info"><div class="layer-dot" style="background:#15803d"></div><span class="layer-name">Défrichement 2024 (KaruGéo)</span></div>
+      <div class="toggle" id="tgl-defrichement-daaf"></div>
+    </div>
+    <div style="font-size:9px;color:#555;margin-top:6px;line-height:1.4">
+      Source : KaruGéo (DEAL/DAAF Guadeloupe) — couche <code>couche_unifiees_defrichement_2024</code>
+    </div>
+  </div>
+
+  <!-- Layers: Context -->
+  <div class="section">
+    <div class="section-title">Contexte & environnement</div>
+    <div class="layer-row" onclick="toggleLayer('poi-layer',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#06b6d4"></div><span class="layer-name">Points d'intérêt</span></div>
+      <div class="toggle" id="tgl-poi-layer"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('roads-main',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#d4af37"></div><span class="layer-name">Axes routiers</span></div>
+      <div class="toggle" id="tgl-roads-main"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('green-spaces',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#22c55e"></div><span class="layer-name">Espaces verts</span></div>
+      <div class="toggle" id="tgl-green-spaces"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('water-areas',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#3b82f6"></div><span class="layer-name">Zones d'eau</span></div>
+      <div class="toggle" id="tgl-water-areas"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('hydro-ign',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#06b6d4"></div><span class="layer-name">Hydrographie IGN</span></div>
+      <div class="toggle" id="tgl-hydro-ign"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('runoff-sim',this)">
+      <div class="layer-info"><div class="layer-dot" style="background:#0ea5e9;border:1px solid #0284c7"></div><span class="layer-name">Écoulement eaux (risque inondation)</span></div>
+      <div class="toggle" id="tgl-runoff-sim"></div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="section">
+    <div class="section-title">Filtres</div>
+    <div class="slider-row">
+      <label>Score abandon ≥</label>
+      <input type="range" id="scoreSlider" min="20" max="50" value="45" oninput="updateScoreFilter(this.value)">
+      <span class="slider-val" id="scoreVal">45</span>
+    </div>
+    <div style="margin-top:8px">
+      <span style="font-size:11px;color:#777">Usage</span>
+      <div class="filter-row" id="usageFilters">
+        <button class="filter-btn active" onclick="setUsageFilter('all',this)">Tous</button>
+        <button class="filter-btn" onclick="setUsageFilter('Résidentiel',this)">Résidentiel</button>
+        <button class="filter-btn" onclick="setUsageFilter('Commercial et services',this)">Commercial</button>
+        <button class="filter-btn" onclick="setUsageFilter('Industriel',this)">Industriel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Camera controls -->
+  <div class="section">
+    <div class="section-title">Caméra & atmosphère</div>
+    <div class="slider-row">
+      <label>Relief ×</label>
+      <input type="range" id="terrainSlider" min="0" max="30" value="13" oninput="setTerrain(this.value/10)">
+      <span class="slider-val" id="terrainVal">1.3</span>
+    </div>
+    <div class="slider-row">
+      <label>Inclinaison</label>
+      <input type="range" id="pitchSlider" min="0" max="85" value="60" oninput="setPitch(this.value)">
+      <span class="slider-val" id="pitchVal">60°</span>
+    </div>
+    <div class="slider-row">
+      <label>Soleil</label>
+      <input type="range" id="sunSlider" min="0" max="360" value="210" oninput="setSun(this.value)">
+      <span class="slider-val" id="sunVal">210°</span>
+    </div>
+    <div style="font-size:10px;color:#666;margin-top:8px;letter-spacing:0.5px;text-transform:uppercase">Heure du jour</div>
+    <div class="tod-grid">
+      <button class="tod-btn tod-aube" data-tod="aube" onclick="applyTimeOfDay('aube',this)" title="Aube — lumière chaude dorée"><span class="tod-dot" style="background:#f5d0a8"></span>Aube</button>
+      <button class="tod-btn tod-midi active" data-tod="midi" onclick="applyTimeOfDay('midi',this)" title="Midi — lumière neutre"><span class="tod-dot" style="background:#88c1e8"></span>Midi</button>
+      <button class="tod-btn tod-golden" data-tod="golden" onclick="applyTimeOfDay('golden',this)" title="Golden hour — coucher de soleil"><span class="tod-dot" style="background:#f0a868"></span>Golden</button>
+      <button class="tod-btn tod-crepu" data-tod="crepu" onclick="applyTimeOfDay('crepu',this)" title="Crépuscule — bleu nuit"><span class="tod-dot" style="background:#785ab4"></span>Crépuscule</button>
+    </div>
+  </div>
+
+  <!-- Cinematic presets (premium demo) -->
+  <div class="section">
+    <div class="section-title">Vues présentation</div>
+    <div class="cine-grid">
+      <button class="cine-btn" onclick="applyCinematicView('overview')" title="Vue d'ensemble panoramique">Vue d'ensemble</button>
+      <button class="cine-btn" onclick="applyCinematicView('centre')" title="Coeur de bourg en plongée">Centre-bourg</button>
+      <button class="cine-btn" onclick="applyCinematicView('cote')" title="Façade littorale en travelling">Façade littorale</button>
+      <button class="cine-btn" onclick="applyCinematicView('vernou')" title="Zone d'extension Vernou">Vernou (extension)</button>
+      <button class="cine-btn cine-btn-primary" onclick="startCinematicTour()" id="cineTourBtn" title="Survol cinématique 60s">Survol cinématique 60s</button>
+    </div>
+  </div>
+
+  <!-- Fly-to -->
+  <div class="section">
+    <div class="section-title">Vues prédéfinies</div>
+    <div class="flyto-grid">
+      <button class="flyto-btn" onclick="flyTo('centreVille')">Centre-Bourg</button>
+      <button class="flyto-btn" onclick="flyTo('montebello')">Montebello</button>
+      <button class="flyto-btn" onclick="flyTo('bovis')">Bovis</button>
+      <button class="flyto-btn" onclick="flyTo('priseEau')">Prise d'Eau</button>
+      <button class="flyto-btn" onclick="flyTo('colinet')">Colinet</button>
+      <button class="flyto-btn" onclick="flyTo('fondCacao')">Fond Cacao</button>
+      <button class="flyto-btn" onclick="flyTo('aerienne')">Vue aérienne</button>
+      <button class="flyto-btn" onclick="flyTo('plan')">Vue 2D</button>
+    </div>
+  </div>
+
+  <!-- Cinematic tours -->
+  <div class="section">
+    <div class="section-title">Visites cinématiques</div>
+    <div class="flyto-grid">
+      <button class="flyto-btn" onclick="startTour('abandon')" style="border-color:rgba(231,76,60,0.3);color:#e74c3c">Tour Abandon</button>
+      <button class="flyto-btn" onclick="startTour('potentiel')" style="border-color:rgba(46,204,113,0.3);color:#2ecc71">Tour Potentiel</button>
+      <button class="flyto-btn" onclick="startTour('complet')" style="border-color:rgba(212,175,55,0.3);color:#d4af37">Visite complète</button>
+      <button class="flyto-btn" onclick="stopTour()" id="stopTourBtn" style="display:none;border-color:rgba(255,255,255,0.2)">Arrêter</button>
+    </div>
+  </div>
+
+  <!-- ─── KCI FISCALITÉ ─── -->
+  <div class="panel-fiscalite" id="panelFiscalite">
+    <h3 class="section-title">
+      <span class="section-icon">€</span>
+      Fiscalité
+      <span class="badge-mairie">MAIRIE</span>
+    </h3>
+
+    <!-- Bloc 1 : Toggles couches fiscales -->
+    <div class="layer-row" onclick="toggleLayer('fiscal-recettes',this)">
+      <div class="layer-info"><span class="layer-name">Recettes par parcelle</span></div>
+      <div class="toggle" id="tgl-fiscal-recettes"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('fiscal-sous-fisc',this)">
+      <div class="layer-info"><span class="layer-name">Sous-fiscalisation (rouge)</span></div>
+      <div class="toggle" id="tgl-fiscal-sous-fisc"></div>
+    </div>
+    <div class="layer-row" onclick="toggleLayer('fiscal-dents-creuses',this)" title="Parcelles non baties en zone U du PLU - candidates a la densification">
+      <div class="layer-info"><span class="layer-name">Dents creuses (potentiel densification)</span></div>
+      <div class="toggle" id="tgl-fiscal-dents-creuses"></div>
+    </div>
+    <small style="display:block;color:rgba(255,255,255,0.5);font-size:10px;line-height:1.35;margin:2px 0 6px 0">
+      Cadastre non bati x zone U PLU (&gt;150 m2). Override mairie possible via<br>
+      <code style="color:#d4af37">data/dents_creuses/{INSEE}_mairie.geojson</code>
+    </small>
+
+    <!-- Bloc 2 : Dashboard agrégé -->
+    <div class="fiscal-dashboard-trigger">
+      <button class="btn-fiscal-primary" onclick="openFiscalDashboard()">
+        Dashboard recettes par zone PLU
+      </button>
+    </div>
+
+    <!-- Bloc 3 : Simulateur requalification -->
+    <div class="fiscal-simulator-trigger">
+      <button class="btn-fiscal-secondary" id="btnSimulator" onclick="enableSimulatorMode()">
+        Simulateur "Et si on requalifiait ?"
+      </button>
+      <p class="help-text">Cliquez sur une dent creuse après activation</p>
+    </div>
+
+    <!-- Bloc 4 : Export DOB -->
+    <div class="fiscal-export-trigger">
+      <button class="btn-fiscal-export" onclick="openExportDOB()">
+        Export PDF "Pré-budget DOB"
+      </button>
+      <select id="quartierSelect">
+        <option value="all">Tous les quartiers</option>
+        <option value="bovis">Bovis</option>
+        <option value="centre">Centre-bourg</option>
+        <option value="vernou">Vernou</option>
+      </select>
+    </div>
+
+    <!-- Bloc 5 : Source / disclaimer -->
+    <div class="fiscal-sources">
+      <small>
+        Sources : DGFIP open data (DVF, comptes commune), KaruGéo, IGN.
+        Données mairie : à transmettre via interface admin.
+      </small>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="section">
+    <div class="section-title">Légende</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#c0392b"></div>Score ≥ 45 — Abandon confirmé (haute confiance)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#e67e22"></div>Score 35-44 — Suspect (confiance moyenne)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f39c12"></div>Score 25-34 — À surveiller</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#27ae60"></div>Score < 25 — Actif / occupé</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2ecc71;border:2px solid #27ae60"></div>Parcelle vacante — Potentiel</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#5fa8d3"></div>Bâtiment 3D (hauteur réelle)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#1b4332"></div>Forêt (>10 000 m², 18 m)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#2d6a4f"></div>Massif arboré (2-10k m², 12 m)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#52a85c"></div>Bois (200-2k m², 8 m)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#90c595"></div>Haie / bouquet (4 m)</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="panel-footer">
+    Sources : BD TOPO IGN (bâti, végétation) • DVF Cerema • Cadastre IGN • OpenFreeMap (OSM)<br>
+    OpenStreetMap POI / Overpass • IGN WMS/WMTS/WFS • AWS Terrarium DEM • LiDAR HD IGN<br>
+    PPRN officiel <a href="https://pprn971guadeloupe.fr/" style="color:#666" target="_blank" rel="noopener">pprn971guadeloupe.fr</a> (DEAL Guadeloupe)<br>
+    Défrichement DAAF — KaruGéo (datacarto.karugeo.fr) · Monuments Mérimée<br>
+    Commune de Baie-Mahault — 97103 — EPCI : CAPEX (Communaute d'agglomeration Cap Excellence) — Maire : Michel Mado<br>
+    © 2026 Karukera Conseil Immobilier — Topo3D Antilles<br>
+    Contact : <a href="mailto:contact@karukera-conseil.com" style="color:#888">contact@karukera-conseil.com</a>
+  </div>
+</div>
+
+<!-- ─── KCI FISCALITÉ : banner simulateur ─── -->
+<div class="sim-banner" id="simBanner">
+  <span class="sim-label">
+    <span class="sim-dot"></span>
+    Mode Simulateur activé — cliquez sur une parcelle non-bâtie en zone U
+  </span>
+  <button onclick="disableSimulatorMode()">Désactiver</button>
+</div>
+
+<!-- ─── KCI FISCALITÉ : modal Dashboard ─── -->
+<div class="fiscal-modal-backdrop" id="fiscalDashboardModal" onclick="if(event.target===this)closeFiscalDashboard()">
+  <div class="fiscal-modal" role="dialog" aria-labelledby="fiscalDashboardTitle">
+    <div class="fiscal-modal-header">
+      <h2 id="fiscalDashboardTitle">Recettes fiscales par zone PLU — Baie-Mahault 2024</h2>
+      <button class="fiscal-modal-close" onclick="closeFiscalDashboard()" aria-label="Fermer">×</button>
+    </div>
+    <div class="fiscal-modal-body" id="fiscalDashboardBody">
+      <div class="fiscal-chart-wrap">
+        <canvas id="fiscalChart"></canvas>
+      </div>
+      <table class="fiscal-table" id="fiscalTable">
+        <thead>
+          <tr><th>Zone PLU</th><th>Parcelles</th><th>TFB + TFNB estimé</th><th>CFE estimée</th><th>Potentiel densif.</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="fiscal-modal-note" id="fiscalDashboardNote">
+        Estimations DGFIP open data (DVF + comptes communaux DGCL + taux fiscaux).
+        Pour des chiffres exacts à la parcelle, transmettre le dataset interne via l'interface admin.
+      </div>
+    </div>
+    <div class="fiscal-modal-footer">
+      <button onclick="closeFiscalDashboard()">Fermer</button>
+      <button class="primary" onclick="exportDashboardPDF()">Export ce dashboard en PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── KCI FISCALITÉ : modal Export DOB ─── -->
+<div class="fiscal-modal-backdrop" id="fiscalExportModal" onclick="if(event.target===this)closeExportDOB()">
+  <div class="fiscal-modal" style="max-width:620px" role="dialog" aria-labelledby="fiscalExportTitle">
+    <div class="fiscal-modal-header">
+      <h2 id="fiscalExportTitle">Export PDF — Pré-budget DOB</h2>
+      <button class="fiscal-modal-close" onclick="closeExportDOB()" aria-label="Fermer">×</button>
+    </div>
+    <div class="fiscal-modal-body">
+      <p style="color:#bbb;font-size:12px;line-height:1.6">
+        Génération d'un document PDF de Pré-budget DOB (Débat d'Orientations Budgétaires)
+        pour le quartier sélectionné. Sources : DGFIP open data + données KCI Topo3D.
+      </p>
+
+      <label style="display:block;margin-top:14px;font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.5px">Quartier</label>
+      <select id="quartierSelectModal" style="width:100%;margin-top:6px;padding:8px;background:rgba(255,255,255,0.05);border:1px solid rgba(212,175,55,0.3);color:#fff;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;border-radius:3px">
+        <option value="all">Tous les quartiers</option>
+        <option value="bovis">Bovis</option>
+        <option value="centre">Centre-bourg</option>
+        <option value="vernou">Vernou</option>
+      </select>
+
+      <div class="dob-preview">
+        <h5>Aperçu (4 pages)</h5>
+        <ol class="dob-page-list">
+          <li>Page 1 — Synthèse executive : recettes 2023, projections, alertes</li>
+          <li>Page 2 — Cartographie zones PLU et points de sous-fiscalisation</li>
+          <li>Page 3 — Tableaux détaillés TFB / TFNB / CFE par zone</li>
+          <li>Page 4 — Préconisations et leviers (densification, requalification)</li>
+        </ol>
+      </div>
+
+      <div class="fiscal-loader" id="dobLoader">
+        <div class="fiscal-spinner"></div>
+        <span>Génération du PDF en cours…</span>
+      </div>
+    </div>
+    <div class="fiscal-modal-footer">
+      <button onclick="closeExportDOB()">Annuler</button>
+      <button class="primary" id="btnGenerateDOB" onclick="generateDOBPDF()">Générer PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── KCI FISCALITÉ : modal Simulateur Scénarios ─── -->
+<div class="fiscal-modal-backdrop" id="fiscalSimModal" onclick="if(event.target===this)closeSimulatorScenarios()">
+  <div class="fiscal-modal" style="max-width:780px" role="dialog" aria-labelledby="fiscalSimTitle">
+    <div class="fiscal-modal-header">
+      <h2 id="fiscalSimTitle">Simulateur de requalification — Scénarios</h2>
+      <button class="fiscal-modal-close" onclick="closeSimulatorScenarios()" aria-label="Fermer">×</button>
+    </div>
+    <div class="fiscal-modal-body" id="fiscalSimBody">
+      <p id="simContextLine" style="color:#bbb;font-size:12px;margin-bottom:14px"></p>
+      <div class="sim-scenarios" id="simScenarios"></div>
+      <div class="fiscal-modal-note">
+        Estimations indicatives basées sur la valeur locative cadastrale moyenne
+        de la section + taux communaux 2023. À affiner avec dataset interne mairie.
+      </div>
+    </div>
+    <div class="fiscal-modal-footer">
+      <button onclick="closeSimulatorScenarios()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CARTE 3D PETIT-BOURG — MAQUETTE URBANISTIQUE
+// ═══════════════════════════════════════════════════════
+
+// ─── CONFIG ───
+const PAP_CENTER = [-61.585, 16.28];
+const PAP_BBOX = [16.14, -61.66, 16.24, -61.54]; // S,W,N,E
+
+// ─── VIEWS ───
+const VIEWS = {
+  centreVille: { center: [-61.585, 16.28], zoom: 16, pitch: 65, bearing: -20 },
+  montebello:  { center: [-61.596, 16.285], zoom: 16, pitch: 60, bearing: -45 },
+  bovis:       { center: [-61.58, 16.275], zoom: 16, pitch: 60, bearing: 10 },
+  priseEau:    { center: [-61.573, 16.29], zoom: 16, pitch: 55, bearing: 30 },
+  colinet:     { center: [-61.59, 16.27], zoom: 16, pitch: 60, bearing: -15 },
+  fondCacao:   { center: [-61.615, 16.26], zoom: 15, pitch: 55, bearing: -40 },
+  aerienne:    { center: [-61.5900, 16.1900], zoom: 13.5, pitch: 72, bearing: -30 },
+  plan:        { center: [-61.5900, 16.1900], zoom: 14, pitch: 0, bearing: 0 }
+};
+
+// ─── STATE ───
+let buildingData = null;
+let rotating = false;
+let rotAnim = null;
+let presentationMode = false;
+let currentUsageFilter = 'all';
+let currentScoreThreshold = 45; // High confidence threshold by default
+
+// ─── STYLES ───
+function makeStyle(baseTiles, attribution) {
+  return {
+    version: 8,
+    glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    sources: {
+      'base-tiles': { type: 'raster', tiles: baseTiles, tileSize: 256, attribution: attribution || '' }
+    },
+    layers: [{ id: 'base', type: 'raster', source: 'base-tiles' }]
+  };
+}
+
+const STYLES = {
+  satellite: makeStyle(['https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg&STYLE=normal'], '© IGN Ortho'),
+  osm: makeStyle(['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], '© OSM'),
+  ign: makeStyle(['https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png&STYLE=normal'], '© IGN')
+};
+
+// ─── MAP ───
+const map = new maplibregl.Map({
+  container: 'map',
+  style: STYLES.satellite,
+  center: [-61.585, 16.28], // Start wide over commune
+  zoom: 10,
+  pitch: 40,
+  bearing: 0,
+  maxPitch: 85,
+  antialias: true,
+  preserveDrawingBuffer: true // for PNG export
+});
+
+map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }));
+map.addControl(new maplibregl.ScaleControl({ maxWidth: 150 }), 'bottom-right');
+map.addControl(new maplibregl.FullscreenControl());
+
+// ─── LAYER STATE ───
+const layerState = {};
+
+// ─── MAP LOAD ───
+let isFirstLoad = true;
+
+map.on('style.load', async () => {
+  // Add terrain source + terrain AFTER style load
+  if (!map.getSource('terrarium')) {
+    map.addSource('terrarium', {
+      type: 'raster-dem',
+      tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+      encoding: 'terrarium',
+      tileSize: 256,
+      maxzoom: 15
+    });
+  }
+  map.setTerrain({ source: 'terrarium', exaggeration: parseFloat(document.getElementById('terrainSlider').value) / 10 });
+
+  addSky();
+  addAllLayers();
+  await loadBuildingData();
+  addBuildingDataLayers();
+  loadPOIs();
+
+  // Restore vacant parcel polygons if they were active
+  if (layerState['vacant-markers'] && !map.getSource('vacant-parcels-poly')) {
+    loadVacantParcels();
+  }
+
+  // Re-apply abandoned dimming if active
+  if (layerState['abandoned-markers'] && map.getLayer('buildings-3d')) {
+    map.setPaintProperty('buildings-3d', 'fill-extrusion-opacity', 0.35);
+    map.setPaintProperty('buildings-3d', 'fill-extrusion-color',
+      ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+        0, '#4a5568', 8, '#374151', 15, '#2d3748', 30, '#1a202c', 50, '#171923'
+      ]);
+  }
+
+  // First load: opening animation
+  if (isFirstLoad) {
+    isFirstLoad = false;
+
+    // Progress bar loading steps
+    updateLoadProgress('terrain', 25);
+    setTimeout(() => updateLoadProgress('buildings', 50), 400);
+    setTimeout(() => updateLoadProgress('veg', 70), 800);
+    setTimeout(() => updateLoadProgress('plu', 88), 1100);
+    setTimeout(() => updateLoadProgress('ready', 100), 1400);
+
+    setTimeout(() => {
+      map.flyTo({ center: PAP_CENTER, zoom: 14.5, pitch: 60, bearing: -30, duration: 5000, essential: true });
+    }, 800);
+    setTimeout(() => {
+      document.getElementById('loading').classList.add('done');
+    }, 1700);
+    // Open panel after fly-to lands
+    setTimeout(() => {
+      const panel = document.getElementById('panel');
+      if (panel.classList.contains('collapsed')) togglePanel();
+    }, 6000);
+    setTimeout(() => animateStats(), 6500);
+
+    // Démarre l'animation eau (effet vague subtile)
+    startWaterAnimation();
+  }
+});
+
+// ─── LOADING PROGRESS HELPER ───
+function updateLoadProgress(stepId, pct) {
+  const bar = document.getElementById('loadBarFill');
+  if (bar) bar.style.width = pct + '%';
+  const steps = ['terrain', 'buildings', 'veg', 'plu', 'ready'];
+  const targetIdx = steps.indexOf(stepId);
+  steps.forEach((s, i) => {
+    const el = document.getElementById('ls-' + s);
+    if (!el) return;
+    el.classList.remove('active', 'done');
+    if (i < targetIdx) el.classList.add('done');
+    else if (i === targetIdx) el.classList.add('active');
+  });
+}
+
+// Fallback: remove loading overlay after 8s no matter what
+setTimeout(() => {
+  const el = document.getElementById('loading');
+  if (el && !el.classList.contains('done')) el.classList.add('done');
+}, 8000);
+
+// ─── SKY ATMOSPHÉRIQUE PREMIUM ───
+// MapLibre 4.x : essai map.setSky() (4.7+), fallback layer 'sky' (MapLibre 4.4+),
+// fallback ultime : background layer doux.
+function addSky() {
+  // Couleurs midi par défaut (Antilles, lumière neutre)
+  applyTimeOfDayInternal('midi');
+
+  // Background layer toujours présent en fallback (visible seulement si sky échoue)
+  if (!map.getLayer('sky-bg')) {
+    map.addLayer({
+      id: 'sky-bg', type: 'background',
+      paint: { 'background-color': '#88c1e8', 'background-opacity': 0.0 }
+    });
+  }
+
+  // Tentative ajout sky natif MapLibre (style sky layer)
+  try {
+    if (!map.getLayer('sky-atmo') && typeof map.addLayer === 'function') {
+      map.addLayer({
+        id: 'sky-atmo',
+        type: 'sky',
+        paint: {
+          'sky-type': 'atmosphere',
+          'sky-atmosphere-sun': [180, 70],
+          'sky-atmosphere-sun-intensity': 12,
+          'sky-atmosphere-color': '#88c1e8',
+          'sky-atmosphere-halo-color': '#fce5ce'
+        }
+      });
+    }
+  } catch (e) {
+    // Type 'sky' non supporté, le background suffira
+    console.info('[KCI viz] sky layer non supporté, fallback gradient');
+  }
+}
+
+// ─── HEURE DU JOUR : presets atmosphère ───
+const TOD_PRESETS = {
+  aube:   { sun: 80,  sky: '#f5d0a8', halo: '#fce5d4', bg: '#fce5d4', shadow: '#3d2c1a', hsExag: 0.85, sunIntensity: 8 },
+  midi:   { sun: 180, sky: '#88c1e8', halo: '#cfe6f5', bg: '#bcdef5', shadow: '#000000', hsExag: 0.55, sunIntensity: 14 },
+  golden: { sun: 290, sky: '#f0a868', halo: '#fcdcb0', bg: '#ffd9b0', shadow: '#3a1f0a', hsExag: 0.75, sunIntensity: 10 },
+  crepu:  { sun: 320, sky: '#5a4a8a', halo: '#a866a0', bg: '#3a2a6a', shadow: '#0a0420', hsExag: 0.9,  sunIntensity: 5  }
+};
+
+function applyTimeOfDayInternal(key) {
+  const t = TOD_PRESETS[key];
+  if (!t) return;
+
+  // 1. Sun direction sur hillshade
+  if (map.getLayer('hillshade')) {
+    map.setPaintProperty('hillshade', 'hillshade-illumination-direction', t.sun);
+    map.setPaintProperty('hillshade', 'hillshade-exaggeration', t.hsExag);
+    map.setPaintProperty('hillshade', 'hillshade-shadow-color', t.shadow);
+  }
+
+  // 2. Sky atmosphere si supporté
+  if (map.getLayer('sky-atmo')) {
+    try {
+      map.setPaintProperty('sky-atmo', 'sky-atmosphere-color', t.sky);
+      map.setPaintProperty('sky-atmo', 'sky-atmosphere-halo-color', t.halo);
+      map.setPaintProperty('sky-atmo', 'sky-atmosphere-sun-intensity', t.sunIntensity);
+    } catch (e) { /* old version */ }
+  }
+
+  // 3. Background fallback (toujours appliqué pour cohérence)
+  if (map.getLayer('sky-bg')) {
+    map.setPaintProperty('sky-bg', 'background-color', t.bg);
+    // Affiche la couleur de fond uniquement si sky-atmo absent
+    map.setPaintProperty('sky-bg', 'background-opacity',
+      map.getLayer('sky-atmo') ? 0.0 : 0.35);
+  }
+
+  // 4. Update sun slider UI
+  const sunSlider = document.getElementById('sunSlider');
+  const sunVal = document.getElementById('sunVal');
+  if (sunSlider) sunSlider.value = t.sun;
+  if (sunVal) sunVal.textContent = t.sun + '°';
+}
+
+window.applyTimeOfDay = function (key, btnEl) {
+  applyTimeOfDayInternal(key);
+  document.querySelectorAll('.tod-btn').forEach(b => b.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+};
+
+// ─── CINEMATIC PRESETS — vues présentation premium ───
+// Coordonnees calibrees sur Baie-Mahault
+const CINEMATIC_PRESETS = {
+  overview: {
+    label: 'Vue d\'ensemble',
+    sub: 'Baie-Mahault',
+    view: { center: [-61.585, 16.28], zoom: 12.5, pitch: 55, bearing: 25 },
+    duration: 3500,
+    tod: 'midi'
+  },
+  centre: {
+    label: 'Centre-bourg',
+    sub: 'Coeur historique — Zone UA',
+    view: { center: [-61.585, 16.28], zoom: 16.2, pitch: 65, bearing: -20 },
+    duration: 3500,
+    tod: 'golden'
+  },
+  cote: {
+    label: 'Facade littorale',
+    sub: 'Front de mer — secteur Est',
+    view: { center: [-61.564, 16.28], zoom: 15.0, pitch: 72, bearing: -45 },
+    duration: 3500,
+    tod: 'golden'
+  },
+  vernou: {
+    label: 'Interieur — zone d\'extension',
+    sub: 'Foncier mutable — secteur intra-terres',
+    view: { center: [-61.606, 16.28], zoom: 14.5, pitch: 60, bearing: 90 },
+    duration: 3500,
+    tod: 'midi'
+  }
+};
+
+window.applyCinematicView = function (key) {
+  const p = CINEMATIC_PRESETS[key];
+  if (!p) return;
+  // Optionnel : changer time-of-day si défini
+  if (p.tod) applyTimeOfDayInternal(p.tod);
+  map.flyTo({
+    ...p.view,
+    duration: p.duration,
+    essential: true,
+    curve: 1.6,
+    speed: 0.9
+  });
+  // Sync pitch slider
+  if (p.view.pitch !== undefined) {
+    const ps = document.getElementById('pitchSlider');
+    const pv = document.getElementById('pitchVal');
+    if (ps) ps.value = p.view.pitch;
+    if (pv) pv.textContent = p.view.pitch + '°';
+  }
+  showCineContext(p.label, p.sub);
+  setTimeout(hideCineContext, 2400);
+};
+
+function showCineContext(title, sub) {
+  const el = document.getElementById('cineContext');
+  if (!el) return;
+  el.innerHTML = title + (sub ? '<div class="cine-sub">' + sub + '</div>' : '');
+  el.classList.add('show');
+}
+function hideCineContext() {
+  const el = document.getElementById('cineContext');
+  if (el) el.classList.remove('show');
+}
+
+// ─── CINEMATIC TOUR : enchaîne 4 presets sur ~60s ───
+let _cineTourRunning = false;
+let _cineTourTimers = [];
+window.startCinematicTour = function () {
+  if (_cineTourRunning) {
+    stopCinematicTour();
+    return;
+  }
+  _cineTourRunning = true;
+  const btn = document.getElementById('cineTourBtn');
+  if (btn) btn.textContent = 'Arrêter la visite';
+
+  const sequence = [
+    { key: 'overview', stay: 12000 },
+    { key: 'centre',   stay: 12000 },
+    { key: 'cote',     stay: 12000 },
+    { key: 'vernou',   stay: 12000 },
+    { key: 'overview', stay: 8000  }
+  ];
+
+  // Auto-rotation pendant la visite (légère, non-intrusive)
+  if (typeof toggleRotation === 'function' && !rotating) toggleRotation();
+
+  let cumulative = 0;
+  sequence.forEach((step, i) => {
+    const t = setTimeout(() => {
+      if (!_cineTourRunning) return;
+      applyCinematicView(step.key);
+    }, cumulative);
+    _cineTourTimers.push(t);
+    cumulative += step.stay;
+  });
+
+  // Fin de tour
+  const endT = setTimeout(() => {
+    stopCinematicTour();
+  }, cumulative + 1500);
+  _cineTourTimers.push(endT);
+};
+
+window.stopCinematicTour = function () {
+  _cineTourRunning = false;
+  _cineTourTimers.forEach(clearTimeout);
+  _cineTourTimers = [];
+  if (typeof toggleRotation === 'function' && rotating) toggleRotation();
+  hideCineContext();
+  const btn = document.getElementById('cineTourBtn');
+  if (btn) btn.textContent = 'Survol cinématique 60s';
+};
+
+// ─── EAU DYNAMIQUE : animation cyclique opacité (effet vague) ───
+let _waterAnimT = 0;
+let _waterAnimRunning = false;
+function animateWater() {
+  if (!_waterAnimRunning) return;
+  _waterAnimT += 0.012;
+  // Variation douce 0.45 → 0.62 (effet vague subtile)
+  const opa = 0.55 + 0.07 * Math.sin(_waterAnimT);
+  if (map.getLayer('water-areas') && map.getLayoutProperty('water-areas', 'visibility') === 'visible') {
+    try { map.setPaintProperty('water-areas', 'fill-opacity', opa); } catch (e) {}
+  }
+  requestAnimationFrame(animateWater);
+}
+function startWaterAnimation() {
+  if (_waterAnimRunning) return;
+  _waterAnimRunning = true;
+  requestAnimationFrame(animateWater);
+}
+function stopWaterAnimation() {
+  _waterAnimRunning = false;
+}
+
+// ─── ALL LAYERS ───
+function addAllLayers() {
+  // 3D Buildings — OpenFreeMap (palette créole : sable / terre cuite / ardoise)
+  if (map.getSource('buildings-src')) return; // already added
+  map.addSource('buildings-src', { type: 'vector', url: 'https://tiles.openfreemap.org/planet' });
+
+  // Paint premium — vertical-gradient pour effet de relief sur les façades.
+  // L'ambient-occlusion n'est PAS supporté en MapLibre 4.1.2 et fait silently
+  // échouer addLayer — on l'omet jusqu'à upgrade vers 4.5+.
+  // Bâtiments publics : hauteur x1.10 pour effet d'importance (subtil).
+  const heightExpr = [
+    'case',
+    ['in', ['coalesce', ['get', 'class'], ''], ['literal', BUILDING_PUBLIC_CLASSES]],
+    ['*', 1.10, ['coalesce', ['get', 'render_height'], ['get', 'height'], 6]],
+    ['coalesce', ['get', 'render_height'], ['get', 'height'], 6]
+  ];
+  const buildingPaint = {
+    'fill-extrusion-color': BUILDING_COLOR_DEFAULT,
+    'fill-extrusion-height': heightExpr,
+    'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0],
+    'fill-extrusion-opacity': 0.92,
+    'fill-extrusion-vertical-gradient': true
+  };
+  // Détection version MapLibre — active AO seulement si supporté
+  try {
+    const ml = (typeof maplibregl !== 'undefined' && maplibregl.version) ? maplibregl.version : '0.0.0';
+    const major = parseInt(ml.split('.')[0], 10) || 0;
+    const minor = parseInt(ml.split('.')[1], 10) || 0;
+    if (major > 4 || (major === 4 && minor >= 5)) {
+      buildingPaint['fill-extrusion-ambient-occlusion-intensity'] = 0.45;
+      buildingPaint['fill-extrusion-ambient-occlusion-radius'] = 5;
+    }
+  } catch (e) { /* silent */ }
+
+  map.addLayer({
+    id: 'buildings-3d', type: 'fill-extrusion', source: 'buildings-src', 'source-layer': 'building', minzoom: 13,
+    paint: buildingPaint
+  });
+  layerState['buildings-3d'] = true;
+
+  // ─── Toits terre cuite (overlay au sommet des bâtiments) ───
+  // Couche additionnelle qui dessine un cap terre cuite (1.5 m) sur chaque
+  // bâtiment pour donner un toit visible depuis le haut. N'apparaît qu'en
+  // pitch > 40° (sinon cache les façades). Géré dans un handler 'pitch'.
+  map.addLayer({
+    id: 'buildings-roofs',
+    type: 'fill-extrusion',
+    source: 'buildings-src',
+    'source-layer': 'building',
+    minzoom: 14,
+    paint: {
+      'fill-extrusion-color': [
+        'case',
+        ['in', ['coalesce', ['get', 'class'], ''], ['literal', BUILDING_PUBLIC_CLASSES]],
+        '#c98a5d',  // toit légèrement plus clair pour bâtiments publics
+        '#a64f2c'   // terre cuite standard créole
+      ],
+      'fill-extrusion-base': heightExpr,
+      'fill-extrusion-height': ['+', heightExpr, 1.5],
+      'fill-extrusion-opacity': 0.85,
+      'fill-extrusion-vertical-gradient': false
+    },
+    layout: { visibility: 'none' } // activé dynamiquement selon pitch
+  });
+  layerState['buildings-roofs'] = false;
+
+  // Toggle automatique des toits selon le pitch caméra
+  const updateRoofsVisibility = () => {
+    if (!map.getLayer('buildings-roofs')) return;
+    if (!layerState['buildings-3d']) {
+      map.setLayoutProperty('buildings-roofs', 'visibility', 'none');
+      return;
+    }
+    const show = map.getPitch() > 40;
+    map.setLayoutProperty('buildings-roofs', 'visibility', show ? 'visible' : 'none');
+  };
+  map.on('pitch', updateRoofsVisibility);
+  // Init après ajout
+  setTimeout(updateRoofsVisibility, 200);
+  // Expose pour usage par toggleLayer (synchro buildings-3d → buildings-roofs)
+  window._kciUpdateRoofs = updateRoofsVisibility;
+
+  // Roads from OpenFreeMap
+  map.addLayer({
+    id: 'roads-main', type: 'line', source: 'buildings-src', 'source-layer': 'transportation', minzoom: 12,
+    filter: ['in', 'class', 'primary', 'secondary', 'tertiary'],
+    paint: {
+      'line-color': '#d4af37', 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 16, 2.5], 'line-opacity': 0.5
+    },
+    layout: { visibility: 'none' }
+  });
+  layerState['roads-main'] = false;
+
+  // Green spaces from OpenFreeMap
+  map.addLayer({
+    id: 'green-spaces', type: 'fill', source: 'buildings-src', 'source-layer': 'landuse', minzoom: 12,
+    filter: ['in', 'class', 'park', 'forest', 'grass', 'cemetery', 'garden'],
+    paint: { 'fill-color': '#22c55e', 'fill-opacity': 0.2 },
+    layout: { visibility: 'none' }
+  });
+  layerState['green-spaces'] = false;
+
+  // Water from OpenFreeMap — turquoise caraïbes
+  map.addLayer({
+    id: 'water-areas', type: 'fill', source: 'buildings-src', 'source-layer': 'water', minzoom: 10,
+    paint: {
+      'fill-color': [
+        'interpolate', ['linear'], ['zoom'],
+        10, '#4ba0b8',  // turquoise sombre vue large
+        13, '#5cb6cf',  // turquoise standard
+        16, '#7cc9dd'   // turquoise clair en zoom
+      ],
+      'fill-opacity': 0.6,
+      'fill-outline-color': '#2c7d96'
+    },
+    layout: { visibility: 'none' }
+  });
+  layerState['water-areas'] = false;
+
+  // ─── IGN WMS Layers ───
+  const wmsLayers = [
+    { id: 'cadastre-wms', url: 'https://data.geopf.fr/wms-r/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=CADASTRALPARCELS.PARCELLAIRE_EXPRESS&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&STYLES=', opacity: 0.55, vis: 'visible' },
+    { id: 'ortho-ign', url: 'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=ORTHOIMAGERY.ORTHOPHOTOS&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/jpeg&STYLE=normal', opacity: 0.85, vis: 'none', maxzoom: 19 },
+    { id: 'hillshade', url: 'HILLSHADE', opacity: 0.5, vis: 'visible' },
+    { id: 'zones-risk', url: 'https://data.geopf.fr/wms-r/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=GEOGRAPHICALGRIDSYSTEMS.1702_PPR&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&STYLES=', opacity: 0.5, vis: 'none' },
+    { id: 'plu-zonage', url: 'https://data.geopf.fr/wms-v/ows?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=zone_urba&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&STYLES=', opacity: 0.5, vis: 'none' },
+    { id: 'plu-prescrip', url: 'https://data.geopf.fr/wms-v/ows?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=prescription_surf&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&STYLES=', opacity: 0.45, vis: 'none' },
+    { id: 'monuments-h', url: 'https://data.geopf.fr/wms-r/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=PROTECTEDSITES.MNHN.MONUMENTS_HISTORIQUES.PERIMETRES&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&STYLES=', opacity: 0.45, vis: 'none' }
+  ];
+
+  wmsLayers.forEach(l => {
+    if (l.id === 'hillshade') {
+      if (!map.getSource('hs-src')) {
+        map.addSource('hs-src', { type: 'raster-dem', tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'], encoding: 'terrarium', tileSize: 256 });
+        // Hillshade renforcé pour zone de Baie-Mahault
+        // - exagération 0.7 (0.55 par défaut TOD midi mais on met 0.7 pour relief plus visible)
+        // - shadow color #1a2030 (bleu nuit doux, pas pur noir, plus naturel)
+        // - highlight color #fff5e0 (chaud type soleil tropical)
+        const hsPaint = {
+          'hillshade-shadow-color': '#1a2030',
+          'hillshade-highlight-color': '#fff5e0',
+          'hillshade-accent-color': '#3d4a5e',
+          'hillshade-illumination-direction': 210,
+          'hillshade-exaggeration': 0.7
+        };
+        map.addLayer({ id: 'hillshade', type: 'hillshade', source: 'hs-src', paint: hsPaint, layout: { visibility: l.vis } });
+      }
+    } else {
+      map.addSource(l.id + '-src', { type: 'raster', tiles: [l.url], tileSize: 256, maxzoom: l.maxzoom || 18 });
+      map.addLayer({ id: l.id, type: 'raster', source: l.id + '-src', paint: { 'raster-opacity': l.opacity }, layout: { visibility: l.vis } });
+    }
+    layerState[l.id] = l.vis === 'visible';
+  });
+
+  // ─── LiDAR HD IGN ───
+  const lidarLayers = [
+    { id: 'lidar-mnt', layer: 'IGNF_LIDAR-HD_MNT_ELEVATION.ELEVATIONGRIDCOVERAGE.SHADOW', opacity: 0.65 },
+    { id: 'lidar-mns', layer: 'IGNF_LIDAR-HD_MNS_ELEVATION.ELEVATIONGRIDCOVERAGE.SHADOW', opacity: 0.6 },
+    { id: 'lidar-mnh', layer: 'IGNF_LIDAR-HD_MNH_ELEVATION.ELEVATIONGRIDCOVERAGE.SHADOW', opacity: 0.55 }
+  ];
+  lidarLayers.forEach(l => {
+    if (!map.getSource(l.id + '-src')) {
+      map.addSource(l.id + '-src', {
+        type: 'raster',
+        tiles: [`https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=${l.layer}&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}&FORMAT=image/png&STYLE=normal`],
+        tileSize: 256, minzoom: 10, maxzoom: 18
+      });
+      map.addLayer({ id: l.id, type: 'raster', source: l.id + '-src', paint: { 'raster-opacity': l.opacity }, layout: { visibility: 'none' } });
+    }
+    layerState[l.id] = false;
+  });
+
+  // ─── Hydrographie IGN ───
+  if (!map.getSource('hydro-ign-src')) {
+    map.addSource('hydro-ign-src', {
+      type: 'raster',
+      tiles: ['https://data.geopf.fr/wms-r/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=HYDROGRAPHY.HYDROGRAPHY&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&STYLES='],
+      tileSize: 256
+    });
+    map.addLayer({ id: 'hydro-ign', type: 'raster', source: 'hydro-ign-src', paint: { 'raster-opacity': 0.6 }, layout: { visibility: 'none' } });
+    layerState['hydro-ign'] = false;
+  }
+
+  // ─── Runoff / Écoulement eaux pluviales (simulation visuelle via zones basses + hydro) ───
+  if (!map.getSource('runoff-sim-src')) {
+    // Use IGN PPR inondation layer as proxy for flood risk / water runoff
+    map.addSource('runoff-sim-src', {
+      type: 'raster',
+      tiles: ['https://data.geopf.fr/wms-r/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=GEOGRAPHICALGRIDSYSTEMS.1702_PPR&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&STYLES='],
+      tileSize: 256
+    });
+    map.addLayer({ id: 'runoff-sim', type: 'raster', source: 'runoff-sim-src', paint: { 'raster-opacity': 0.55 }, layout: { visibility: 'none' } });
+    layerState['runoff-sim'] = false;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // ─── COUCHES SIG OFFICIELLES (merge agent 1 — 17/04/2026) :
+  //     PPRN Lizmap (4 sous-couches), Defrichement DAAF, Hydro fluo overlay,
+  //     Archeo placeholder.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  // ─── PPRN Lizmap Baie-Mahault (https://pprn971guadeloupe.fr) ───
+  // Endpoint Lizmap WMS : 4 sous-couches officielles identifiees par GetCapabilities
+  const PPRN_BASE = 'https://pprn971guadeloupe.fr/index.php/lizmap/service?repository=pprn971&project=PETITBOURG';
+  const pprnLayers = [
+    { id: 'pprn-inondation',  layerName: 'zonage_i',          opacity: 0.55 },
+    { id: 'pprn-mvt',         layerName: 'zonage_mvt',        opacity: 0.55 },
+    { id: 'pprn-cyclonique',  layerName: 'zonage_c',          opacity: 0.55 },
+    { id: 'pprn-sismique',    layerName: 'l_sismique_97103',  opacity: 0.45 }
+  ];
+  pprnLayers.forEach(p => {
+    if (map.getSource(p.id + '-src')) return;
+    const url = `${PPRN_BASE}&SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=${p.layerName}&CRS=EPSG:3857&BBOX={bbox-epsg-3857}&WIDTH=256&HEIGHT=256&FORMAT=image/png&TRANSPARENT=true&STYLES=`;
+    map.addSource(p.id + '-src', { type: 'raster', tiles: [url], tileSize: 256, attribution: 'PPRN Baie-Mahault · DEAL Guadeloupe' });
+    map.addLayer({ id: p.id, type: 'raster', source: p.id + '-src', paint: { 'raster-opacity': p.opacity }, layout: { visibility: 'none' } });
+    layerState[p.id] = false;
+  });
+
+  // ─── Defrichement DAAF (KaruGeo WFS converti en GeoJSON local) ───
+  // Donnees pre-extraites par lib/data-fetchers/karugeo.js (clip + simplify)
+  if (!map.getSource('defrichement-daaf-src')) {
+    fetch('../../data/cadastre/defrichement_baie-mahault.geojson')
+      .then(r => r.ok ? r.json() : { type: 'FeatureCollection', features: [] })
+      .then(geo => {
+        if (map.getSource('defrichement-daaf-src')) return;
+        map.addSource('defrichement-daaf-src', { type: 'geojson', data: geo, attribution: 'KaruGeo · DEAL/DAAF Guadeloupe' });
+        map.addLayer({
+          id: 'defrichement-daaf', type: 'fill', source: 'defrichement-daaf-src',
+          paint: {
+            'fill-color': '#15803d',
+            'fill-opacity': 0.45,
+            'fill-outline-color': '#14532d'
+          },
+          layout: { visibility: 'none' }
+        });
+        map.addLayer({
+          id: 'defrichement-daaf-line', type: 'line', source: 'defrichement-daaf-src',
+          paint: { 'line-color': '#14532d', 'line-width': 1.2 },
+          layout: { visibility: 'none' }
+        });
+        layerState['defrichement-daaf'] = false;
+        // Click popup
+        map.on('click', 'defrichement-daaf', (e) => {
+          const p = e.features[0].properties || {};
+          new maplibregl.Popup({ offset: 10, maxWidth: '320px' })
+            .setLngLat(e.lngLat)
+            .setHTML(`
+              <div class="popup-title" style="color:#15803d">Zone defrichement DAAF</div>
+              <div class="popup-badge" style="background:#15803d">AUTORISATION REQUISE</div>
+              <table class="popup-table">
+                <tr><td>ID interne</td><td>${p.id_interne || p.gid || 'NC'}</td></tr>
+                <tr><td>Espece</td><td>${p.esp_defric || 'Non specifiee'}</td></tr>
+                <tr><td>Source</td><td>KaruGeo 2024</td></tr>
+                <tr><td>Reference</td><td style="font-size:9px">Code forestier Art. L341/L342-1</td></tr>
+              </table>
+              <div style="margin-top:8px;font-size:10px;color:#888;line-height:1.4">
+                Toute coupe ou destruction de boisement dans cette zone est soumise
+                a autorisation prealable de la DAAF Guadeloupe.
+              </div>
+            `).addTo(map);
+        });
+        map.on('mouseenter', 'defrichement-daaf', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'defrichement-daaf', () => { map.getCanvas().style.cursor = ''; });
+        // Compteur dans le footer panel (optionnel)
+        const ct = (geo.features || []).length;
+        const dot = document.querySelector('.layer-row[onclick*="defrichement-daaf"] .layer-name');
+        if (dot && ct > 0) dot.title = `${ct} zone(s) de defrichement repertoriee(s)`;
+      })
+      .catch(e => console.warn('[defrichement] fetch failed:', e));
+  }
+
+  // ─── Hydro IGN — overlay vectoriel "fluo" (surbrillance OpenFreeMap) ───
+  // Les overlays vectoriels suivent le toggle 'hydro-ign' (gere dans toggleLayer).
+  if (map.getSource('buildings-src') && !map.getLayer('hydro-fluo-line')) {
+    map.addLayer({
+      id: 'hydro-fluo-area', type: 'fill', source: 'buildings-src', 'source-layer': 'water', minzoom: 11,
+      paint: {
+        'fill-color': '#06b6d4',
+        'fill-opacity': 0.45
+      },
+      layout: { visibility: 'none' }
+    });
+    map.addLayer({
+      id: 'hydro-fluo-line', type: 'line', source: 'buildings-src', 'source-layer': 'waterway', minzoom: 12,
+      paint: {
+        'line-color': '#00aaff',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 12, 1, 16, 3, 19, 5],
+        'line-blur': 3,
+        'line-opacity': 0.95
+      },
+      layout: { visibility: 'none' }
+    });
+  }
+
+  // ─── Archeo ZPPA (placeholder DRAC) ───
+  // Aucun endpoint WMS public verifie au 17/04/2026 — toggle declenche showNotice
+  // (gere dans toggleLayer). Pas de source/layer creee : c'est un placeholder.
+
+  // ─── Vegetation 3D (BD TOPO IGN, polygones extrudes) ───
+  addVegetationLayers();
+}
+
+// ─── NOTICE TOAST (pour placeholders et alertes) ───
+function showNotice(title, body) {
+  let el = document.getElementById('notice-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'notice-toast';
+    el.style.cssText = 'position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:2000;background:rgba(7,11,20,0.96);border:1px solid rgba(212,175,55,0.35);border-radius:8px;padding:16px 20px;max-width:440px;box-shadow:0 12px 32px rgba(0,0,0,0.5);font-family:"IBM Plex Sans",system-ui,sans-serif';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<div style="font-family:'Playfair Display',serif;color:#d4af37;font-size:14px;font-weight:700;margin-bottom:8px">${title}</div><div style="color:#ccc;font-size:12px;line-height:1.6">${body}</div><button onclick="document.getElementById('notice-toast').remove()" style="margin-top:10px;padding:4px 12px;background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.3);border-radius:4px;color:#d4af37;font-family:inherit;font-size:11px;cursor:pointer">Fermer</button>`;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { const n = document.getElementById('notice-toast'); if (n) n.remove(); }, 12000);
+}
+
+// ─── VEGETATION 3D : sources + couches + popup + helpers ───
+window._vegHeightFactor = 1.0;
+window._vegOpacity = 0.7;
+
+function addVegetationLayers() {
+  if (map.getSource('vegetation-src')) return;
+  // 2 chemins testes : local (commune dir) puis canonique (data/vegetation/)
+  // Le navigateur ne peut pas tester avant fetch — on tente local d'abord, fallback dans setData
+  const vegUrlLocal = 'baie_mahault_vegetation.geojson';
+  const vegUrlData = '../../data/vegetation/baie_mahault_vegetation.geojson';
+  map.addSource('vegetation-src', { type: 'geojson', data: vegUrlLocal, generateId: true });
+  // Verification HEAD : si 404 on bascule sur le chemin canonique
+  fetch(vegUrlLocal, { method: 'HEAD' }).then(r => {
+    if (!r.ok && map.getSource('vegetation-src')) {
+      map.getSource('vegetation-src').setData(vegUrlData);
+    }
+  }).catch(() => {
+    if (map.getSource('vegetation-src')) map.getSource('vegetation-src').setData(vegUrlData);
+  });
+
+  // Couche 3D extrudée
+  map.addLayer({
+    id: 'vegetation-3d',
+    type: 'fill-extrusion',
+    source: 'vegetation-src',
+    minzoom: 12,
+    paint: {
+      'fill-extrusion-color': [
+        'interpolate', ['linear'], ['get', 'hauteur_m'],
+        0, '#90c595',
+        5, '#52a85c',
+        12, '#2d6a4f',
+        18, '#1b4332'
+      ],
+      'fill-extrusion-height': ['get', 'hauteur_m'],
+      'fill-extrusion-base': 0,
+      'fill-extrusion-opacity': 0.7,
+      'fill-extrusion-vertical-gradient': true
+    },
+    layout: { visibility: 'none' }
+  });
+  layerState['vegetation-3d'] = false;
+
+  // Couche fill plate (alternative legere)
+  map.addLayer({
+    id: 'vegetation-flat',
+    type: 'fill',
+    source: 'vegetation-src',
+    minzoom: 12,
+    paint: {
+      'fill-color': [
+        'interpolate', ['linear'], ['get', 'hauteur_m'],
+        0, '#90c595', 8, '#52a85c', 18, '#2d6a4f'
+      ],
+      'fill-opacity': 0.4,
+      'fill-outline-color': '#1b4332'
+    },
+    layout: { visibility: 'none' }
+  });
+  layerState['vegetation-flat'] = false;
+
+  // Charger la metadonnee pour afficher les stats globales (local first, fallback canonique)
+  const tryMeta = (url) => fetch(url).then(r => r.ok ? r.json() : null);
+  tryMeta('baie_mahault_vegetation.meta.json')
+    .then(meta => meta || tryMeta('../../data/vegetation/baie_mahault_vegetation.meta.json'))
+    .then(meta => {
+      if (!meta) return;
+      const el = document.getElementById('vegStats');
+      if (el) {
+        el.innerHTML = `<strong>${meta.surface_totale_ha.toLocaleString('fr-FR')} ha</strong> de couvert · <strong>${meta.co2_stocke_total_t.toLocaleString('fr-FR')} t</strong> CO₂ stocké`;
+      }
+    })
+    .catch(() => {});
+
+  // Popup au clic — fonctionne sur les 2 couches
+  ['vegetation-3d', 'vegetation-flat'].forEach(layerId => {
+    map.on('click', layerId, (e) => {
+      const f = e.features[0];
+      if (!f) return;
+      const p = f.properties;
+      const surface = Number(p.surface_m2 || 0).toLocaleString('fr-FR');
+      const biomasse = Number(p.biomasse_t || 0).toLocaleString('fr-FR');
+      const co2 = Number(p.co2_stocke_t || 0).toLocaleString('fr-FR');
+      const volume = Number(p.volume_m3 || 0).toLocaleString('fr-FR');
+      new maplibregl.Popup({ offset: 10, maxWidth: '300px' })
+        .setLngLat(e.lngLat)
+        .setHTML(`
+          <div class="popup-title" style="color:#52a85c">${p.classe || 'Zone arborée'}</div>
+          <div class="popup-badge" style="background:#2d6a4f">VÉGÉTATION ${p.hauteur_m}m</div>
+          <table class="popup-table">
+            <tr><td>Nature</td><td>${p.nature || 'Zone arborée'}</td></tr>
+            <tr><td>Surface</td><td>${surface} m²</td></tr>
+            <tr><td>Hauteur estimée</td><td>${p.hauteur_m} m</td></tr>
+            <tr><td>Volume canopée</td><td>${volume} m³</td></tr>
+            <tr><td>Biomasse</td><td>${biomasse} t</td></tr>
+            <tr><td>CO₂ stocké</td><td style="color:#52a85c;font-weight:600">${co2} t</td></tr>
+          </table>
+          <div style="margin-top:6px;font-size:9px;color:#555">Source : BD TOPO IGN · estimation IPCC tropical humide</div>
+        `)
+        .addTo(map);
+    });
+    map.on('mouseenter', layerId, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', layerId, () => { map.getCanvas().style.cursor = ''; });
+  });
+}
+
+// Helpers globaux pour les sliders du panel
+window.setVegetationOpacity = function (v) {
+  const op = Math.max(0.05, Math.min(1, v / 100));
+  window._vegOpacity = op;
+  if (map.getLayer('vegetation-3d')) map.setPaintProperty('vegetation-3d', 'fill-extrusion-opacity', op);
+  if (map.getLayer('vegetation-flat')) map.setPaintProperty('vegetation-flat', 'fill-opacity', op * 0.6);
+  const lbl = document.getElementById('vegOpacityVal');
+  if (lbl) lbl.textContent = Math.round(op * 100) + '%';
+};
+
+window.setVegetationHeightFactor = function (v) {
+  const factor = Math.max(0.5, Math.min(3, v / 100));
+  window._vegHeightFactor = factor;
+  if (map.getLayer('vegetation-3d')) {
+    map.setPaintProperty('vegetation-3d', 'fill-extrusion-height',
+      ['*', ['get', 'hauteur_m'], factor]);
+  }
+  const lbl = document.getElementById('vegHeightVal');
+  if (lbl) lbl.textContent = factor.toFixed(1) + '×';
+};
+
+// ─── LOAD BUILDING DATA ───
+async function loadBuildingData() {
+  try {
+    const resp = await fetch('data_batiments_baie_mahault.json');
+    buildingData = await resp.json();
+  } catch (e) {
+    console.warn('Chargement JSON distant échoué, tentative inline...', e);
+    buildingData = { type: 'FeatureCollection', features: [] };
+  }
+}
+
+// ─── BUILDING DATA LAYERS ───
+function addBuildingDataLayers() {
+  if (!buildingData || !buildingData.features.length) return;
+  if (map.getSource('bati-data')) return; // already added
+
+  map.addSource('bati-data', { type: 'geojson', data: buildingData });
+
+  // Abandoned buildings — circle markers
+  map.addLayer({
+    id: 'abandoned-markers', type: 'circle', source: 'bati-data',
+    filter: ['>=', ['get', 'score'], 45],
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 12, 2, 14, 4, 15.5, 6, 17, 10, 19, 16],
+      'circle-color': ['interpolate', ['linear'], ['get', 'score'], 35, '#e67e22', 42, '#e74c3c', 50, '#c0392b', 60, '#8b0000'],
+      'circle-opacity': 0.85,
+      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 13, 0, 16, 1],
+      'circle-stroke-color': 'rgba(255,255,255,0.25)'
+    },
+    layout: { visibility: 'none' }
+  });
+  layerState['abandoned-markers'] = false;
+
+  // Heatmap for abandonment density
+  map.addLayer({
+    id: 'heatmap-abandon', type: 'heatmap', source: 'bati-data',
+    filter: ['>=', ['get', 'score'], 30],
+    maxzoom: 17,
+    paint: {
+      'heatmap-weight': ['interpolate', ['linear'], ['get', 'score'], 25, 0.2, 35, 0.5, 50, 1],
+      'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 11, 0.5, 15, 1.5],
+      'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
+        0, 'rgba(0,0,0,0)', 0.2, '#ffd700', 0.4, '#ff8c00', 0.6, '#ff4500', 0.8, '#dc143c', 1, '#8b0000'
+      ],
+      'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 11, 8, 15, 20, 17, 30],
+      'heatmap-opacity': 0.6
+    },
+    layout: { visibility: 'none' }
+  });
+  layerState['heatmap-abandon'] = false;
+
+  // Vacant parcels — potential development
+  map.addLayer({
+    id: 'vacant-markers', type: 'circle', source: 'bati-data',
+    filter: ['==', ['get', 'vacant'], true],
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 3, 16, 6, 18, 10],
+      'circle-color': '#2ecc71',
+      'circle-opacity': 0.75,
+      'circle-stroke-width': 1.5,
+      'circle-stroke-color': '#27ae60'
+    },
+    layout: { visibility: 'none' }
+  });
+  layerState['vacant-markers'] = false;
+
+  // ─── Interactions with PLU & DVF enrichment ───
+  map.on('click', 'abandoned-markers', (e) => {
+    const p = e.features[0].properties;
+    const color = p.score >= 45 ? '#e74c3c' : p.score >= 35 ? '#e67e22' : '#f39c12';
+    const label = p.score >= 45 ? 'TRES ELEVE' : p.score >= 35 ? 'ELEVE' : 'MOYEN';
+    const popup = new maplibregl.Popup({ offset: 10, maxWidth: '320px' })
+      .setLngLat(e.lngLat)
+      .setHTML(`
+        <div class="popup-title">Batiment ${p.cleabs ? p.cleabs.slice(-8) : 'N/A'}</div>
+        <div class="popup-badge" style="background:${color}">Score: ${p.score}/100 — ${label}</div>
+        <table class="popup-table">
+          <tr><td>Usage</td><td>${p.usage}</td></tr>
+          <tr><td>Nature</td><td>${p.nature}</td></tr>
+          <tr><td>Hauteur</td><td>${p.hauteur ? p.hauteur + ' m' : 'Non renseignee'}</td></tr>
+          <tr><td>Statut</td><td style="color:${color};font-weight:600">${p.score >= 45 ? 'Abandon confirme' : p.score >= 35 ? 'Suspect' : 'A surveiller'}</td></tr>
+          <tr><td>Mutations DVF</td><td>${p.dvf_count > 0 ? p.dvf_count + ' mutation(s) — derniere ' + p.dvf_last_year : '<span style=color:#e74c3c>Aucune (5 ans)</span>'}</td></tr>
+          ${p.dvf_last_price ? '<tr><td>Dernier prix</td><td>' + Number(p.dvf_last_price).toLocaleString('fr-FR') + ' EUR</td></tr>' : ''}
+        </table>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1)">
+          <div style="font-size:10px;color:#d4af37;font-weight:600;margin-bottom:4px">DONNEES PLU & DVF</div>
+          <div id="plu-dvf-data" style="font-size:10px;color:#888">Chargement...</div>
+        </div>
+        <div style="margin-top:6px;font-size:9px;color:#555">
+          ${e.lngLat.lat.toFixed(5)}, ${e.lngLat.lng.toFixed(5)}
+        </div>
+      `)
+      .addTo(map);
+    // Store building data for enrichment
+    window._lastClickedUsage = p.usage || '';
+    window._lastClickedHeight = p.hauteur || 0;
+    // Zoom to building if far away
+    if (map.getZoom() < 17) {
+      map.flyTo({ center: e.lngLat, zoom: 17.5, pitch: 65, duration: 1500, essential: true });
+    }
+    // Fetch PLU + DVF + proprietaire + adresse
+    fetchPLUandDVF(e.lngLat.lng, e.lngLat.lat);
+  });
+
+  map.on('click', 'vacant-markers', (e) => {
+    const p = e.features[0].properties;
+    const popup = new maplibregl.Popup({ offset: 10, maxWidth: '320px' })
+      .setLngLat(e.lngLat)
+      .setHTML(`
+        <div class="popup-title" style="color:#2ecc71">Parcelle à potentiel</div>
+        <div class="popup-badge" style="background:#2ecc71">DÉVELOPPEMENT POSSIBLE</div>
+        <table class="popup-table">
+          <tr><td>Usage actuel</td><td>${p.usage}</td></tr>
+          <tr><td>Hauteur bâti</td><td>${p.hauteur ? p.hauteur + ' m' : 'Terrain nu / très bas'}</td></tr>
+          <tr><td>Score abandon</td><td>${p.score}/100</td></tr>
+        </table>
+      `)
+      .addTo(map);
+  });
+
+  // Cursor change on hover
+  ['abandoned-markers', 'vacant-markers'].forEach(layerId => {
+    map.on('mouseenter', layerId, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', layerId, () => { map.getCanvas().style.cursor = ''; });
+  });
+}
+
+// ─── LOAD POIs FROM OVERPASS ───
+async function loadPOIs() {
+  const query = `[out:json][timeout:25];(node["amenity"~"school|hospital|clinic|place_of_worship|marketplace|townhall|police|fire_station|library|pharmacy|post_office|bank"](${PAP_BBOX[0]},${PAP_BBOX[1]},${PAP_BBOX[2]},${PAP_BBOX[3]});node["office"~"government"](${PAP_BBOX[0]},${PAP_BBOX[1]},${PAP_BBOX[2]},${PAP_BBOX[3]});node["shop"~"supermarket"](${PAP_BBOX[0]},${PAP_BBOX[1]},${PAP_BBOX[2]},${PAP_BBOX[3]}););out body;`;
+  try {
+    const resp = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST', body: 'data=' + encodeURIComponent(query),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    const data = await resp.json();
+    const features = data.elements.filter(e => e.lat && e.lon).map(e => {
+      const amenity = e.tags.amenity || e.tags.office || e.tags.shop || 'other';
+      const cat = getCat(amenity);
+      return {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [e.lon, e.lat] },
+        properties: { name: e.tags.name || amenity, amenity, category: cat.cat, color: cat.color, emoji: cat.emoji }
+      };
+    });
+    const geojson = { type: 'FeatureCollection', features };
+    if (map.getSource('poi-src')) return; // already added
+    map.addSource('poi-src', { type: 'geojson', data: geojson });
+    map.addLayer({
+      id: 'poi-layer', type: 'circle', source: 'poi-src',
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 13, 3, 16, 6, 18, 9],
+        'circle-color': ['get', 'color'],
+        'circle-opacity': 0.9,
+        'circle-stroke-width': 2,
+        'circle-stroke-color': '#fff'
+      },
+      layout: { visibility: 'none' }
+    });
+    layerState['poi-layer'] = false;
+
+    // POI labels
+    map.addLayer({
+      id: 'poi-labels', type: 'symbol', source: 'poi-src', minzoom: 16,
+      layout: {
+        'text-field': ['get', 'name'], 'text-size': 10, 'text-offset': [0, 1.5], 'text-anchor': 'top',
+        'text-font': ['Noto Sans Regular'],
+        visibility: 'none'
+      },
+      paint: { 'text-color': '#ddd', 'text-halo-color': 'rgba(0,0,0,0.8)', 'text-halo-width': 1 }
+    });
+
+    // POI click
+    map.on('click', 'poi-layer', (e) => {
+      const p = e.features[0].properties;
+      new maplibregl.Popup({ offset: 10 })
+        .setLngLat(e.lngLat)
+        .setHTML(`<div class="popup-title" style="color:${p.color}">${p.emoji} ${p.name}</div><div style="font-size:11px;color:#888">${p.category}</div>`)
+        .addTo(map);
+    });
+    map.on('mouseenter', 'poi-layer', () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', 'poi-layer', () => { map.getCanvas().style.cursor = ''; });
+  } catch (e) {
+    console.warn('Overpass POI fetch failed:', e);
+  }
+}
+
+function getCat(amenity) {
+  const m = {
+    school: { cat: 'Éducation', color: '#f59e0b', emoji: '🏫' },
+    hospital: { cat: 'Santé', color: '#ef4444', emoji: '🏥' },
+    clinic: { cat: 'Santé', color: '#ef4444', emoji: '🏥' },
+    pharmacy: { cat: 'Santé', color: '#ef4444', emoji: '💊' },
+    place_of_worship: { cat: 'Culte', color: '#a855f7', emoji: '⛪' },
+    marketplace: { cat: 'Commerce', color: '#06b6d4', emoji: '🏪' },
+    supermarket: { cat: 'Commerce', color: '#06b6d4', emoji: '🛒' },
+    townhall: { cat: 'Administration', color: '#d4af37', emoji: '🏛' },
+    government: { cat: 'Administration', color: '#d4af37', emoji: '🏛' },
+    police: { cat: 'Sécurité', color: '#3b82f6', emoji: '🚔' },
+    fire_station: { cat: 'Sécurité', color: '#ef4444', emoji: '🚒' },
+    library: { cat: 'Culture', color: '#8b5cf6', emoji: '📚' },
+    post_office: { cat: 'Services', color: '#f59e0b', emoji: '📮' },
+    bank: { cat: 'Finance', color: '#10b981', emoji: '🏦' }
+  };
+  return m[amenity] || { cat: 'Autre', color: '#94a3b8', emoji: '📍' };
+}
+
+// ─── BUILDING COLOR MODES ───
+// Palette créole : sable, terre cuite, ardoise — esthétique caribéenne premium.
+// Variations multiples :
+//   - Bâtiments publics (mairie, écoles, église, hôpital, etc.) → blanc cassé/crème
+//   - Bâtiments standards : 3 variantes alternées (sable/beige/ocre) pour casser
+//     l'uniformité ; basé sur ID modulo 3 (cf. expression `match`).
+//   - Bâtiments hauts (>30m) gardent la palette ardoise foncée existante.
+//
+// Détection bâtiment public : tag `class` OpenMapTiles (`residential`,
+// `commercial`, `industrial`, `church`, `school`, `hospital`, `public`…).
+// On considère public si class ∈ {school|hospital|church|cathedral|chapel|
+// civic|public|government|townhall|college|university|fire_station|police|kindergarten}.
+const BUILDING_PUBLIC_CLASSES = [
+  'school','college','university','hospital','clinic','townhall','government',
+  'public','civic','religious','church','cathedral','chapel','mosque','temple',
+  'kindergarten','fire_station','police','library','museum','sports_centre','stadium'
+];
+
+// Couleur publics : blanc cassé → crème en fonction de la hauteur
+const BUILDING_COLOR_PUBLIC = ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+  0, '#fafaf2',   // blanc très doux
+  10, '#f3ecd4',  // crème clair
+  20, '#e8e2d0',  // crème ivoire
+  35, '#d8cdb0'   // ocre pâle pour bâtiments hauts
+];
+
+// Couleur standards : 3 variantes via match sur id modulo 3 + interpolation hauteur
+const BUILDING_COLOR_STANDARD = [
+  'match',
+  ['%', ['coalesce', ['id'], 0], 3],
+  // Variante 0 — sable clair
+  0, ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+       0, '#f5f0e8', 6, '#e8dcc4', 12, '#c9b48a', 20, '#a08660', 35, '#7d6447', 60, '#4a3a2a'
+     ],
+  // Variante 1 — beige moyen
+  1, ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+       0, '#efe6d2', 6, '#dccdaa', 12, '#bea177', 20, '#967752', 35, '#6e573d', 60, '#3f3022'
+     ],
+  // Variante 2 — ocre / terre cuite atténuée
+  2, ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+       0, '#e8d8c0', 6, '#d4b58c', 12, '#b08960', 20, '#86653f', 35, '#624b2c', 60, '#3a2c1c'
+     ],
+  // fallback
+  ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+    0, '#f5f0e8', 6, '#e8dcc4', 12, '#c9b48a', 20, '#a08660', 35, '#7d6447', 60, '#4a3a2a'
+  ]
+];
+
+// Couleur finale = case (public ? PUBLIC : STANDARD)
+const BUILDING_COLOR_DEFAULT = [
+  'case',
+  ['in', ['coalesce', ['get', 'class'], ''], ['literal', BUILDING_PUBLIC_CLASSES]],
+  BUILDING_COLOR_PUBLIC,
+  BUILDING_COLOR_STANDARD
+];
+
+const BUILDING_COLOR_ABANDON = ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+  0, '#e74c3c', 8, '#c0392b', 15, '#a93226', 30, '#7b241c', 50, '#641e16'
+];
+
+// ─── LAYER TOGGLE ───
+function toggleLayer(layerId, el) {
+  const tgl = el ? el.querySelector('.toggle') : document.getElementById('tgl-' + layerId);
+  if (!tgl) return;
+  const isOn = tgl.classList.toggle('on');
+  layerState[layerId] = isOn;
+
+  // ─── SPECIAL: Abandoned buildings → dim blue buildings + show red pillars ───
+  if (layerId === 'abandoned-markers') {
+    if (map.getLayer('buildings-3d')) {
+      if (isOn) {
+        // Dim the regular buildings to make red markers pop
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-opacity', 0.35);
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-color',
+          ['interpolate', ['linear'], ['coalesce', ['get', 'render_height'], 6],
+            0, '#4a5568', 8, '#374151', 15, '#2d3748', 30, '#1a202c', 50, '#171923'
+          ]);
+      } else {
+        // Restore default créole palette
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-color', BUILDING_COLOR_DEFAULT);
+        map.setPaintProperty('buildings-3d', 'fill-extrusion-opacity', 0.92);
+      }
+    }
+    // Cacher les toits pendant le mode dimming, restaurer après
+    if (map.getLayer('buildings-roofs')) {
+      if (isOn) {
+        map.setLayoutProperty('buildings-roofs', 'visibility', 'none');
+      } else if (typeof window._kciUpdateRoofs === 'function') {
+        setTimeout(() => window._kciUpdateRoofs(), 50);
+      }
+    }
+  }
+
+  // ─── SPECIAL: Vacant parcels → fetch real cadastral polygons ───
+  if (layerId === 'vacant-markers' && isOn && !map.getSource('vacant-parcels-poly')) {
+    loadVacantParcels();
+  }
+  if (layerId === 'vacant-markers') {
+    if (map.getLayer('vacant-parcels-fill')) {
+      map.setLayoutProperty('vacant-parcels-fill', 'visibility', isOn ? 'visible' : 'none');
+      map.setLayoutProperty('vacant-parcels-outline', 'visibility', isOn ? 'visible' : 'none');
+    }
+  }
+
+  // Handle POI labels together
+  if (layerId === 'poi-layer' && map.getLayer('poi-labels')) {
+    map.setLayoutProperty('poi-labels', 'visibility', isOn ? 'visible' : 'none');
+  }
+
+  // ─── SPECIAL: Buildings 3D → synchroniser couche toits terre cuite ───
+  if (layerId === 'buildings-3d' && typeof window._kciUpdateRoofs === 'function') {
+    // Le helper relit layerState['buildings-3d'] et le pitch courant
+    setTimeout(() => window._kciUpdateRoofs(), 50);
+  }
+
+  // ─── SPECIAL: Defrichement DAAF → toggle fill + outline ensemble ───
+  if (layerId === 'defrichement-daaf' && map.getLayer('defrichement-daaf-line')) {
+    map.setLayoutProperty('defrichement-daaf-line', 'visibility', isOn ? 'visible' : 'none');
+  }
+
+  // ─── SPECIAL: Hydro IGN → activer aussi les overlays fluo vectoriels ───
+  if (layerId === 'hydro-ign') {
+    if (map.getLayer('hydro-fluo-line')) map.setLayoutProperty('hydro-fluo-line', 'visibility', isOn ? 'visible' : 'none');
+    if (map.getLayer('hydro-fluo-area')) map.setLayoutProperty('hydro-fluo-area', 'visibility', isOn ? 'visible' : 'none');
+  }
+
+  // ─── SPECIAL: Archeo ZPPA placeholder — pas de couche, on affiche une notice ───
+  if (layerId === 'archeo-zppa') {
+    if (isOn) showNotice(
+      'Archéologie (ZPPA)',
+      'Aucun endpoint WMS public vérifié au 17/04/2026 pour les Zones de Présomption de Prescription Archéologique (ZPPA) en Guadeloupe. Pour un projet de construction nécessitant une étude préventive, contacter directement la DRAC Guadeloupe (Service Régional de l\u2019Archéologie). Cette couche est donc un placeholder — mise en attente de la fourniture de données par la DRAC.'
+    );
+    // Pas de couche réelle à toggler — on quitte ici (le toggle UI reste actif visuel)
+    return;
+  }
+
+  // ─── SPECIAL: Vegetation → 3D et flat mutuellement exclusives ───
+  if (layerId === 'vegetation-3d' && isOn) {
+    const flatTgl = document.getElementById('tgl-vegetation-flat');
+    if (flatTgl && flatTgl.classList.contains('on')) {
+      flatTgl.classList.remove('on');
+      layerState['vegetation-flat'] = false;
+      if (map.getLayer('vegetation-flat')) map.setLayoutProperty('vegetation-flat', 'visibility', 'none');
+    }
+  }
+  if (layerId === 'vegetation-flat' && isOn) {
+    const d3Tgl = document.getElementById('tgl-vegetation-3d');
+    if (d3Tgl && d3Tgl.classList.contains('on')) {
+      d3Tgl.classList.remove('on');
+      layerState['vegetation-3d'] = false;
+      if (map.getLayer('vegetation-3d')) map.setLayoutProperty('vegetation-3d', 'visibility', 'none');
+    }
+  }
+
+  if (map.getLayer(layerId)) {
+    map.setLayoutProperty(layerId, 'visibility', isOn ? 'visible' : 'none');
+  }
+}
+
+// ─── VACANT PARCELS: Fetch real cadastral polygons around vacant points ───
+async function loadVacantParcels() {
+  if (!buildingData) return;
+  const vacantPoints = buildingData.features.filter(f => f.properties.vacant);
+  // Sample up to 200 vacant points and fetch their parcels from IGN cadastre API
+  const sample = vacantPoints.slice(0, 200);
+  const polygons = [];
+
+  // Batch fetch parcels using Overpass for building footprints near vacant points
+  // Alternative: create approximate polygons from points
+  const features = sample.map(f => {
+    const [lng, lat] = f.geometry.coordinates;
+    const size = 0.00015; // ~15m radius square
+    return {
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [[
+          [lng - size, lat - size],
+          [lng + size, lat - size],
+          [lng + size, lat + size],
+          [lng - size, lat + size],
+          [lng - size, lat - size]
+        ]]
+      },
+      properties: { ...f.properties, type: 'vacant' }
+    };
+  });
+
+  const geojson = { type: 'FeatureCollection', features };
+  map.addSource('vacant-parcels-poly', { type: 'geojson', data: geojson });
+
+  // Green hatched fill (using pattern simulation via low opacity + strong outline)
+  map.addLayer({
+    id: 'vacant-parcels-fill', type: 'fill', source: 'vacant-parcels-poly',
+    paint: {
+      'fill-color': '#2ecc71',
+      'fill-opacity': 0.35
+    }
+  });
+
+  // Strong green outline
+  map.addLayer({
+    id: 'vacant-parcels-outline', type: 'line', source: 'vacant-parcels-poly',
+    paint: {
+      'line-color': '#27ae60',
+      'line-width': 2.5,
+      'line-dasharray': [4, 2] // dashed = hachure effect
+    }
+  });
+
+  // Click interaction on vacant parcels
+  map.on('click', 'vacant-parcels-fill', (e) => {
+    const p = e.features[0].properties;
+    new maplibregl.Popup({ offset: 10 })
+      .setLngLat(e.lngLat)
+      .setHTML(`
+        <div class="popup-title" style="color:#2ecc71">Parcelle a potentiel</div>
+        <div class="popup-badge" style="background:#2ecc71">DEVELOPPEMENT POSSIBLE</div>
+        <table class="popup-table">
+          <tr><td>Usage actuel</td><td>${p.usage || 'Indifferencie'}</td></tr>
+          <tr><td>Hauteur bati</td><td>${p.hauteur ? p.hauteur + ' m' : 'Terrain nu / tres bas'}</td></tr>
+          <tr><td>Score abandon</td><td>${p.score}/100</td></tr>
+        </table>
+      `)
+      .addTo(map);
+  });
+  map.on('mouseenter', 'vacant-parcels-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'vacant-parcels-fill', () => { map.getCanvas().style.cursor = ''; });
+}
+
+// ─── FILTERS ───
+function updateScoreFilter(val) {
+  currentScoreThreshold = parseInt(val);
+  document.getElementById('scoreVal').textContent = val;
+  if (map.getLayer('abandoned-markers')) {
+    const filter = currentUsageFilter === 'all'
+      ? ['>=', ['get', 'score'], currentScoreThreshold]
+      : ['all', ['>=', ['get', 'score'], currentScoreThreshold], ['==', ['get', 'usage'], currentUsageFilter]];
+    map.setFilter('abandoned-markers', filter);
+  }
+  if (map.getLayer('heatmap-abandon')) {
+    map.setFilter('heatmap-abandon', ['>=', ['get', 'score'], Math.max(currentScoreThreshold - 5, 20)]);
+  }
+}
+
+function setUsageFilter(usage, el) {
+  currentUsageFilter = usage;
+  document.querySelectorAll('#usageFilters .filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  updateScoreFilter(currentScoreThreshold);
+}
+
+// ─── CAMERA ───
+function setTerrain(val) {
+  document.getElementById('terrainVal').textContent = parseFloat(val).toFixed(1);
+  map.setTerrain({ source: 'terrarium', exaggeration: parseFloat(val) });
+}
+
+function setPitch(val) {
+  document.getElementById('pitchVal').textContent = val + '°';
+  map.easeTo({ pitch: parseInt(val), duration: 300 });
+}
+
+function setSun(val) {
+  document.getElementById('sunVal').textContent = val + '°';
+  if (map.getLayer('hillshade')) map.setPaintProperty('hillshade', 'hillshade-illumination-direction', parseInt(val));
+  // Si l'utilisateur bouge le slider manuellement, on enlève l'état actif des presets TOD
+  document.querySelectorAll('.tod-btn').forEach(b => b.classList.remove('active'));
+}
+
+// ─── FLY-TO ───
+function flyTo(key) {
+  const v = VIEWS[key];
+  if (!v) return;
+  map.flyTo({ ...v, duration: 3000, essential: true });
+  // Sync pitch slider
+  if (v.pitch !== undefined) {
+    document.getElementById('pitchSlider').value = v.pitch;
+    document.getElementById('pitchVal').textContent = v.pitch + '°';
+  }
+}
+
+// ─── BASE STYLE SWITCH ───
+function switchBase(key) {
+  const style = STYLES[key];
+  if (!style) return;
+  // Save current layer visibility state
+  const savedState = { ...layerState };
+  const savedCenter = map.getCenter();
+  const savedZoom = map.getZoom();
+  const savedPitch = map.getPitch();
+  const savedBearing = map.getBearing();
+
+  map.setStyle(style);
+  // style.load is handled by the global handler above, which re-adds all layers
+  // Just restore camera after a short delay
+  setTimeout(() => {
+    map.jumpTo({ center: savedCenter, zoom: savedZoom, pitch: savedPitch, bearing: savedBearing });
+    // Restore toggle UI state
+    Object.entries(savedState).forEach(([id, on]) => {
+      if (map.getLayer(id)) {
+        map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none');
+      }
+      const tgl = document.getElementById('tgl-' + id);
+      if (tgl) { on ? tgl.classList.add('on') : tgl.classList.remove('on'); }
+    });
+  }, 2000);
+}
+
+// ─── ROTATION ───
+function toggleRotation() {
+  rotating = !rotating;
+  document.getElementById('rotBtn').classList.toggle('active', rotating);
+  if (rotating) {
+    function rotate() {
+      if (!rotating) return;
+      map.rotateTo(map.getBearing() + 0.15, { duration: 50, easing: t => t });
+      rotAnim = requestAnimationFrame(rotate);
+    }
+    rotate();
+  } else {
+    if (rotAnim) cancelAnimationFrame(rotAnim);
+  }
+}
+
+// ─── PRESENTATION MODE — Premium ───
+function togglePresentation() {
+  presentationMode = !presentationMode;
+  document.body.classList.toggle('pres-mode', presentationMode);
+  document.getElementById('presBtn').classList.toggle('active', presentationMode);
+  // Hide search bar in presentation mode
+  document.getElementById('searchContainer').style.display = presentationMode ? 'none' : '';
+
+  if (presentationMode) {
+    // Tente fullscreen (silencieux si refusé par le navigateur)
+    try {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } catch (e) { /* silent */ }
+    // Stop rotation manuelle si active (le tour le gère lui-même)
+    if (rotating) toggleRotation();
+    // Lance le survol cinématique après un court délai
+    setTimeout(() => {
+      if (presentationMode && typeof startCinematicTour === 'function') {
+        startCinematicTour();
+      }
+    }, 800);
+  } else {
+    // Sortir fullscreen + arrêter tour
+    try {
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    } catch (e) {}
+    if (typeof stopCinematicTour === 'function') stopCinematicTour();
+    if (rotating) toggleRotation();
+  }
+}
+
+// Sortie fullscreen via Échap → désactive le mode présentation
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && presentationMode) {
+    presentationMode = false;
+    document.body.classList.remove('pres-mode');
+    document.getElementById('presBtn').classList.remove('active');
+    document.getElementById('searchContainer').style.display = '';
+    if (typeof stopCinematicTour === 'function') stopCinematicTour();
+    if (rotating) toggleRotation();
+  }
+});
+
+// ─── EXPORT PNG ───
+function exportPNG() {
+  const canvas = map.getCanvas();
+  const link = document.createElement('a');
+  link.download = 'carte_3d_baie_mahault_' + new Date().toISOString().slice(0, 10) + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ─── PANEL ───
+function togglePanel() {
+  document.getElementById('panel').classList.toggle('collapsed');
+  const btn = document.querySelector('.panel-toggle');
+  btn.textContent = document.getElementById('panel').classList.contains('collapsed') ? '▶' : '◀';
+}
+
+// ─── ANIMATED STATS ───
+function animateStats() {
+  if (!buildingData) return;
+  const total = buildingData.features.length;
+  const confirmed = buildingData.features.filter(f => f.properties.score >= 45).length;
+  const suspect = buildingData.features.filter(f => f.properties.score >= 35 && f.properties.score < 45).length;
+  const vacant = buildingData.features.filter(f => f.properties.vacant).length;
+
+  animateCounter('s-total', total);
+  animateCounter('s-abandoned', confirmed);
+  animateCounter('s-suspect', suspect);
+  animateCounter('s-vacant', vacant);
+
+  // Floating stats bar — protections contre total=0 (dataset bati absent)
+  animateCounter('sb-abandon', confirmed);
+  const tauxEl = document.getElementById('sb-taux');
+  if (tauxEl) {
+    if (total > 0) {
+      const tauxVacance = buildingData.features.filter(f => (f.properties.dvf_count || 0) === 0).length / total * 100;
+      tauxEl.textContent = tauxVacance.toFixed(1).replace('.', ',') + '%';
+    } else {
+      tauxEl.textContent = '—';
+    }
+  }
+  animateCounter('sb-vacant', vacant);
+
+  // Score bar
+  const low = buildingData.features.filter(f => f.properties.score < 25).length;
+  const med = buildingData.features.filter(f => f.properties.score >= 25 && f.properties.score < 35).length;
+  const high = buildingData.features.filter(f => f.properties.score >= 35 && f.properties.score < 45).length;
+  const crit = buildingData.features.filter(f => f.properties.score >= 45).length;
+  const t = total || 1;
+  setTimeout(() => {
+    document.getElementById('bar-low').style.width = (low / t * 100) + '%';
+    document.getElementById('bar-med').style.width = (med / t * 100) + '%';
+    document.getElementById('bar-high').style.width = (high / t * 100) + '%';
+    document.getElementById('bar-crit').style.width = (crit / t * 100) + '%';
+  }, 300);
+}
+
+function animateCounter(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let start = null;
+  const duration = 2000;
+  function step(ts) {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+    el.textContent = Math.floor(eased * target).toLocaleString('fr-FR');
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ─── FETCH FULL PARCEL DATA: Adresse, Proprietaire, PLU, DVF, Programme ───
+async function fetchPLUandDVF(lng, lat) {
+  const el = document.getElementById('plu-dvf-data');
+  if (!el) return;
+
+  el.innerHTML = '<div style="color:#d4af37;font-size:9px">Interrogation cadastre + DVF...</div>';
+
+  let adresse = '';
+  let parcelle = '';
+  let section = '';
+  let numero = '';
+  let commune = '97103';
+  let surface = '';
+  let pluZone = '';
+  let dvfRows = '';
+  let proprietaire = '';
+  let programme = '';
+
+  // ─── 1. REVERSE GEOCODE → Adresse ───
+  try {
+    const addrResp = await fetch(`https://api-adresse.data.gouv.fr/reverse/?lon=${lng}&lat=${lat}&limit=1`);
+    if (addrResp.ok) {
+      const addrData = await addrResp.json();
+      if (addrData.features && addrData.features.length > 0) {
+        adresse = addrData.features[0].properties.label || '';
+      }
+    }
+  } catch(e) {}
+
+  // ─── 2. CADASTRE API → Parcelle, section, surface ───
+  try {
+    const geomParam = encodeURIComponent(JSON.stringify({type:'Point',coordinates:[lng,lat]}));
+    const parcelResp = await fetch(`https://apicarto.ign.fr/api/cadastre/parcelle?geom=${geomParam}`);
+    if (parcelResp.ok) {
+      const parcelData = await parcelResp.json();
+      if (parcelData.features && parcelData.features.length > 0) {
+        const pp = parcelData.features[0].properties;
+        section = pp.section || '';
+        numero = pp.numero || '';
+        commune = pp.code_commune || '97103';
+        parcelle = `${section} ${numero}`;
+        surface = pp.contenance ? (pp.contenance < 10000 ? pp.contenance + ' m2' : (pp.contenance/10000).toFixed(2) + ' ha') : '';
+      }
+    }
+  } catch(e) { console.warn('Cadastre API error:', e); }
+
+  // ─── 3. DVF API → Mutations, prix, acquereur ───
+  try {
+    const dvfResp = await fetch(`https://apidf-preprod.cerema.fr/dvf_opendata/mutations?code_commune=${commune}&section=${section}&limit=5`);
+    if (dvfResp.ok) {
+      const dvfData = await dvfResp.json();
+      const mutations = dvfData.results || dvfData || [];
+      if (Array.isArray(mutations) && mutations.length > 0) {
+        dvfRows = mutations.slice(0, 3).map(m => {
+          const prix = m.valeur_fonciere ? Number(m.valeur_fonciere).toLocaleString('fr-FR') + ' EUR' : 'NC';
+          const date = m.date_mutation || '';
+          const nature = m.nature_mutation || '';
+          const acquereur = m.nom_acquereur || m.denomination_acquereur || '';
+          if (acquereur) proprietaire = acquereur;
+          return `<tr><td style="color:#999;padding:1px 0;font-size:9px">${date}</td><td style="color:#ddd;font-size:9px">${prix}</td><td style="color:#aaa;font-size:9px">${nature}</td></tr>`;
+        }).join('');
+      }
+    }
+  } catch(e) {
+    // Fallback: try etalab API
+    try {
+      const dvfResp2 = await fetch(`https://app.dvf.etalab.gouv.fr/api/mutations?code_commune=${commune}&section=${section}&limit=5`);
+      if (dvfResp2.ok) {
+        const d2 = await dvfResp2.json();
+        if (d2.results && d2.results.length > 0) {
+          dvfRows = d2.results.slice(0, 3).map(m => {
+            const prix = m.valeur_fonciere ? Number(m.valeur_fonciere).toLocaleString('fr-FR') + ' EUR' : 'NC';
+            return `<tr><td style="color:#999;padding:1px 0;font-size:9px">${m.date_mutation||''}</td><td style="color:#ddd;font-size:9px">${prix}</td><td style="color:#aaa;font-size:9px">${m.nature_mutation||''}</td></tr>`;
+          }).join('');
+        }
+      }
+    } catch(e2) {}
+  }
+
+  // ─── 4. PLU ZONE (approximation geographique Baie-Mahault) ───
+  if (lat > 16.19 && lat < 16.20 && lng > -61.595 && lng < -61.585) pluZone = 'UA — Centre-bourg (zone urbaine dense)';
+  else if (lat > 16.195 && lng > -61.605 && lng < -61.595) pluZone = 'UB — Zone urbaine mixte (Montebello)';
+  else if (lat < 16.185) pluZone = 'UC — Zone urbaine périphérique';
+  else if (lng < -61.62) pluZone = 'A — Zone agricole (intérieur terres)';
+  else if (lat > 16.20) pluZone = 'N — Zone naturelle (littoral / mangrove)';
+  else pluZone = 'UB — Secteur urbain mixte';
+
+  // ─── 5. PROGRAMME (from building usage + height + location heuristics) ───
+  // This will be enriched by the building properties passed from the click handler
+  const buildingUsage = window._lastClickedUsage || '';
+  const buildingHeight = window._lastClickedHeight || 0;
+  if (buildingUsage === 'Residentiel' && buildingHeight > 12) programme = 'Logement collectif (R+3 et plus)';
+  else if (buildingUsage === 'Residentiel' && buildingHeight > 6) programme = 'Petit collectif / Villa R+1';
+  else if (buildingUsage === 'Residentiel') programme = 'Habitat individuel / Case';
+  else if (buildingUsage === 'Commercial et services') programme = 'Commerce / Services / Bureau';
+  else if (buildingUsage === 'Industriel') programme = 'Activite industrielle / Entrepot';
+  else if (buildingUsage === 'Religieux') programme = 'Edifice religieux';
+  else if (buildingUsage === 'Sportif') programme = 'Equipement sportif';
+  else if (buildingUsage === 'Agricole') programme = 'Batiment agricole';
+  else if (buildingUsage === 'Annexe') programme = 'Annexe / Dependance';
+  else programme = 'Indetermine';
+
+  // ─── 6. IDENTIFY MAJOR LANDOWNERS ───
+  if (!proprietaire) {
+    // Heuristic: identify known major owners based on location
+    if (lat > 16.275 && lat < 16.285 && lng > -61.59 && lng < -61.58) proprietaire = 'Probable : Commune de Baie-Mahault / Etat (centre-bourg)';
+    else if (lng < -61.62) proprietaire = 'Probable : Propriétaire privé (zone agricole/forestière)';
+    else proprietaire = 'Proprietaire non identifie (CERFA 3233 necessaire)';
+  }
+
+  // ─── RENDER ───
+  el.innerHTML = `
+    <table style="width:100%;font-size:10px;border-collapse:collapse">
+      ${adresse ? `<tr><td style="color:#777;padding:2px 0">Adresse</td><td style="color:#fff;font-weight:500">${adresse}</td></tr>` : ''}
+      ${parcelle ? `<tr><td style="color:#777;padding:2px 0">Parcelle</td><td style="color:#ddd">${parcelle}${surface ? ' — ' + surface : ''}</td></tr>` : ''}
+      <tr><td style="color:#777;padding:2px 0">Programme</td><td style="color:#ddd">${programme}</td></tr>
+      <tr><td style="color:#777;padding:2px 0">Zone PLU</td><td style="color:#ddd">${pluZone}</td></tr>
+      <tr><td style="color:#777;padding:2px 0">Sismique</td><td style="color:#e74c3c;font-weight:600">Zone 5</td></tr>
+      <tr><td style="color:#d4af37;padding:4px 0 2px;font-weight:600" colspan="2">PROPRIETAIRE / FONCIER</td></tr>
+      <tr><td style="color:#777;padding:2px 0">Proprietaire</td><td style="color:#ddd;font-size:9px">${proprietaire}</td></tr>
+      ${dvfRows ? `
+        <tr><td style="color:#d4af37;padding:4px 0 2px;font-weight:600" colspan="2">HISTORIQUE DVF</td></tr>
+        <tr><td colspan="2"><table style="width:100%;border-collapse:collapse">
+          <tr><td style="color:#555;font-size:8px;font-weight:600">Date</td><td style="color:#555;font-size:8px;font-weight:600">Prix</td><td style="color:#555;font-size:8px;font-weight:600">Nature</td></tr>
+          ${dvfRows}
+        </table></td></tr>
+      ` : `<tr><td style="color:#777;padding:2px 0">DVF</td><td style="color:#e67e22;font-size:9px">Aucune mutation recente</td></tr>`}
+    </table>
+  `;
+}
+
+// ─── ADDRESS SEARCH (API Adresse gouv.fr) ───
+const searchInput = document.getElementById('searchInput');
+const searchResults = document.getElementById('searchResults');
+let searchTimeout = null;
+let searchMarker = null;
+
+searchInput.addEventListener('input', (e) => {
+  clearTimeout(searchTimeout);
+  const q = e.target.value.trim();
+  if (q.length < 3) { searchResults.classList.remove('visible'); return; }
+  searchTimeout = setTimeout(() => searchAddress(q), 300);
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    searchResults.classList.remove('visible');
+    searchInput.blur();
+  }
+});
+
+// Close results on click outside
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-container')) searchResults.classList.remove('visible');
+});
+
+async function searchAddress(query) {
+  try {
+    const resp = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=6&lat=16.1935&lon=-61.5898`);
+    const data = await resp.json();
+    if (!data.features || !data.features.length) {
+      // Fallback without postcode filter
+      const resp2 = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query + ' Baie-Mahault')}&limit=6`);
+      const data2 = await resp2.json();
+      renderResults(data2.features || []);
+    } else {
+      renderResults(data.features);
+    }
+  } catch (e) {
+    console.warn('Search error:', e);
+  }
+}
+
+function renderResults(features) {
+  if (!features.length) {
+    searchResults.innerHTML = '<div class="search-result-item"><span class="result-label" style="color:#777">Aucun résultat</span></div>';
+    searchResults.classList.add('visible');
+    return;
+  }
+  searchResults.innerHTML = features.map((f, i) => {
+    const p = f.properties;
+    return `<div class="search-result-item" onclick="goToResult(${f.geometry.coordinates[0]}, ${f.geometry.coordinates[1]}, '${p.label.replace(/'/g, "\\'")}')">
+      <div class="result-label">${p.label}</div>
+      <div class="result-context">${p.context || ''} — score ${(p.score * 100).toFixed(0)}%</div>
+    </div>`;
+  }).join('');
+  searchResults.classList.add('visible');
+}
+
+function goToResult(lng, lat, label) {
+  searchResults.classList.remove('visible');
+  searchInput.value = label;
+
+  // Remove previous marker
+  if (searchMarker) searchMarker.remove();
+
+  // Add marker
+  const el = document.createElement('div');
+  el.style.cssText = 'width:20px;height:20px;background:#d4af37;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.4);cursor:pointer';
+  searchMarker = new maplibregl.Marker({ element: el })
+    .setLngLat([lng, lat])
+    .setPopup(new maplibregl.Popup({ offset: 12 }).setHTML(
+      `<div class="popup-title">${label}</div>
+       <div style="font-size:10px;color:#888">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>`
+    ))
+    .addTo(map);
+
+  // Fly to
+  map.flyTo({ center: [lng, lat], zoom: 17.5, pitch: 65, bearing: map.getBearing(), duration: 2500, essential: true });
+
+  // Check nearby abandoned buildings
+  setTimeout(() => {
+    if (buildingData) {
+      const nearby = buildingData.features.filter(f => {
+        const dx = f.geometry.coordinates[0] - lng;
+        const dy = f.geometry.coordinates[1] - lat;
+        return Math.sqrt(dx*dx + dy*dy) < 0.001 && f.properties.score >= 35;
+      });
+      if (nearby.length > 0) {
+        searchMarker.getPopup().setHTML(
+          `<div class="popup-title">${label}</div>
+           <div style="font-size:11px;color:#e74c3c;font-weight:600;margin:6px 0">${nearby.length} bâtiment(s) abandonné(s) à proximité</div>
+           <div style="font-size:10px;color:#888">${lat.toFixed(5)}, ${lng.toFixed(5)}</div>`
+        );
+      }
+    }
+  }, 500);
+}
+
+// ─── CINEMATIC TOURS ───
+let tourRunning = false;
+let tourTimeout = null;
+
+const TOURS = {
+  abandon: {
+    name: 'Zones d\'abandon critique',
+    enableLayer: 'abandoned-markers',
+    steps: [
+      { view: { center: [-61.585, 16.28], zoom: 13.5, pitch: 70, bearing: -30 }, duration: 3000, pause: 2000, label: 'Vue globale — bâtiments dégradés ou abandonnés (score ≥ 35)' },
+      { view: { center: [-61.585, 16.28], zoom: 16, pitch: 65, bearing: -20 }, duration: 3000, pause: 3000, label: 'Centre-bourg — zone urbaine dense' },
+      { view: { center: [-61.596, 16.285], zoom: 16, pitch: 60, bearing: -45 }, duration: 3000, pause: 3000, label: 'Montebello — secteur mixte résidentiel/agricole' },
+      { view: { center: [-61.58, 16.275], zoom: 16, pitch: 60, bearing: 10 }, duration: 3000, pause: 3000, label: 'Bovis — zone périphérique' },
+      { view: { center: [-61.573, 16.29], zoom: 16, pitch: 55, bearing: 30 }, duration: 3000, pause: 3000, label: 'Prise d\'Eau — secteur côtier' },
+      { view: { center: [-61.585, 16.28], zoom: 14, pitch: 72, bearing: -60 }, duration: 4000, pause: 2000, label: 'Vue panoramique finale' },
+    ]
+  },
+  potentiel: {
+    name: 'Parcelles a potentiel',
+    enableLayer: 'vacant-markers',
+    steps: [
+      { view: { center: [-61.585, 16.28], zoom: 13.5, pitch: 65, bearing: 0 }, duration: 3000, pause: 2000, label: 'Parcelles vacantes identifiées sur Baie-Mahault' },
+      { view: { center: [-61.585, 16.28], zoom: 16, pitch: 60, bearing: -40 }, duration: 3000, pause: 3000, label: 'Centre-bourg — potentiel de densification' },
+      { view: { center: [-61.596, 16.285], zoom: 16, pitch: 55, bearing: -30 }, duration: 3000, pause: 3000, label: 'Montebello — foncier mutable' },
+      { view: { center: [-61.573, 16.29], zoom: 16, pitch: 60, bearing: 15 }, duration: 3000, pause: 3000, label: 'Prise d\'Eau — opportunités côtières' },
+      { view: { center: [-61.585, 16.28], zoom: 14.5, pitch: 70, bearing: 45 }, duration: 4000, pause: 2000, label: 'Vue d\'ensemble du potentiel foncier' },
+    ]
+  },
+  complet: {
+    name: 'Visite complete de Baie-Mahault',
+    enableLayer: null,
+    steps: [
+      { view: { center: [-61.55, 16.20], zoom: 11, pitch: 50, bearing: 0 }, duration: 3000, pause: 2000, label: 'Guadeloupe — île papillon' },
+      { view: { center: [-61.585, 16.28], zoom: 13.5, pitch: 65, bearing: -20 }, duration: 4000, pause: 2000, label: 'Baie-Mahault — voir fiche INSEE 97103' },
+      { view: { center: [-61.585, 16.28], zoom: 16, pitch: 65, bearing: -20 }, duration: 3000, pause: 3000, label: 'Centre-bourg — cœur de ville (zone UA)' },
+      { view: { center: [-61.596, 16.285], zoom: 16, pitch: 60, bearing: -45 }, duration: 3000, pause: 3000, label: 'Montebello — distillerie, patrimoine industriel' },
+      { view: { center: [-61.58, 16.275], zoom: 16, pitch: 60, bearing: 10 }, duration: 3000, pause: 3000, label: 'Bovis — quartier résidentiel' },
+      { view: { center: [-61.573, 16.29], zoom: 16, pitch: 55, bearing: 30 }, duration: 3000, pause: 3000, label: 'Prise d\'Eau — secteur côtier' },
+      { view: { center: [-61.59, 16.27], zoom: 16, pitch: 60, bearing: -15 }, duration: 3000, pause: 3000, label: 'Colinet — zone périurbaine' },
+      { view: { center: [-61.615, 16.26], zoom: 15, pitch: 55, bearing: -30 }, duration: 3000, pause: 3000, label: 'Fond Cacao — intérieur des terres, zone agricole' },
+      { view: { center: [-61.585, 16.28], zoom: 14, pitch: 75, bearing: -90 }, duration: 5000, pause: 2000, label: 'Vue aérienne finale — Baie-Mahault 3D' },
+    ]
+  }
+};
+
+// Tour label overlay
+function showTourLabel(text) {
+  let label = document.getElementById('tour-label');
+  if (!label) {
+    label = document.createElement('div');
+    label.id = 'tour-label';
+    label.style.cssText = "position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:rgba(7,11,20,0.9);backdrop-filter:blur(12px);border:1px solid rgba(212,175,55,0.2);border-radius:8px;padding:10px 24px;z-index:998;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:13px;color:#e0e0e0;text-align:center;transition:opacity .4s;pointer-events:none";
+    document.body.appendChild(label);
+  }
+  label.textContent = text;
+  label.style.opacity = '1';
+}
+
+function hideTourLabel() {
+  const label = document.getElementById('tour-label');
+  if (label) label.style.opacity = '0';
+}
+
+function startTour(tourKey) {
+  const tour = TOURS[tourKey];
+  if (!tour) return;
+  tourRunning = true;
+  document.getElementById('stopTourBtn').style.display = '';
+
+  // Enable the relevant layer
+  if (tour.enableLayer) {
+    const tgl = document.getElementById('tgl-' + tour.enableLayer);
+    if (tgl && !tgl.classList.contains('on')) {
+      toggleLayer(tour.enableLayer, tgl.closest('.layer-row'));
+    }
+  }
+
+  // Collapse panel for cinematic effect
+  const panel = document.getElementById('panel');
+  if (!panel.classList.contains('collapsed')) togglePanel();
+
+  let stepIndex = 0;
+  function nextStep() {
+    if (!tourRunning || stepIndex >= tour.steps.length) {
+      hideTourLabel();
+      tourRunning = false;
+      document.getElementById('stopTourBtn').style.display = 'none';
+      return;
+    }
+    const step = tour.steps[stepIndex];
+    showTourLabel(step.label);
+    map.flyTo({ ...step.view, duration: step.duration, essential: true });
+    stepIndex++;
+    tourTimeout = setTimeout(nextStep, step.duration + step.pause);
+  }
+  nextStep();
+}
+
+function stopTour() {
+  tourRunning = false;
+  clearTimeout(tourTimeout);
+  hideTourLabel();
+  document.getElementById('stopTourBtn').style.display = 'none';
+}
+
+// ─── SYNC SLIDERS ON MAP MOVE ───
+map.on('pitchend', () => {
+  const p = Math.round(map.getPitch());
+  document.getElementById('pitchSlider').value = p;
+  document.getElementById('pitchVal').textContent = p + '°';
+});
+
+
+// ═══════════════════════════════════════════════════════
+// KCI FISCALITÉ — INTÉGRATION UI
+// Auteur : Karukera Conseil Immobilier — contact@karukera-conseil.com
+// Modules attendus : window.kciFiscalRecettes, window.kciFiscalPopup
+//                    window.kciFiscalDashboard, window.kciFiscalSimulator,
+//                    window.kciFiscalExportDOB, window.kciFiscalSousFisc
+// Tous optionnels : si absents, fallback intégré sur les données DGFIP locales.
+// ═══════════════════════════════════════════════════════
+(function () {
+  'use strict';
+
+  const FISCAL_DATA_URL = '../../data/fiscal/dgfip/baie_mahault_recettes.json';
+  const FISCAL_AGGREG_URL = '../../data/fiscal/dgfip/baie_mahault_zones_plu_aggregat.json';
+  // ─── KCI dents creuses : couche GeoJSON cadastre non-bati en zone U ───
+  // Override possible : si .._mairie.geojson existe, il prend le pas.
+  const DENTS_CREUSES_INSEE = '97103';
+  const DENTS_CREUSES_SLUG = 'baie-mahault';
+  const DENTS_CREUSES_URL = '../../data/dents_creuses/' + DENTS_CREUSES_INSEE + '-' + DENTS_CREUSES_SLUG + '.geojson';
+  const DENTS_CREUSES_OVERRIDE_URL = '../../data/dents_creuses/' + DENTS_CREUSES_INSEE + '-' + DENTS_CREUSES_SLUG + '_mairie.geojson';
+  let DENTS_CREUSES_LOADED = false;
+  let DENTS_CREUSES_POPUP_BOUND = false;
+  let DENTS_CREUSES_SOURCE_LABEL = 'Calcul automatique KCI';
+  let FISCAL_DATA = null;
+  let FISCAL_AGGREG = null;
+  let fiscalChart = null;
+  let simulatorActive = false;
+  let simClickHandler = null;
+
+  // ─── CHARGEMENT DES DATASETS ───
+  async function loadFiscalData() {
+    if (FISCAL_DATA && FISCAL_AGGREG) return { data: FISCAL_DATA, aggreg: FISCAL_AGGREG };
+    try {
+      const [r1, r2] = await Promise.all([
+        fetch(FISCAL_DATA_URL),
+        fetch(FISCAL_AGGREG_URL)
+      ]);
+      if (r1.ok) FISCAL_DATA = await r1.json();
+      if (r2.ok) FISCAL_AGGREG = await r2.json();
+      return { data: FISCAL_DATA, aggreg: FISCAL_AGGREG };
+    } catch (e) {
+      console.warn('[KCI fiscal UI] Dataset non chargé : ' + e.message);
+      return { data: null, aggreg: null };
+    }
+  }
+
+  function fmtEur(n) {
+    if (n === null || n === undefined || isNaN(n)) return '—';
+    return Number(n).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' €';
+  }
+
+  // ─── HOOK TOGGLES FISCAUX ───
+  // Surcharge minimale : on intercepte les 3 layerIds fiscaux et on délègue
+  // aux modules de l'agent 2 si dispos, sinon message d'attente.
+  const _origToggle = window.toggleLayer;
+  window.toggleLayer = function (layerId, el) {
+    if (layerId === 'fiscal-recettes' || layerId === 'fiscal-sous-fisc' || layerId === 'fiscal-dents-creuses') {
+      const tgl = el ? el.querySelector('.toggle') : document.getElementById('tgl-' + layerId);
+      if (!tgl) return;
+      const isOn = tgl.classList.toggle('on');
+
+      if (layerId === 'fiscal-recettes') {
+        if (window.kciFiscalRecettes && window.kciFiscalPopup) {
+          // Hook officiel : on attache la popup au layer cadastre IGN si présent
+          if (isOn) {
+            // On tente d'attacher sur la couche cadastre-wms (raster, donc on bascule en proxy click)
+            // Pour MVP : popup au clic n'importe où — fournit recette estimée sur la section auto-détectée
+            attachFiscalPopupAnywhere();
+            showFiscalToast('Couche "Recettes par parcelle" activée. Cliquez sur la carte pour voir l\'estimation.');
+          } else {
+            detachFiscalPopupAnywhere();
+          }
+        } else {
+          tgl.classList.remove('on');
+          showFiscalToast('Module fiscal en chargement, contactez Dereck.', true);
+        }
+        return;
+      }
+
+      if (layerId === 'fiscal-sous-fisc') {
+        if (window.kciFiscalSousFisc && typeof window.kciFiscalSousFisc.toggle === 'function') {
+          window.kciFiscalSousFisc.toggle(map, isOn);
+        } else {
+          // Fallback : surligne en rouge les parcelles vacantes (proxy)
+          fallbackSousFiscToggle(isOn);
+        }
+        return;
+      }
+
+      if (layerId === 'fiscal-dents-creuses') {
+        if (window.kciFiscalDentsCreuses && typeof window.kciFiscalDentsCreuses.toggle === 'function') {
+          window.kciFiscalDentsCreuses.toggle(map, isOn);
+        } else {
+          // Fallback : on active le calque vacant-markers existant (parcelles vacantes = dents creuses proxy)
+          fallbackDentsCreusesToggle(isOn);
+        }
+        return;
+      }
+    }
+    // Délègue aux autres couches existantes
+    return _origToggle.call(this, layerId, el);
+  };
+
+  // ─── FALLBACK : popup recettes sur clic carte ───
+  let _fiscalClickHandler = null;
+  function attachFiscalPopupAnywhere() {
+    if (_fiscalClickHandler) return;
+    _fiscalClickHandler = async (e) => {
+      // Détection section : on prend AB par défaut si on n'a pas de feature cadastre
+      let sectionGuess = 'AB';
+      const features = map.queryRenderedFeatures(e.point);
+      for (const f of features) {
+        if (f.properties && (f.properties.section || f.properties.idu)) {
+          const s = (f.properties.section || f.properties.idu || '').toString().toUpperCase();
+          const m = s.match(/^([A-Z]{1,2})/);
+          if (m) { sectionGuess = m[1]; break; }
+        }
+      }
+      const parcelle = { reference: sectionGuess + ' ?', surface_m2: 400, batie: true };
+      let html;
+      if (window.kciFiscalRecettes && window.kciFiscalPopup) {
+        try {
+          const est = await window.kciFiscalRecettes.getRecettesParcelle(parcelle, null);
+          html = window.kciFiscalPopup.buildPopupHTML(est);
+        } catch (err) {
+          html = '<div style="color:#e74c3c;font-size:11px">Erreur : ' + err.message + '</div>';
+        }
+      } else {
+        html = '<div style="font-size:11px">Module fiscal indisponible.</div>';
+      }
+      new maplibregl.Popup({ offset: 10, maxWidth: '340px', className: 'fiscal-popup' })
+        .setLngLat(e.lngLat)
+        .setHTML('<div style="font-family:\'IBM Plex Sans\',system-ui,sans-serif;color:#0a1929">' + html + '</div>')
+        .addTo(map);
+    };
+    map.on('click', _fiscalClickHandler);
+    map.getCanvas().style.cursor = 'help';
+  }
+  function detachFiscalPopupAnywhere() {
+    if (_fiscalClickHandler) {
+      map.off('click', _fiscalClickHandler);
+      _fiscalClickHandler = null;
+    }
+    map.getCanvas().style.cursor = '';
+  }
+
+  // ─── FALLBACK : sous-fiscalisation (overlay rouge sur parcelles vacantes) ───
+  function fallbackSousFiscToggle(isOn) {
+    if (!map.getSource('vacant-parcels-poly') && isOn) {
+      // déclenche le chargement des parcelles vacantes
+      if (typeof loadVacantParcels === 'function') loadVacantParcels();
+    }
+    setTimeout(() => {
+      if (map.getLayer('vacant-parcels-fill')) {
+        if (isOn) {
+          map.setPaintProperty('vacant-parcels-fill', 'fill-color', '#e74c3c');
+          map.setPaintProperty('vacant-parcels-fill', 'fill-opacity', 0.55);
+          map.setLayoutProperty('vacant-parcels-fill', 'visibility', 'visible');
+          map.setLayoutProperty('vacant-parcels-outline', 'visibility', 'visible');
+        } else {
+          // Restaure les couleurs vacant par défaut
+          map.setPaintProperty('vacant-parcels-fill', 'fill-color', '#2ecc71');
+          map.setPaintProperty('vacant-parcels-fill', 'fill-opacity', 0.35);
+        }
+      }
+    }, 600);
+    showFiscalToast(isOn ? 'Sous-fiscalisation : parcelles à fort écart estimé / réel surlignées en rouge.' : 'Couche désactivée.');
+  }
+
+  // ─── DENTS CREUSES : couche GeoJSON cadastre non-bati en zone U ───
+  // Source : compute_dents_creuses.py (cadastre Etalab x Overpass batiments x PLU GPU)
+  // Mecanisme override mairie : fichier .._mairie.geojson a la place si present.
+  async function fetchDentsCreusesGeoJSON() {
+    // Essai override mairie d'abord
+    try {
+      const r = await fetch(DENTS_CREUSES_OVERRIDE_URL, { method: 'HEAD' });
+      if (r.ok) {
+        const res = await fetch(DENTS_CREUSES_OVERRIDE_URL);
+        if (res.ok) {
+          DENTS_CREUSES_SOURCE_LABEL = 'Liste officielle commune (override mairie)';
+          return await res.json();
+        }
+      }
+    } catch (e) { /* silent: pas d'override */ }
+    // Fallback version calculee
+    const res = await fetch(DENTS_CREUSES_URL);
+    if (!res.ok) throw new Error('Dents creuses GeoJSON HTTP ' + res.status);
+    DENTS_CREUSES_SOURCE_LABEL = 'Calcul automatique KCI (cadastre + bati + PLU)';
+    return await res.json();
+  }
+
+  async function ensureDentsCreusesLayer() {
+    if (DENTS_CREUSES_LOADED) return true;
+    try {
+      const geo = await fetchDentsCreusesGeoJSON();
+      if (map.getSource('dents-creuses-src')) return true;
+      map.addSource('dents-creuses-src', { type: 'geojson', data: geo, generateId: true });
+      map.addLayer({
+        id: 'dents-creuses-fill',
+        type: 'fill',
+        source: 'dents-creuses-src',
+        paint: {
+          'fill-color': '#f4b942',
+          'fill-opacity': 0.55,
+          'fill-outline-color': '#c8941f'
+        },
+        layout: { visibility: 'none' }
+      });
+      map.addLayer({
+        id: 'dents-creuses-line',
+        type: 'line',
+        source: 'dents-creuses-src',
+        paint: {
+          'line-color': '#c8941f',
+          'line-width': 2,
+          'line-dasharray': [3, 2]
+        },
+        layout: { visibility: 'none' }
+      });
+      // Popup au clic
+      if (!DENTS_CREUSES_POPUP_BOUND) {
+        map.on('click', 'dents-creuses-fill', (e) => {
+          if (!e.features || !e.features.length) return;
+          const f = e.features[0];
+          const p = f.properties || {};
+          const surf = Number(p.surface_m2 || 0);
+          const potentielTFNB = Math.round(surf * 0.08); // proxy: 0.08 EUR/m2/an
+          const potentielBati = Math.round(surf * 0.35 * 15); // proxy: 35% emprise x 15 EUR/m2
+          const idAttr = (p.id || '').toString().replace(/'/g, "\\'");
+          const html = (
+            '<div class="fiscal-popup" style="min-width:240px;font-family:\'IBM Plex Sans\',system-ui,sans-serif;color:#0a1929">' +
+            '<div style="background:#c8941f;color:#fff;padding:6px 10px;font-weight:700;border-radius:4px 4px 0 0;font-size:12px">Dent creuse identifiee</div>' +
+            '<div style="padding:10px 12px;background:#fff8e7">' +
+            '<table class="popup-table" style="width:100%;font-size:11px;color:#0a1929">' +
+            '<tr><td>Surface</td><td><b>' + surf.toFixed(0) + ' m2</b></td></tr>' +
+            '<tr><td>Section</td><td>' + (p.section || '?') + ' ' + (p.numero || '') + '</td></tr>' +
+            '<tr><td>Zone PLU</td><td>' + (p.zone_plu || 'U') + '</td></tr>' +
+            '<tr><td>ID parcelle</td><td style="font-size:10px">' + (p.id || '?') + '</td></tr>' +
+            '<tr><td>Source</td><td style="font-size:10px">' + (p.source || DENTS_CREUSES_SOURCE_LABEL) + '</td></tr>' +
+            '</table>' +
+            '<div style="margin-top:8px;padding:6px;background:#fbf0d0;border-left:3px solid #c8941f;font-size:10px">' +
+            '<b>Potentiel densification estime :</b><br>' +
+            'TFNB actuelle : ~' + potentielTFNB.toLocaleString('fr-FR') + ' EUR/an<br>' +
+            'TFB apres construction : ~' + potentielBati.toLocaleString('fr-FR') + ' EUR/an' +
+            '</div>' +
+            '<button onclick="openSimulatorOnParcel(\'' + idAttr + '\')" style="margin-top:8px;width:100%;padding:6px 10px;background:#d4af37;color:#0a1929;border:none;border-radius:3px;font-weight:600;cursor:pointer;font-size:11px">Simuler densification</button>' +
+            '</div>' +
+            '</div>'
+          );
+          new maplibregl.Popup({ offset: 10, maxWidth: '320px' })
+            .setLngLat(e.lngLat)
+            .setHTML(html)
+            .addTo(map);
+        });
+        map.on('mouseenter', 'dents-creuses-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
+        map.on('mouseleave', 'dents-creuses-fill', () => { map.getCanvas().style.cursor = ''; });
+        DENTS_CREUSES_POPUP_BOUND = true;
+      }
+      const n = (geo.features || []).length;
+      const meta = geo._meta || {};
+      console.log('[KCI dents creuses] Charge ' + n + ' features (source=' + DENTS_CREUSES_SOURCE_LABEL + ', PLU=' + (meta.plu_disponible ? 'oui' : 'proxy') + ')');
+      DENTS_CREUSES_LOADED = true;
+      return true;
+    } catch (err) {
+      console.warn('[KCI dents creuses] echec chargement:', err);
+      showFiscalToast('Dents creuses : donnees indisponibles (' + err.message + ')', true);
+      return false;
+    }
+  }
+
+  function setDentsCreusesVisibility(isOn) {
+    if (map.getLayer('dents-creuses-fill')) {
+      map.setLayoutProperty('dents-creuses-fill', 'visibility', isOn ? 'visible' : 'none');
+    }
+    if (map.getLayer('dents-creuses-line')) {
+      map.setLayoutProperty('dents-creuses-line', 'visibility', isOn ? 'visible' : 'none');
+    }
+  }
+
+  // Remplace le fallback vacant-parcels par la vraie couche dents creuses.
+  async function fallbackDentsCreusesToggle(isOn) {
+    const ok = await ensureDentsCreusesLayer();
+    if (!ok) return;
+    setDentsCreusesVisibility(isOn);
+    const src = map.getSource('dents-creuses-src');
+    let count = 0;
+    if (src && src._data && src._data.features) count = src._data.features.length;
+    showFiscalToast(isOn
+      ? 'Dents creuses : ' + count + ' parcelle(s) potentielle(s) affichee(s) en jaune ambre.'
+      : 'Couche dents creuses desactivee.');
+  }
+
+  // Expose pour le bouton "Simuler densification" dans le popup
+  window.openSimulatorOnParcel = function (parcelId) {
+    try {
+      if (window.kciFiscalSimulateur && typeof window.kciFiscalSimulateur.openForParcelle === 'function') {
+        window.kciFiscalSimulateur.openForParcelle(parcelId);
+        return;
+      }
+    } catch (e) { /* fallback */ }
+    if (typeof enableSimulatorMode === 'function') {
+      enableSimulatorMode();
+      showFiscalToast('Module simulateur requalification active. Cliquez sur la parcelle cible sur la carte.');
+    } else {
+      showFiscalToast('Module simulateur en chargement, reessayez dans quelques secondes.');
+    }
+  };
+
+  // ─── TOAST UTILITAIRE ───
+  function showFiscalToast(msg, isError) {
+    let toast = document.getElementById('fiscalToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'fiscalToast';
+      toast.style.cssText = "position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#0a1929;border:1px solid #d4af37;color:#d4af37;padding:10px 18px;border-radius:6px;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:12px;z-index:6000;box-shadow:0 6px 20px rgba(0,0,0,.4);max-width:480px;text-align:center;transition:opacity .25s,transform .25s";
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    if (isError) { toast.style.borderColor = '#e74c3c'; toast.style.color = '#e74c3c'; }
+    else { toast.style.borderColor = '#d4af37'; toast.style.color = '#d4af37'; }
+    toast.style.opacity = '1';
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(8px)';
+    }, 3500);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // DASHBOARD ZONES PLU
+  // ═══════════════════════════════════════════════════════
+  async function openFiscalDashboard() {
+    const modal = document.getElementById('fiscalDashboardModal');
+    modal.classList.add('open');
+    const { aggreg } = await loadFiscalData();
+    if (!aggreg) {
+      document.getElementById('fiscalDashboardNote').innerHTML =
+        '<span style="color:#e74c3c">Données indisponibles. Vérifier ' + FISCAL_AGGREG_URL + '</span>';
+      return;
+    }
+    renderFiscalChart(aggreg);
+    renderFiscalTable(aggreg);
+  }
+
+  function closeFiscalDashboard() {
+    document.getElementById('fiscalDashboardModal').classList.remove('open');
+  }
+
+  function renderFiscalChart(aggreg) {
+    const ctx = document.getElementById('fiscalChart').getContext('2d');
+    const labels = Object.keys(aggreg.zones).map(z =>
+      z + ' — ' + aggreg.zones[z].libelle.split('(')[0].trim()
+    );
+    const tfb = Object.values(aggreg.zones).map(z => z.tfb_estimee_eur || 0);
+    const tfnb = Object.values(aggreg.zones).map(z => z.tfnb_estimee_eur || 0);
+    if (fiscalChart) fiscalChart.destroy();
+    if (typeof Chart === 'undefined') {
+      ctx.canvas.parentNode.innerHTML = '<div style="color:#e67e22;font-size:12px;padding:20px;text-align:center">Chart.js non chargé. Veuillez vérifier votre connexion.</div>';
+      return;
+    }
+    fiscalChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'TFB estimée (€)', data: tfb, backgroundColor: 'rgba(212,175,55,0.7)', borderColor: '#d4af37', borderWidth: 1 },
+          { label: 'TFNB estimée (€)', data: tfnb, backgroundColor: 'rgba(46,204,113,0.6)', borderColor: '#2ecc71', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#ddd', font: { family: 'IBM Plex Sans' } } },
+          tooltip: {
+            callbacks: { label: c => c.dataset.label + ' : ' + fmtEur(c.parsed.y) }
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#999', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: '#999', callback: v => fmtEur(v) }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
+  }
+
+  function renderFiscalTable(aggreg) {
+    const tbody = document.querySelector('#fiscalTable tbody');
+    tbody.innerHTML = '';
+    Object.entries(aggreg.zones).forEach(([key, z]) => {
+      const tfTotal = (z.tfb_estimee_eur || 0) + (z.tfnb_estimee_eur || 0);
+      const tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><strong>' + key + '</strong> ' + (z.libelle.split('(')[0].trim()) + '</td>' +
+        '<td>' + (z.nb_parcelles || 0).toLocaleString('fr-FR') + '</td>' +
+        '<td class="gold">' + fmtEur(tfTotal) + '</td>' +
+        '<td>' + fmtEur(z.cfe_estimee_eur) + '</td>' +
+        '<td class="green">' + fmtEur(z.potentiel_densification_estime_eur) + '</td>';
+      tbody.appendChild(tr);
+    });
+    // Ligne total
+    const synth = aggreg.synthese_par_zone;
+    if (synth) {
+      const trT = document.createElement('tr');
+      trT.style.background = 'rgba(212,175,55,0.08)';
+      trT.style.fontWeight = '700';
+      trT.innerHTML =
+        '<td>TOTAL commune</td>' +
+        '<td>' + (synth.total_parcelles || 0).toLocaleString('fr-FR') + '</td>' +
+        '<td class="gold">' + fmtEur((synth.total_tfb_estimee_eur || 0) + (synth.total_tfnb_estimee_eur || 0)) + '</td>' +
+        '<td>' + fmtEur(synth.total_cfe_estimee_eur) + '</td>' +
+        '<td class="green">' + fmtEur(synth.total_potentiel_densification_eur) + '</td>';
+      tbody.appendChild(trT);
+    }
+  }
+
+  async function exportDashboardPDF() {
+    showFiscalToast('Génération du PDF dashboard…');
+    if (typeof window.jspdf === 'undefined') {
+      showFiscalToast('jsPDF non chargé. Capture impossible.', true);
+      return;
+    }
+    try {
+      const target = document.querySelector('#fiscalDashboardModal .fiscal-modal');
+      const canvas = await html2canvas(target, { backgroundColor: '#0a1929', scale: 2 });
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const w = pdf.internal.pageSize.getWidth();
+      const h = (canvas.height * w) / canvas.width;
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, w, Math.min(h, 297));
+      pdf.save('KCI_dashboard_fiscal_baie-mahault_' + Date.now() + '.pdf');
+      showFiscalToast('PDF dashboard téléchargé.');
+    } catch (e) {
+      showFiscalToast('Erreur export : ' + e.message, true);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // SIMULATEUR REQUALIFICATION
+  // ═══════════════════════════════════════════════════════
+  function enableSimulatorMode() {
+    if (simulatorActive) return;
+    simulatorActive = true;
+    document.getElementById('simBanner').classList.add('open');
+    document.body.classList.add('sim-mode');
+    document.getElementById('btnSimulator').classList.add('active-sim');
+    document.getElementById('btnSimulator').textContent = 'Simulateur actif — cliquez sur la carte';
+    map.getCanvas().style.cursor = 'crosshair';
+
+    simClickHandler = async (e) => {
+      // Détection section (proxy similaire au fallback popup)
+      let sectionGuess = 'AB';
+      const features = map.queryRenderedFeatures(e.point);
+      for (const f of features) {
+        if (f.properties && (f.properties.section || f.properties.idu)) {
+          const s = (f.properties.section || f.properties.idu || '').toString().toUpperCase();
+          const m = s.match(/^([A-Z]{1,2})/);
+          if (m) { sectionGuess = m[1]; break; }
+        }
+      }
+      await openSimulatorScenarios(sectionGuess, e.lngLat);
+    };
+    map.on('click', simClickHandler);
+  }
+
+  function disableSimulatorMode() {
+    simulatorActive = false;
+    document.getElementById('simBanner').classList.remove('open');
+    document.body.classList.remove('sim-mode');
+    document.getElementById('btnSimulator').classList.remove('active-sim');
+    document.getElementById('btnSimulator').textContent = 'Simulateur "Et si on requalifiait ?"';
+    map.getCanvas().style.cursor = '';
+    if (simClickHandler) {
+      map.off('click', simClickHandler);
+      simClickHandler = null;
+    }
+  }
+
+  async function openSimulatorScenarios(section, lngLat) {
+    const { data } = await loadFiscalData();
+    const sec = data && data.sections_cadastrales && data.sections_cadastrales[section];
+    const tauxTFB = data && data.taux_communaux_2023 ? data.taux_communaux_2023.tfb_taux_communal : 22.4;
+    const tauxCFE = data && data.taux_communaux_2023 ? data.taux_communaux_2023.cfe_taux_communal : 26.8;
+    const vlBase = sec ? sec.valeur_locative_cadastrale_moyenne_eur : 1500;
+
+    const scenarios = [
+      {
+        titre: 'Maison individuelle 100 m²',
+        detail: 'Construction R+0 / R+1 sur parcelle de 400 m². Pavillon résidentiel standard.',
+        gain: Math.round(vlBase * 0.7 * tauxTFB / 100)
+      },
+      {
+        titre: 'Collectif R+2 (8 logts)',
+        detail: 'Petit collectif 8 logements, 600 m² SHON. VL multipliée x4 vs maison standard.',
+        gain: Math.round(vlBase * 2.5 * tauxTFB / 100)
+      },
+      {
+        titre: 'Commerce 200 m²',
+        detail: 'Local commercial pied d\'immeuble. TFB + CFE assujettie (pro).',
+        gain: Math.round(vlBase * 0.9 * tauxTFB / 100 + vlBase * 0.6 * tauxCFE / 100)
+      }
+    ];
+
+    document.getElementById('simContextLine').innerHTML =
+      'Section <strong style="color:#d4af37">' + section + '</strong> — ' +
+      (sec ? sec.libelle : 'libellé inconnu') +
+      ' — VL moyenne section : <strong>' + fmtEur(vlBase) + '</strong>' +
+      ' — Coordonnées : ' + lngLat.lng.toFixed(5) + ', ' + lngLat.lat.toFixed(5);
+
+    const wrap = document.getElementById('simScenarios');
+    wrap.innerHTML = '';
+    scenarios.forEach(s => {
+      const card = document.createElement('div');
+      card.className = 'sim-card';
+      card.innerHTML =
+        '<h4>' + s.titre + '</h4>' +
+        '<div class="scenar-detail">' + s.detail + '</div>' +
+        '<div class="scenar-gain-label">Gain annuel estimé</div>' +
+        '<div class="scenar-gain">+' + fmtEur(s.gain) + '</div>';
+      wrap.appendChild(card);
+    });
+    document.getElementById('fiscalSimModal').classList.add('open');
+  }
+
+  function closeSimulatorScenarios() {
+    document.getElementById('fiscalSimModal').classList.remove('open');
+  }
+
+  // ═══════════════════════════════════════════════════════
+  // EXPORT PDF DOB
+  // ═══════════════════════════════════════════════════════
+  function openExportDOB() {
+    // Sync select panel <-> modal
+    const sel = document.getElementById('quartierSelect');
+    const selModal = document.getElementById('quartierSelectModal');
+    if (sel && selModal) selModal.value = sel.value;
+    document.getElementById('fiscalExportModal').classList.add('open');
+  }
+  function closeExportDOB() {
+    document.getElementById('fiscalExportModal').classList.remove('open');
+    document.getElementById('dobLoader').classList.remove('show');
+    document.getElementById('btnGenerateDOB').disabled = false;
+  }
+
+  async function generateDOBPDF() {
+    const loader = document.getElementById('dobLoader');
+    const btn = document.getElementById('btnGenerateDOB');
+    loader.classList.add('show');
+    btn.disabled = true;
+
+    if (window.kciFiscalExportDOB && typeof window.kciFiscalExportDOB.generate === 'function') {
+      // Délègue au module officiel agent 2
+      try {
+        const quartier = document.getElementById('quartierSelectModal').value;
+        await window.kciFiscalExportDOB.generate({ quartier });
+        showFiscalToast('PDF DOB généré.');
+      } catch (e) {
+        showFiscalToast('Erreur export DOB : ' + e.message, true);
+      }
+      loader.classList.remove('show');
+      btn.disabled = false;
+      return;
+    }
+
+    // Fallback : génération minimale via jsPDF + données locales
+    try {
+      const { data, aggreg } = await loadFiscalData();
+      const quartier = document.getElementById('quartierSelectModal').value;
+      const quartierLabel = document.getElementById('quartierSelectModal').options[
+        document.getElementById('quartierSelectModal').selectedIndex
+      ].text;
+
+      if (typeof window.jspdf === 'undefined') {
+        showFiscalToast('jsPDF non chargé.', true);
+        loader.classList.remove('show'); btn.disabled = false; return;
+      }
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const W = pdf.internal.pageSize.getWidth();
+
+      // ── Page 1 : Synthèse ──
+      pdf.setFillColor(10, 25, 41); pdf.rect(0, 0, W, 297, 'F');
+      pdf.setTextColor(212, 175, 55);
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(20);
+      pdf.text('Pré-budget DOB 2026', 20, 30);
+      pdf.setFontSize(12); pdf.setTextColor(255, 255, 255);
+      pdf.text('Commune de Baie-Mahault — 97103', 20, 40);
+      pdf.setFontSize(10); pdf.setTextColor(180, 180, 180);
+      pdf.text('Quartier : ' + quartierLabel, 20, 48);
+      pdf.text('Date : ' + new Date().toLocaleDateString('fr-FR'), 20, 54);
+
+      pdf.setDrawColor(212, 175, 55); pdf.setLineWidth(0.5);
+      pdf.line(20, 60, W - 20, 60);
+
+      pdf.setTextColor(212, 175, 55); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(13);
+      pdf.text('Synthèse des recettes fiscales', 20, 72);
+      pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+      const rec = data && data.commune_recettes_2023 ? data.commune_recettes_2023 : {};
+      const lines = [
+        '• TFB produit brut 2023 : ' + fmtEur(rec.tfb_produit_brut),
+        '• TFNB produit brut 2023 : ' + fmtEur(rec.tfnb_produit_brut),
+        '• CFE produit brut 2023 : ' + fmtEur(rec.cfe_produit_brut),
+        '• Taxe d\'aménagement : ' + fmtEur(rec.taxe_amenagement),
+        '• Total recettes fiscales immo : ' + fmtEur(rec.total_recettes_fiscales_immo)
+      ];
+      lines.forEach((l, i) => pdf.text(l, 22, 84 + i * 7));
+
+      pdf.setTextColor(212, 175, 55); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(13);
+      pdf.text('Alertes & opportunités', 20, 132);
+      pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+      const synth = aggreg && aggreg.synthese_par_zone ? aggreg.synthese_par_zone : {};
+      const alertes = [
+        '• Potentiel densification total : ' + fmtEur(synth.total_potentiel_densification_eur),
+        '• Parcelles non bâties identifiées : ' + (synth.total_non_baties || 0).toLocaleString('fr-FR'),
+        '• Sous-fiscalisation détectée — voir cartographie p.2'
+      ];
+      alertes.forEach((l, i) => pdf.text(l, 22, 144 + i * 7));
+
+      pdf.setTextColor(120, 120, 120); pdf.setFontSize(8);
+      pdf.text('Karukera Conseil Immobilier — contact@karukera-conseil.com', 20, 285);
+      pdf.text('Page 1 / 4', W - 30, 285);
+
+      // ── Page 2 : Cartographie (capture map) ──
+      pdf.addPage();
+      pdf.setFillColor(10, 25, 41); pdf.rect(0, 0, W, 297, 'F');
+      pdf.setTextColor(212, 175, 55); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
+      pdf.text('Cartographie zones PLU', 20, 25);
+      try {
+        // Capture map canvas
+        const mapCanvas = map.getCanvas();
+        const dataURL = mapCanvas.toDataURL('image/png');
+        pdf.addImage(dataURL, 'PNG', 15, 35, W - 30, 180);
+      } catch (e) {
+        pdf.setTextColor(200, 200, 200); pdf.setFontSize(10);
+        pdf.text('Capture cartographique non disponible : ' + e.message, 20, 45);
+      }
+      pdf.setTextColor(120, 120, 120); pdf.setFontSize(8);
+      pdf.text('Sources : DGFIP open data, KaruGéo, IGN. © KCI 2026.', 20, 285);
+      pdf.text('Page 2 / 4', W - 30, 285);
+
+      // ── Page 3 : Tableau zones ──
+      pdf.addPage();
+      pdf.setFillColor(10, 25, 41); pdf.rect(0, 0, W, 297, 'F');
+      pdf.setTextColor(212, 175, 55); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
+      pdf.text('Détail par zone PLU', 20, 25);
+      pdf.setFont('helvetica', 'bold'); pdf.setFontSize(9); pdf.setTextColor(212, 175, 55);
+      pdf.text('Zone', 20, 40); pdf.text('Parcelles', 60, 40); pdf.text('TFB+TFNB', 95, 40);
+      pdf.text('CFE', 130, 40); pdf.text('Potentiel', 160, 40);
+      pdf.setDrawColor(212, 175, 55); pdf.line(20, 42, W - 20, 42);
+      pdf.setFont('helvetica', 'normal'); pdf.setFontSize(9); pdf.setTextColor(255, 255, 255);
+      let y = 50;
+      if (aggreg && aggreg.zones) {
+        Object.entries(aggreg.zones).forEach(([key, z]) => {
+          pdf.text(key, 20, y);
+          pdf.text(String(z.nb_parcelles || 0), 60, y);
+          pdf.text(fmtEur((z.tfb_estimee_eur || 0) + (z.tfnb_estimee_eur || 0)), 95, y);
+          pdf.text(fmtEur(z.cfe_estimee_eur), 130, y);
+          pdf.text(fmtEur(z.potentiel_densification_estime_eur), 160, y);
+          y += 8;
+        });
+      }
+      pdf.setTextColor(120, 120, 120); pdf.setFontSize(8);
+      pdf.text('Page 3 / 4', W - 30, 285);
+
+      // ── Page 4 : Préconisations ──
+      pdf.addPage();
+      pdf.setFillColor(10, 25, 41); pdf.rect(0, 0, W, 297, 'F');
+      pdf.setTextColor(212, 175, 55); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(16);
+      pdf.text('Préconisations & leviers fiscaux', 20, 25);
+      pdf.setTextColor(255, 255, 255); pdf.setFont('helvetica', 'normal'); pdf.setFontSize(10);
+      const reco = [
+        '1. Densification des dents creuses en zone U (potentiel ~1,85 M€)',
+        '2. Activation des zones 1AU via PUP/ZAC (potentiel ~850 k€)',
+        '3. Révision VL des sections sous-évaluées (carte sous-fisc)',
+        '4. Croisement dataset interne mairie pour affiner les estimations',
+        '5. Suivi annuel des établissements CFE non déclarés (SIRENE x SIG)'
+      ];
+      reco.forEach((l, i) => {
+        const txt = pdf.splitTextToSize(l, W - 40);
+        pdf.text(txt, 22, 40 + i * 14);
+      });
+      pdf.setTextColor(212, 175, 55); pdf.setFontSize(10); pdf.setFont('helvetica', 'italic');
+      pdf.text('Karukera Conseil Immobilier — Topo3D Antilles', 20, 270);
+      pdf.setTextColor(180, 180, 180); pdf.setFontSize(9); pdf.setFont('helvetica', 'normal');
+      pdf.text('contact@karukera-conseil.com', 20, 276);
+      pdf.setTextColor(120, 120, 120); pdf.setFontSize(8);
+      pdf.text('Page 4 / 4', W - 30, 285);
+
+      pdf.save('KCI_DOB_baie-mahault_' + quartier + '_' + Date.now() + '.pdf');
+      showFiscalToast('PDF DOB téléchargé.');
+    } catch (e) {
+      console.error(e);
+      showFiscalToast('Erreur génération PDF : ' + e.message, true);
+    }
+    loader.classList.remove('show');
+    btn.disabled = false;
+  }
+
+  // ─── EXPOSE API publique ───
+  window.openFiscalDashboard = openFiscalDashboard;
+  window.closeFiscalDashboard = closeFiscalDashboard;
+  window.exportDashboardPDF = exportDashboardPDF;
+  window.enableSimulatorMode = enableSimulatorMode;
+  window.disableSimulatorMode = disableSimulatorMode;
+  window.closeSimulatorScenarios = closeSimulatorScenarios;
+  window.openExportDOB = openExportDOB;
+  window.closeExportDOB = closeExportDOB;
+  window.generateDOBPDF = generateDOBPDF;
+
+  // Précharge silencieuse au démarrage
+  setTimeout(loadFiscalData, 1500);
+})();
+</script>
+</body>
+</html>

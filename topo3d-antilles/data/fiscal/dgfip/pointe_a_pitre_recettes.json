@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "commune": "Pointe-à-Pitre",
+    "insee": "97120",
+    "annee": 2024,
+    "source": "TEMPLATE — DGFIP open data",
+    "schema": "parcelle -> recette TFB+TFNB+CFE"
+  },
+  "parcelles": []
+}

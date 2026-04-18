@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "commune": "Baie-Mahault",
+    "insee": "97103",
+    "annee": 2024,
+    "source": "TEMPLATE — DGFIP open data",
+    "schema": "parcelle -> recette TFB+TFNB+CFE"
+  },
+  "parcelles": []
+}

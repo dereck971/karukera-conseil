@@ -60,6 +60,7 @@ EPCI_LABELS = {
     "CARL":  "Communaute d'agglomeration de la Riviera du Levant",
     "CAGSC": "Communaute d'agglomeration Grand Sud Caraibe",
     "CACE":  "Communaute d'agglomeration Cap Excellence",
+    "CAPEX": "Communaute d'agglomeration Cap Excellence",
     "CCMG":  "Communaute de communes de Marie-Galante",
 }
 
@@ -181,9 +182,9 @@ def rewrite_html(template_html: str, ctx: dict) -> str:
         f'<div class="section-title">PPRN {name} (officiel)</div>'
     )
 
-    # 5) Footer commune + EPCI
+    # 5) Footer commune + EPCI + Maire (full line, tolerant au suffixe maire du template)
     h = re.sub(
-        r"Commune de Petit-Bourg — 97118 — EPCI : CANBT \(Communauté d'agglomération du Nord Basse-Terre\)",
+        r"Commune de Petit-Bourg — 97118 — EPCI : CANBT \(Communauté d'agglomération du Nord Basse-Terre\)(?: — Maire : [^<\n]+?)?(?=<br>|<)",
         f"Commune de {name} — {insee} — EPCI : {epci} ({epci_full}) — Maire : {maire}",
         h
     )

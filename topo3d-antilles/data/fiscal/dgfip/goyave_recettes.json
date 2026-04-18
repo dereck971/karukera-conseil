@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "commune": "Goyave",
+    "insee": "97114",
+    "annee": 2024,
+    "source": "TEMPLATE — DGFIP open data",
+    "schema": "parcelle -> recette TFB+TFNB+CFE"
+  },
+  "parcelles": []
+}

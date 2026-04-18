@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "commune": "Les Abymes",
+    "insee": "97101",
+    "annee": 2024,
+    "source": "TEMPLATE — DGFIP open data",
+    "schema": "parcelle -> recette TFB+TFNB+CFE"
+  },
+  "parcelles": []
+}
